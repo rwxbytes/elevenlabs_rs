@@ -1,0 +1,18 @@
+[package]
+name = "elevenlabs"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+async-native-tls = { version = "0.5.0", default-features = false, features = ["runtime-tokio"] }
+comparable = { version = "0.5.4", features = ["derive"] }
+futures-util = "0.3.28"
+http-body-util = "0.1.0-rc.3"
+hyper = { version = "1.0.0-rc.4", features = ["full"] }
+pin-project-lite = "0.2.10"
+serde = { version = "1.0.173", features = ["derive"] }
+serde_json = "1.0.103"
+thiserror = "1.0.43"
+tokio = { version = "1.29.1", features = ["full"] }
