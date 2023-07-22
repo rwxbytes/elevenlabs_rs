@@ -2,6 +2,7 @@ use std::fs;
 
 use comparable::Comparable;
 use elevenlabs::api::models::{parse_models_resp, Model};
+use elevenlabs::error::Error;
 
 #[test]
 fn parse_models_resp_is_parsing_all_model_json_objs() {
@@ -17,6 +18,7 @@ fn parse_models_resp_is_parsing_all_model_json_objs() {
     let got = &models[0];
 
     let identity = want.comparison(&got);
+
     if !identity.is_unchanged() {
         panic!("{:?}", identity)
     }
@@ -34,5 +36,16 @@ fn parse_models_resp_is_parsing_all_model_json_objs() {
 
     if !identity.is_unchanged() {
         panic!("{:?}", identity)
+    }
+}
+
+#[test]
+fn parse_models_resp_is_returning_invalid_api_response_error_when_given_invalid_json() {
+    let data =
+        fs::read_to_string("tests/testdata/models_invalid.json").expect("reading models.json");
+    let models: Result<Vec<Model>, _> = parse_models_resp(&data);
+
+    if !models.is_err() {
+        panic!("parse_models_resp should return an error when given invalid json")
     }
 }
