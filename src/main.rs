@@ -3,19 +3,19 @@ use http_body_util::{BodyExt, Empty};
 use hyper::{body::Bytes, Request};
 use std::env;
 use tokio::{
-    io::{stdout, AsyncWriteExt as _},
+    fs::{read_to_string, File},
+    io::{AsyncWriteExt as _, BufWriter},
     net::TcpStream,
 };
 
-//#[path = "../../support/mod.rs"]
-//mod support;
-
-use elevenlabs::support::TokioIo;
+use elevenlabs::api::models;
+use elevenlabs::support::*;
 
 #[tokio::main]
 async fn main() -> Result<()> {
     const BASE_URL_V1: &str = "https://api.elevenlabs.io/v1/models";
-    let apikey = env::var("ELEVENLABS_API_KEY").expect("ELEVEN_API_KEY is set");
+    let apikey = env::var("ELEVEN_API_KEY").expect("ELEVEN_API_KEY is set");
+    // let models = models::get_models().await?;
 
     let url = BASE_URL_V1.parse::<hyper::Uri>()?;
 
@@ -41,6 +41,7 @@ async fn main() -> Result<()> {
         .authority()
         .expect("authority() is getting authority from url")
         .clone();
+    dbg!(authourity.as_str());
 
     let req = Request::builder()
         .uri(url)
@@ -53,12 +54,19 @@ async fn main() -> Result<()> {
 
     println!("request: {:?}", res.status());
 
+    let f = File::create("foo.txt").await?;
+    let mut writer = BufWriter::new(f);
+
     while let Some(next) = res.frame().await {
         let frame = next?;
         if let Some(chunk) = frame.data_ref() {
-            stdout().write_all(&chunk).await?;
+            writer.write_all(&chunk).await?;
         }
+        writer.flush().await?;
     }
+    let data = read_to_string("foo.txt").await?;
+    let models: Vec<models::Model> = models::parse_models_resp(&data)?;
+    println!("{:#?}", models);
 
     Ok(())
 }

@@ -1,8 +1,13 @@
-use crate::error::Error;
-use crate::prelude::*;
+use crate::{
+    api::{Client, ClientBuilder},
+    error::Error,
+    prelude::*,
+};
 use comparable::*;
 use serde::{Deserialize, Serialize};
-use serde_json::{self, json};
+
+const GET: &str = "GET";
+const PATH: &str = "/models";
 
 #[derive(Debug, Serialize, Deserialize, Clone, Comparable)]
 pub struct Model {
@@ -10,6 +15,22 @@ pub struct Model {
     pub name: String,
     pub description: String,
     pub token_cost_factor: f64,
+}
+
+pub fn build_models_client() -> Result<Client> {
+    let mut cb = ClientBuilder::new()?;
+    let c = cb
+        .path(PATH)?
+        .method(GET)?
+        .header("ACCEPT", "application/json")?
+        .build()?;
+    Ok(c)
+}
+
+pub fn get_models() -> Result<Vec<Model>> {
+    let c = build_models_client()?;
+    // let req = c.build_request()?;
+    todo!()
 }
 
 pub fn parse_models_resp(data: &str) -> Result<Vec<Model>> {
