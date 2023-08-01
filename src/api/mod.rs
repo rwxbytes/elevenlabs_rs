@@ -1,6 +1,7 @@
 pub mod history;
 pub mod models;
 pub mod samples;
+pub mod user;
 pub mod voice;
 
 use crate::error::Error;
