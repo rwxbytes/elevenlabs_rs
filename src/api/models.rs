@@ -4,7 +4,10 @@ use crate::{
     prelude::*,
 };
 use comparable::*;
+use http_body_util::Empty;
+use hyper::body::Bytes;
 use serde::{Deserialize, Serialize};
+use tokio::fs::read_to_string;
 
 const GET: &str = "GET";
 const PATH: &str = "/models";
@@ -18,7 +21,7 @@ pub struct Model {
 }
 
 pub fn build_models_client() -> Result<Client> {
-    let mut cb = ClientBuilder::new()?;
+    let cb = ClientBuilder::new()?;
     let c = cb
         .path(PATH)?
         .method(GET)?
@@ -27,11 +30,13 @@ pub fn build_models_client() -> Result<Client> {
     Ok(c)
 }
 
-pub fn get_models() -> Result<Vec<Model>> {
-    let c = build_models_client()?;
-    // let req = c.build_request()?;
-    todo!()
-}
+//pub async fn get_models() -> Result<Vec<Model>> {
+//    let c = build_models_client()?;
+//    let path = c.send_request(Empty::<Bytes>::new()).await?;
+//    let data = read_to_string(path.unwrap()).await?;
+//    let models: Vec<Model> = parse_models_resp(&data)?;
+//    Ok(models)
+//}
 
 pub fn parse_models_resp(data: &str) -> Result<Vec<Model>> {
     let models_resp: serde_json::Value = serde_json::from_str(data)?;

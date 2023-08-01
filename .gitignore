@@ -1,2 +1,5 @@
 /target
 /Cargo.lock
+/.vscode
+/screen_shots
+/user_stories.txt

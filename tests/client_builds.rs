@@ -1,4 +1,8 @@
+use bytes::buf::Buf;
 use elevenlabs::api::models::build_models_client;
+//use http_body::Body;
+use http_body_util::{BodyExt, Empty};
+use hyper::body::{Body, Bytes};
 
 #[test]
 fn client_builders_new_errs_when_env_var_is_not_set() {
@@ -32,4 +36,24 @@ fn build_models_client_is_returning_a_client_with_models_endpoint_config() {
     assert_eq!(want, got);
 
     assert_eq!(c.headers.get("ACCEPT").unwrap(), "application/json");
+}
+
+// Learn how to test this
+//#[test]
+//fn clients_build_request_is_returning_a_request_for_models_get_endpoint() {
+//    let c = build_models_client()
+//        .expect("build_models_client is returning a client with models config");
+//    let req = c
+//        .build_request(Empty::<Bytes>::new())
+//        .expect("build_request is returning a request");
+//    let b = req.body();
+//}
+
+#[test]
+fn clients_format_address_is_returning_an_okay_string_with_host_and_port_set_to_443() {
+    let c = build_models_client()
+        .expect("build_models_client is returning a client with models config");
+    let want = "api.elevenlabs.io:443".to_string();
+    let got = c.format_address();
+    assert_eq!(want, got);
 }

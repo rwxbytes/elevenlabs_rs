@@ -2,7 +2,6 @@ use std::fs;
 
 use comparable::Comparable;
 use elevenlabs::api::models::{parse_models_resp, Model};
-use elevenlabs::error::Error;
 
 #[test]
 fn parse_models_resp_is_parsing_all_model_json_objs() {
