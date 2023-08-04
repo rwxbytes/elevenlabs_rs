@@ -1,5 +1,4 @@
-use elevenlabs::api::*;
-use elevenlabs::prelude::*;
+use elevenlabs_rs::prelude::*;
 
 #[tokio::main]
 async fn main() -> Result<()> {

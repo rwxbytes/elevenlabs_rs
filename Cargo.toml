@@ -1,7 +1,7 @@
 [package]
-name = "elevenlabs"
+name = "elevenlabs_rs"
 version = "0.1.0"
-authors = ["rwxbytes <rwxbytes@proton.me> "]
+authors = ["rwxbytes <rwxbytes@proton.me>"]
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -24,4 +24,3 @@ serde_bytes = "0.11.12"
 serde_json = "1.0.103"
 thiserror = "1.0.43"
 tokio = { version = "1.29.1", features = ["full"] }
-uuid = { version = "1.4.1", features = ["v4"] }

@@ -1,4 +1,4 @@
-use crate::{api::ClientBuilder, error::Error, prelude::*};
+use crate::{api::ClientBuilder, prelude::*};
 use http_body_util::Empty;
 use hyper::body::Bytes;
 
@@ -20,7 +20,35 @@ const DELTE: &str = "DELETE";
 //    }
 //}
 
-pub async fn get_audio_sample(voice_id: &str, sample_id: &str) -> Result<()> {
+/// Get the audio sample for a specific voice
+///
+/// # Example
+///
+/// ```no_run
+///
+///use elevenlabs_rs::api::samples::get_audio_sample;
+///use elevenlabs_rs::api::voice::*;
+///use elevenlabs_rs::prelude::*;
+///use elevenlabs_rs::utils::save;
+///
+///
+///#[tokio::main]
+///async fn main() -> Result<()> {
+///    let v = get_voices().await?;
+///    let cloned_voices = v.all_clones();
+///    let voice = cloned_voices[0].clone();
+///    let sample = get_audio_sample(
+///        &voice.voice_id,
+///        &voice.samples.unwrap()[0].clone().sample_id,
+///    )
+///    .await?;
+///
+///    let _saved_file = save("sample_test.mp3", sample)?;
+///    Ok(())
+///}
+///
+/// ```
+pub async fn get_audio_sample(voice_id: &str, sample_id: &str) -> Result<Bytes> {
     let path = format!("/voices/{}/samples/{}/audio", voice_id, sample_id);
     let cb = ClientBuilder::new()?;
     let c = cb
@@ -28,8 +56,8 @@ pub async fn get_audio_sample(voice_id: &str, sample_id: &str) -> Result<()> {
         .method(GET)?
         .header("ACCEPT", "audio/*")?
         .build()?;
-    let _path = c.send_request(Empty::<Bytes>::new()).await?;
-    Ok(())
+    let data = c.send_request(Empty::<Bytes>::new()).await?;
+    Ok(data)
 }
 
 pub async fn delete_audio_sample(voice_id: &str, sample_id: &str) -> Result<()> {
@@ -40,6 +68,6 @@ pub async fn delete_audio_sample(voice_id: &str, sample_id: &str) -> Result<()> 
         .method(DELTE)?
         .header("ACCEPT", "application/json")?
         .build()?;
-    let _path = c.send_request(Empty::<Bytes>::new()).await?;
+    let _data = c.send_request(Empty::<Bytes>::new()).await?;
     Ok(())
 }

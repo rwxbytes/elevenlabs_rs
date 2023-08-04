@@ -1,36 +1,27 @@
 pub mod history;
 pub mod models;
 pub mod samples;
+pub mod tts;
 pub mod user;
 pub mod voice;
 
 use crate::error::Error;
 use crate::prelude::*;
 use crate::support::*;
-use bytes::Buf;
-use http_body_util::{BodyExt, Empty};
+use http_body_util::BodyExt;
 use hyper::{
-    body::{Body, Bytes, Incoming},
+    body::{Body, Bytes},
     client::conn::http1::handshake,
     header::{HeaderMap, HeaderName, HeaderValue},
-    http::{request, uri::PathAndQuery, Response},
     Method, Request, Uri,
 };
-use serde::{Deserialize, Serialize};
-use std::str::EncodeUtf16;
-use std::{
-    env,
-    path::{Path, PathBuf},
-};
+use std::env;
 use tokio::{
-    fs::{read_to_string, File},
     io::{AsyncWriteExt, BufWriter},
     net::TcpStream,
 };
 
-use uuid::Uuid;
-
-const ACCEPT_HEADER: &str = "ACCEPT";
+//const ACCEPT_HEADER: &str = "ACCEPT";
 //const AUTHORITY: HeaderValue = "api.elevenlabs.io";
 const BASE_URL: &str = "https://api.elevenlabs.io";
 //const HOST_HEADER: &str = "HOST";

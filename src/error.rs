@@ -8,11 +8,10 @@ pub enum Error {
     ClientSendRequestError(String),
     #[error("InvalidTimestamp: {0}")]
     InvalidTimestamp(String),
-    #[error("Generic {0}")]
-    Generic(String),
-
-    #[error(transparent)]
-    Io(#[from] std::io::Error),
+    #[error("VoiceNotFound")]
+    VoiceNotFound,
+    #[error("SpeechGenerationError: {0}")]
+    SpeechGenerationError(String),
 }
 
 //#[derive(serde::Deserialize, Debug)]

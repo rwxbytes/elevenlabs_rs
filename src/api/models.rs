@@ -1,8 +1,4 @@
-use crate::{
-    api::{Client, ClientBuilder},
-    error::Error,
-    prelude::*,
-};
+use crate::{api::ClientBuilder, prelude::*};
 use comparable::*;
 use http_body_util::Empty;
 use hyper::body::Bytes;

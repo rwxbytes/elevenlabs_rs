@@ -4,7 +4,7 @@ use crate::{
     prelude::*,
     utils::save,
 };
-use chrono::{DateTime, LocalResult, TimeZone, Utc};
+use chrono::{LocalResult, TimeZone, Utc};
 use comparable::Comparable;
 use http_body_util::{Empty, Full};
 use hyper::body::Bytes;
@@ -81,8 +81,8 @@ impl HistoryItem {
     /// Gets the audio of the history item
     /// # Example
     /// ```
-    /// use elevenlabs::api::history::*;
-    /// use elevenlabs::prelude::*;
+    /// use elevenlabs_rs::api::history::*;
+    /// use elevenlabs_rs::prelude::*;
     ///
     /// #[tokio::main]
     /// async fn main() -> Result<()> {
@@ -103,8 +103,8 @@ impl HistoryItem {
     /// Deletes the history item
     /// # Example
     /// ```
-    /// use elevenlabs::api::history::*;
-    /// use elevenlabs::prelude::*;
+    /// use elevenlabs_rs::api::history::*;
+    /// use elevenlabs_rs::prelude::*;
     ///
     /// #[tokio::main]
     /// async fn main() -> Result<()> {
@@ -124,8 +124,8 @@ impl HistoryItem {
     /// if no filename is provided, it will use [voice_name]_[date_unix].mp3
     /// # Example
     /// ```
-    /// use elevenlabs::api::history::*;
-    /// use elevenlabs::prelude::*;
+    /// use elevenlabs_rs::api::history::*;
+    /// use elevenlabs_rs::prelude::*;
     ///
     /// #[tokio::main]
     /// async fn main() -> Result<()> {
@@ -155,8 +155,8 @@ impl HistoryItem {
     /// Returns the character count change
     /// # Example
     /// ```
-    /// use elevenlabs::api::history::*;
-    /// use elevenlabs::prelude::*;
+    /// use elevenlabs_rs::api::history::*;
+    /// use elevenlabs_rs::prelude::*;
     ///
     /// #[tokio::main]
     /// async fn main() -> Result<()> {
@@ -240,8 +240,8 @@ pub fn build_history_client() -> Result<Client> {
 /// # Example
 ///
 /// ```
-/// use elevenlabs::api::history::*;
-/// use elevenlabs::prelude::*;
+/// use elevenlabs_rs::api::history::*;
+/// use elevenlabs_rs::prelude::*;
 ///
 /// #[tokio::main]
 /// async fn main() -> Result<()> {
