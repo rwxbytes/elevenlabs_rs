@@ -12,7 +12,6 @@ use http_body_util::Full;
 use hyper::body::Bytes;
 use serde::{Deserialize, Serialize};
 
-const POST: &str = "POST";
 const BASE_PATH: &str = "/text-to-speech";
 const STREAM_PATH: &str = "/stream";
 const OPTIMIZE_QUERY: &str = "optimize_streaming_latency";
@@ -74,6 +73,7 @@ pub struct Speech {
 impl Speech {
     /// Generate a new speech from a text, a voice name, a model name and a latency.
     ///
+    ///
     /// # Examples
     /// ```no_run
     ///use elevenlabs_rs::api::tts::Speech;
@@ -114,7 +114,7 @@ impl Speech {
                 "{}/{}{}?{}={}",
                 BASE_PATH, voice.voice_id, STREAM_PATH, OPTIMIZE_QUERY, latency
             ))?
-            .header("ACCEPT", "application/json")?
+            .header(ACCEPT, APPLICATION_JSON)?
             .build()?;
 
         let body = TTSBody {

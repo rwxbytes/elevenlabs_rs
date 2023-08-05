@@ -4,17 +4,16 @@ use crate::{
     prelude::*,
     utils::save,
 };
-use chrono::{LocalResult, TimeZone, Utc};
+use chrono::{Local, LocalResult, TimeZone};
 use comparable::Comparable;
 use http_body_util::{Empty, Full};
 use hyper::body::Bytes;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 
-const GET: &str = "GET";
-const POST: &str = "POST";
-const DELETE: &str = "DELETE";
 const BASE_PATH: &str = "/history";
+const AUDIO_PATH: &str = "/audio";
+const DOWNLOAD_PATH: &str = "/download";
 const PAGE_SIZE_QUERY: &str = "page_size";
 const HISTORY_ITEM_IDS: &str = "history_item_ids";
 const START_AFTER_HISTORY_ITEM_ID_QUERY: &str = "start_after_history_item_id";
@@ -22,6 +21,7 @@ const START_AFTER_HISTORY_ITEM_ID_QUERY: &str = "start_after_history_item_id";
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::api::tts::Speech;
     use std::any::{Any, TypeId};
 
     #[tokio::test]
@@ -35,7 +35,29 @@ mod tests {
     #[tokio::test]
     #[ignore]
     async fn history_items_delete_is_deleting_that_history_item() {
-        todo!()
+        let _speech = Speech::new("test", "Adam", "eleven_monolingual_v1", 4)
+            .await
+            .unwrap();
+
+        let mut h = get_history(Some(1), None).await.unwrap();
+
+        let mut history_item = get_history_item(&h.history[0].history_item_id)
+            .await
+            .unwrap();
+
+        assert_eq!(&history_item.text, "test");
+
+        let _ = delete_history_item(&history_item.history_item_id)
+            .await
+            .unwrap();
+
+        h = get_history(Some(1), None).await.unwrap();
+
+        history_item = get_history_item(&h.history[0].history_item_id)
+            .await
+            .unwrap();
+
+        assert_ne!(&history_item.text, "test");
     }
 
     #[test]
@@ -50,8 +72,8 @@ mod tests {
         assert_eq!(want, got)
     }
     #[test]
-    fn datetime_is_converting_date_unix_to_datetime_with_format_of_dd_mm_yyyy_hh_mm() {
-        let want = "28-07-2023 15:05";
+    fn datetime_is_converting_date_unix_to_a_local_datetime_with_format_of_dd_mm_yyyy_hh_mm() {
+        let want = "28-07-2023 16:05";
         let history_item = HistoryItem {
             date_unix: 1690556729,
             ..Default::default()
@@ -63,24 +85,24 @@ mod tests {
 
 #[derive(Debug, Deserialize, Serialize, Comparable, Clone, Default)]
 pub struct HistoryItem {
-    history_item_id: String,
-    request_id: String,
-    voice_id: String,
-    voice_name: String,
-    text: String,
-    date_unix: i64,
-    character_count_change_from: i64,
-    character_count_change_to: i64,
-    content_type: String,
-    state: String,
-    settings: VoiceSettings,
-    feedback: Option<Feedback>,
+    pub history_item_id: String,
+    pub request_id: String,
+    pub voice_id: String,
+    pub voice_name: String,
+    pub text: String,
+    pub date_unix: i64,
+    pub character_count_change_from: i64,
+    pub character_count_change_to: i64,
+    pub content_type: String,
+    pub state: String,
+    pub settings: VoiceSettings,
+    pub feedback: Option<Feedback>,
 }
 
 impl HistoryItem {
     /// Gets the audio of the history item
     /// # Example
-    /// ```
+    /// ```no_run
     /// use elevenlabs_rs::api::history::*;
     /// use elevenlabs_rs::prelude::*;
     ///
@@ -102,7 +124,7 @@ impl HistoryItem {
 
     /// Deletes the history item
     /// # Example
-    /// ```
+    /// ```no_run
     /// use elevenlabs_rs::api::history::*;
     /// use elevenlabs_rs::prelude::*;
     ///
@@ -121,9 +143,9 @@ impl HistoryItem {
     }
 
     /// Saves the audio of the history item
-    /// if no filename is provided, it will use [voice_name]_[date_unix].mp3
+    /// if no filename is provided, it will use \[voice_name\]_\[date_unix\].mp3
     /// # Example
-    /// ```
+    /// ```no_run
     /// use elevenlabs_rs::api::history::*;
     /// use elevenlabs_rs::prelude::*;
     ///
@@ -154,7 +176,7 @@ impl HistoryItem {
 
     /// Returns the character count change
     /// # Example
-    /// ```
+    /// ```no_run
     /// use elevenlabs_rs::api::history::*;
     /// use elevenlabs_rs::prelude::*;
     ///
@@ -171,9 +193,8 @@ impl HistoryItem {
         self.character_count_change_to - self.character_count_change_from
     }
 
-    // Todo! currently GMT+0000, need to convert to local time
     pub fn datetime(&self) -> Result<String> {
-        let dt = Utc.timestamp_opt(self.date_unix, 0);
+        let dt = Local.timestamp_opt(self.date_unix, 0);
         match dt {
             LocalResult::Single(dt) => Ok(dt.format("%d-%m-%Y %H:%M").to_string()),
             LocalResult::Ambiguous(_, _) => Err(Box::new(Error::InvalidTimestamp(
@@ -226,7 +247,7 @@ pub fn build_history_client() -> Result<Client> {
     let c = cb
         .path(BASE_PATH)?
         .method(GET)?
-        .header("ACCEPT", "application/json")?
+        .header(ACCEPT, APPLICATION_JSON)?
         .build()?;
     Ok(c)
 }
@@ -239,7 +260,8 @@ pub fn build_history_client() -> Result<Client> {
 ///
 /// # Example
 ///
-/// ```
+/// ```no_run
+///
 /// use elevenlabs_rs::api::history::*;
 /// use elevenlabs_rs::prelude::*;
 ///
@@ -251,17 +273,13 @@ pub fn build_history_client() -> Result<Client> {
 ///    // Returns a History with a max of 100 history items that have been recently created
 ///   let h = get_history(None, None).await?;
 ///
-///    // Returns a History with a max of 100 history items
-///    // starting from the point when a particular history item was created
-///    //// Todo! need to find a way to get the history_item_id
-///
+///   Ok(())
+/// }
 /// ```
 pub async fn get_history(
     page_size: Option<usize>,
     start_after_history_item_id: Option<&str>,
 ) -> Result<History> {
-    // a more simpler way 'start_after_history_item.unwrap_or_default()' within format!() returns 500 Internal Server Error
-    // when start_after_history_item is None
     let path_with_query = match (page_size, start_after_history_item_id) {
         (Some(ps), Some(sahi)) => format!(
             "{}?{}={}&{}={}",
@@ -285,33 +303,33 @@ pub async fn get_history(
     let c = cb
         .path(path_with_query)?
         .method(GET)?
-        .header("ACCEPT", "application/json")?
+        .header(ACCEPT, APPLICATION_JSON)?
         .build()?;
-    let data = c.send_request(Empty::<Bytes>::new()).await?;
-    let history: History = serde_json::from_slice(data.as_ref())?;
+    let resp = c.send_request(Empty::<Bytes>::new()).await?;
+    let history: History = serde_json::from_slice(resp.as_ref())?;
     Ok(history)
 }
 
-pub async fn get_history_item(id: impl Into<String>) -> Result<HistoryItem> {
+pub async fn get_history_item(history_item_id: impl Into<String>) -> Result<HistoryItem> {
     let cb = ClientBuilder::new()?;
-    let id = id.into();
+    let id = history_item_id.into();
     let c = cb
         .path(format!("{}/{}", BASE_PATH, id))?
         .method(GET)?
-        .header("ACCEPT", "application/json")?
+        .header(ACCEPT, APPLICATION_JSON)?
         .build()?;
-    let data = c.send_request(Empty::<Bytes>::new()).await?;
-    let history_item: HistoryItem = serde_json::from_slice(data.as_ref())?;
+    let resp = c.send_request(Empty::<Bytes>::new()).await?;
+    let history_item: HistoryItem = serde_json::from_slice(resp.as_ref())?;
     Ok(history_item)
 }
 
-pub async fn get_history_audio_item(id: impl Into<String>) -> Result<Bytes> {
+pub async fn get_history_audio_item(history_item_id: impl Into<String>) -> Result<Bytes> {
     let cb = ClientBuilder::new()?;
-    let id = id.into();
+    let id = history_item_id.into();
     let c = cb
-        .path(format!("{}/{}/audio", BASE_PATH, id))?
+        .path(format!("{}/{}{}", BASE_PATH, id, AUDIO_PATH))?
         .method(GET)?
-        .header("ACCEPT", "audio/mpeg")?
+        .header(ACCEPT, AUDIO_MPEG)?
         .build()?;
     let data = c.send_request(Empty::<Bytes>::new()).await?;
     Ok(data)
@@ -323,7 +341,7 @@ pub async fn delete_history_item(id: impl Into<String>) -> Result<()> {
     let c = cb
         .path(format!("{}/{}", BASE_PATH, id))?
         .method(DELETE)?
-        .header("ACCEPT", "application/json")?
+        .header(ACCEPT, APPLICATION_JSON)?
         .build()?;
     let _data = c.send_request(Empty::<Bytes>::new()).await?;
     Ok(())
@@ -331,16 +349,16 @@ pub async fn delete_history_item(id: impl Into<String>) -> Result<()> {
 
 /// Download one or more history items. If one history item ID is provided,
 /// ElevenLabs returns a single audio file. If more than one history item IDs are provided,
-/// ElevenLabs provide the history items packed into a .zip file.
+/// ElevenLabs provides the history items packed into a .zip file.
 pub async fn download_history_items(ids: Vec<&str>) -> Result<Bytes> {
     let body = json!({
             HISTORY_ITEM_IDS: ids,})
     .to_string();
     let cb = ClientBuilder::new()?;
     let c = cb
-        .path(format!("{}/download", BASE_PATH))?
+        .path(format!("{}{}", BASE_PATH, DOWNLOAD_PATH))?
         .method(POST)?
-        .header("ACCEPT", "application/json")?
+        .header(ACCEPT, APPLICATION_JSON)?
         .build()?;
     let data = c.send_request(Full::<Bytes>::new(body.into())).await?;
     Ok(data)

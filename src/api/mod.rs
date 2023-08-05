@@ -21,10 +21,7 @@ use tokio::{
     net::TcpStream,
 };
 
-//const ACCEPT_HEADER: &str = "ACCEPT";
-//const AUTHORITY: HeaderValue = "api.elevenlabs.io";
 const BASE_URL: &str = "https://api.elevenlabs.io";
-//const HOST_HEADER: &str = "HOST";
 const V1_PATH: &str = "/v1";
 const XI_API_KEY_HEADER: &str = "xi-api-key";
 
@@ -39,7 +36,6 @@ pub struct Client {
 }
 
 impl Client {
-    // Do we need to clone?
     fn build_request<T: Body>(&self, body: T) -> Result<Request<T>> {
         let mut req_builder = Request::builder()
             .uri(self.url.clone())
@@ -76,20 +72,20 @@ impl Client {
             }
         });
         let mut res = sender.send_request(req).await?;
-        // Test: Perhaps enum for all possible status codes?
         if res.status() != 200 {
             dbg!(res.status());
+            let w = Vec::new();
+            let mut writer = BufWriter::new(w);
             while let Some(next) = res.frame().await {
                 let frame = next?;
                 if let Some(chunk) = frame.data_ref() {
-                    tokio::io::stderr().write_all(&chunk).await?;
+                    writer.write_all(&chunk).await?;
                 }
-                println!()
+                writer.flush().await?;
             }
+            let err_value = serde_json::from_slice::<serde_json::Value>(&writer.into_inner())?;
 
-            return Err(Box::new(Error::ClientSendRequestError(
-                "response status is not 200".to_string(),
-            )));
+            return Err(Box::new(Error::ClientSendRequestError(err_value)));
         }
         let w = Vec::new();
         let mut writer = BufWriter::new(w);
@@ -101,41 +97,6 @@ impl Client {
             writer.flush().await?;
         }
         Ok(Bytes::from(writer.into_inner()))
-
-        //match (&self.method, Endpoint::try_from(self.url.path())?) {
-        //    (&Method::GET, Endpoint::V1Models)
-        //    | (&Method::DELETE, Endpoint::V1DeleteSample)
-        //    | (&Method::GET, Endpoint::V1History)
-        //    | (&Method::GET, Endpoint::V1HistoryItem) => process_response_with_temp_file(res).await,
-        //    (&Method::GET, Endpoint::V1HistoryAudioItem)
-        //    | (&Method::GET, Endpoint::V1AudioSample)
-        //    | (&Method::POST, Endpoint::V1DownloadHistoryItem) => {
-        //        let mut f = Vec::new();
-        //        let mut writer = BufWriter::new(f);
-        //        while let Some(next) = res.frame().await {
-        //            let frame = next?;
-        //            if let Some(chunk) = frame.data_ref() {
-        //                writer.write_all(&chunk).await?;
-        //            }
-        //            writer.flush().await?;
-        //        }
-        //        Ok(Some(Bytes::from(writer.into_inner())))
-        //    }
-        //    _ => {
-        //        let path = Path::new("history3.txt");
-        //        let f = File::create(path).await?;
-        //        let mut writer = BufWriter::new(f);
-        //        while let Some(next) = res.frame().await {
-        //            let frame = next?;
-        //            if let Some(chunk) = frame.data_ref() {
-        //                writer.write_all(&chunk).await?;
-        //            }
-        //            writer.flush().await?;
-        //        }
-        //        //Ok(Some(path.to_path_buf()))
-        //        Ok(None)
-        //    }
-        //}
     }
 }
 
@@ -161,7 +122,6 @@ impl ClientBuilder {
     }
 
     pub fn method(mut self, method: impl Into<String>) -> Result<Self> {
-        // test caps and lowercase
         let method = method.into().parse::<Method>()?;
         self.method = Some(method);
         Ok(self)
@@ -206,55 +166,6 @@ impl Default for ClientBuilder {
             url: None,
             method: None,
             headers: Some(headers),
-        }
-    }
-}
-
-enum Endpoint {
-    V1TextToSpeech,
-    V1Models,
-    V1Voices,
-    V1AudioSample,
-    V1DeleteSample,
-    V1History,
-    V1HistoryItem,
-    V1HistoryAudioItem,
-    V1DeleteHistoryItem,
-    V1DownloadHistoryItem,
-    V1User,
-    V1UserSubscription,
-}
-
-impl TryFrom<&str> for Endpoint {
-    type Error = Box<dyn std::error::Error + Send + Sync>;
-
-    fn try_from(path: &str) -> Result<Endpoint> {
-        match path {
-            "/v1/text-to-speech/" => Ok(Endpoint::V1TextToSpeech),
-            "/v1/models" => Ok(Endpoint::V1Models),
-            "/v1/voices" => Ok(Endpoint::V1Voices),
-            p if p.contains("samples") & p.contains("audio") => Ok(Endpoint::V1AudioSample),
-            p if p.contains("voices") & p.contains("samples") => Ok(Endpoint::V1DeleteSample),
-            "/v1/history" => Ok(Endpoint::V1History),
-            p if p.starts_with("/v1/history")
-                && p.split("/").collect::<Vec<&str>>().last().unwrap().len() == 20 =>
-            {
-                Ok(Endpoint::V1HistoryItem)
-            }
-            p if p.contains("history") & p.contains("audio") => Ok(Endpoint::V1HistoryAudioItem),
-            p if p.starts_with("/v1/history")
-                && p.split("/").collect::<Vec<&str>>().last().unwrap().len() == 20 =>
-            {
-                Ok(Endpoint::V1DeleteHistoryItem)
-            }
-            p if p.starts_with("/v1/voices") & p.ends_with("/audio") => Ok(Endpoint::V1AudioSample),
-            "/v1/history/download" => Ok(Endpoint::V1DownloadHistoryItem),
-            "/v1/user" => Ok(Endpoint::V1User),
-            "/v1/user/subscription" => Ok(Endpoint::V1UserSubscription),
-            _ => Err(Box::new(Error::ClientSendRequestError(format!(
-                "{} is not a valid endpoint",
-                path
-            )))),
         }
     }
 }

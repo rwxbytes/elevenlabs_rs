@@ -1,3 +1,5 @@
+use serde_json::Value;
+
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
     #[error("Invalid API response: {0}")]
@@ -5,7 +7,7 @@ pub enum Error {
     #[error("Client build error: {0}")]
     ClientBuildError(String),
     #[error("ClientSendRequestError: {0}")]
-    ClientSendRequestError(String),
+    ClientSendRequestError(Value),
     #[error("InvalidTimestamp: {0}")]
     InvalidTimestamp(String),
     #[error("VoiceNotFound")]

@@ -4,11 +4,53 @@ use http_body_util::{Empty, Full};
 use hyper::body::Bytes;
 use serde::{Deserialize, Serialize};
 
-const GET: &str = "GET";
 const BASE_PATH: &str = "/voices";
 const SETTINGS_PATH: &str = "/settings";
 const DEFAULT_SETTINGS_PATH: &str = "/voices/settings/default";
 const EDIT_PATH: &str = "/edit";
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    // Premade Rachel's voice id
+    const RACHEL_VOICE_ID: &str = "21m00Tcm4TlvDq8ikWAM";
+
+    #[tokio::test]
+    #[ignore]
+    async fn get_voice_is_returing_a_voice_when_given_valid_voice_id() {
+        let want = Voice {
+            voice_id: RACHEL_VOICE_ID.to_string(),
+            name: Some("Rachel".to_string()),
+            samples: None,
+            category: Some("premade".to_string()),
+            // TODO: Fix: This is not the same as the one in the API.
+            // "lables": {"accent": "american", "description": "calm", "age": "young", "gender": "female", "use_case": "narration"}
+            labels: Some(Labels {
+                additional_prop1: None,
+                additional_prop2: None,
+                additional_prop3: None,
+            }),
+            description: None,
+            preview_url: Some("https://storage.googleapis.com/eleven-public-prod/premade/voices/21m00Tcm4TlvDq8ikWAM/6edb9076-c3e4-420c-b6ab-11d43fe341c8.mp3".to_string()),
+            settings: None,
+        };
+
+        let got = get_voice(RACHEL_VOICE_ID, false).await.unwrap();
+        let identity = want.comparison(&got);
+        if !identity.is_unchanged() {
+            panic!("identity: {:#?}", identity);
+        }
+    }
+
+    #[tokio::test]
+    #[ignore]
+    async fn get_voice_is_errring_when_given_invalid_voice_id() {
+        let voice_id = "bogus_voice_id";
+        let got = get_voice(voice_id, false).await;
+        assert!(got.is_err());
+    }
+}
 
 #[derive(Debug, Serialize, Deserialize, Clone, Comparable)]
 pub struct Voices {
@@ -97,7 +139,7 @@ pub async fn get_voices() -> Result<Voices> {
     let c = cb
         .method(GET)?
         .path(BASE_PATH)?
-        .header("ACCEPT", "application/json")?
+        .header(ACCEPT, APPLICATION_JSON)?
         .build()?;
     let resp = c.send_request(Empty::<Bytes>::new()).await?;
     let voices: Voices = serde_json::from_slice(&resp)?;
@@ -109,7 +151,7 @@ pub async fn get_default_settings() -> Result<VoiceSettings> {
     let c = cb
         .method(GET)?
         .path(DEFAULT_SETTINGS_PATH)?
-        .header("ACCEPT", "application/json")?
+        .header(ACCEPT, APPLICATION_JSON)?
         .build()?;
     let resp = c.send_request(Empty::<Bytes>::new()).await?;
     let voices_settings = serde_json::from_slice::<VoiceSettings>(&resp)?;
@@ -146,7 +188,7 @@ pub async fn get_voice_settings(voice_id: &str) -> Result<VoiceSettings> {
     let c = cb
         .method(GET)?
         .path(format!("{}/{}{}", BASE_PATH, voice_id, SETTINGS_PATH))?
-        .header("ACCEPT", "application/json")?
+        .header(ACCEPT, APPLICATION_JSON)?
         .build()?;
     let resp = c.send_request(Empty::<Bytes>::new()).await?;
     let voices_settings = serde_json::from_slice::<VoiceSettings>(&resp)?;
@@ -163,7 +205,7 @@ pub async fn get_voice(voice_id: &str, with_settings: bool) -> Result<Voice> {
     let c = cb
         .method(GET)?
         .path(path)?
-        .header("ACCEPT", "application/json")?
+        .header(ACCEPT, APPLICATION_JSON)?
         .build()?;
     let resp = c.send_request(Empty::<Bytes>::new()).await?;
     let voice = serde_json::from_slice::<Voice>(&resp)?;
@@ -173,9 +215,9 @@ pub async fn get_voice(voice_id: &str, with_settings: bool) -> Result<Voice> {
 pub async fn delete_voice(voice_id: &str) -> Result<()> {
     let cb = ClientBuilder::new()?;
     let c = cb
-        .method("DELETE")?
+        .method(DELETE)?
         .path(format!("{}/{}", BASE_PATH, voice_id))?
-        .header("ACCEPT", "application/json")?
+        .header(ACCEPT, APPLICATION_JSON)?
         .build()?;
     let _resp = c.send_request(Empty::<Bytes>::new()).await?;
     Ok(())
@@ -189,9 +231,7 @@ pub async fn delete_voice(voice_id: &str) -> Result<()> {
 ///
 /// #[tokio::main]
 /// async fn main() -> Result<()> {
-///    let voices = get_voices().await?;
-///    let cloned_voices = voices.all_clones();
-///    let voice = get_voice_settings(&cloned_voices[0].voice_id).await?;
+///    let voice = Voice::with_settings("Adam").await?;
 ///
 ///    let settings = VoiceSettings {
 ///         similarity_boost: 0.125,
@@ -200,7 +240,7 @@ pub async fn delete_voice(voice_id: &str) -> Result<()> {
 ///         use_speaker_boost: true,
 ///    };
 ///
-///    edit_voice_settings(&voice[0].voice_id, settings).await?;
+///    edit_voice_settings(&voice.voice_id, settings).await?;
 ///
 ///    Ok(())
 /// }
@@ -208,15 +248,23 @@ pub async fn delete_voice(voice_id: &str) -> Result<()> {
 pub async fn edit_voice_settings(voice_id: &str, settings: VoiceSettings) -> Result<()> {
     let cb = ClientBuilder::new()?;
     let c = cb
-        .method("POST")?
+        .method(POST)?
         .path(format!(
             "{}/{}{}{}",
             BASE_PATH, voice_id, SETTINGS_PATH, EDIT_PATH
         ))?
-        .header("ACCEPT", "application/json")?
+        .header(ACCEPT, APPLICATION_JSON)?
         .build()?;
     let _resp = c
         .send_request(Full::<Bytes>::new(serde_json::to_string(&settings)?.into()))
         .await?;
     Ok(())
+}
+
+pub async fn add_voice() -> Result<()> {
+    todo!("Add voice endpoint")
+}
+
+pub async fn edit_voice() -> Result<()> {
+    todo!("Edit voice endpoint");
 }
