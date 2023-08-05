@@ -73,7 +73,6 @@ impl Client {
         });
         let mut res = sender.send_request(req).await?;
         if res.status() != 200 {
-            dbg!(res.status());
             let w = Vec::new();
             let mut writer = BufWriter::new(w);
             while let Some(next) = res.frame().await {
