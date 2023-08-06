@@ -15,9 +15,3 @@ pub enum Error {
     #[error("SpeechGenerationError: {0}")]
     SpeechGenerationError(String),
 }
-
-//#[derive(serde::Deserialize, Debug)]
-//struct BadRequestResponse {
-//    status: String,
-//    message: String,
-//}

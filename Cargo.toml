@@ -1,10 +1,11 @@
 [package]
 name = "elevenlabs_rs"
 version = "0.1.0"
+description = "A library for interacting with the ElevenLabs API"
 authors = ["rwxbytes <rwxbytes@proton.me>"]
+license = "MIT OR Apache-2.0"
 edition = "2021"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 async-native-tls = { version = "0.5.0", default-features = false, features = [

@@ -1,5 +1,5 @@
 use crate::{
-    api::{voice::VoiceSettings, Client, ClientBuilder},
+    api::{voice::VoiceSettings, ClientBuilder},
     error::Error,
     prelude::*,
     utils::save,
@@ -239,16 +239,6 @@ pub struct Feedback {
     pub glitches: bool,
     pub audio_quality: bool,
     pub review_status: String,
-}
-
-pub fn build_history_client() -> Result<Client> {
-    let cb = ClientBuilder::new()?;
-    let c = cb
-        .path(BASE_PATH)?
-        .method(GET)?
-        .header(ACCEPT, APPLICATION_JSON)?
-        .build()?;
-    Ok(c)
 }
 
 /// page_size determines how many history items to return at maximum. Can not exceed 1000, defaults to 100.
