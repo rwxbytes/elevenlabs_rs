@@ -5,7 +5,6 @@ use crate::{
     utils::save,
 };
 use chrono::{Local, LocalResult, TimeZone};
-use comparable::Comparable;
 use http_body_util::{Empty, Full};
 use hyper::body::Bytes;
 use serde::{Deserialize, Serialize};
@@ -83,7 +82,7 @@ mod tests {
     }
 }
 
-#[derive(Debug, Deserialize, Serialize, Comparable, Clone, Default)]
+#[derive(Debug, Deserialize, Serialize, Clone, Default)]
 pub struct HistoryItem {
     pub history_item_id: String,
     pub request_id: String,
@@ -231,7 +230,7 @@ impl History {
     }
 }
 
-#[derive(Debug, Deserialize, Serialize, Comparable, Clone, Default)]
+#[derive(Debug, Deserialize, Serialize, Clone, Default)]
 pub struct Feedback {
     pub thumbs_up: bool,
     pub feedback: String,
