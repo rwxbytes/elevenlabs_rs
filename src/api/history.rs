@@ -137,7 +137,7 @@ impl HistoryItem {
     /// }
     /// ```
     pub async fn delete(&self) -> Result<()> {
-        let _ = delete_history_item(&self.history_item_id).await?;
+        delete_history_item(&self.history_item_id).await?;
         Ok(())
     }
 

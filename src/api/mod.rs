@@ -25,8 +25,8 @@ const BASE_URL: &str = "https://api.elevenlabs.io";
 const V1_PATH: &str = "/v1";
 const XI_API_KEY_HEADER: &str = "xi-api-key";
 
-static HOST: &'static str = "host";
-static AUTHORITY: &'static str = "api.elevenlabs.io";
+static HOST: &str = "host";
+static AUTHORITY: &str = "api.elevenlabs.io";
 
 #[derive(Debug)]
 pub struct Client {
@@ -78,7 +78,7 @@ impl Client {
             while let Some(next) = res.frame().await {
                 let frame = next?;
                 if let Some(chunk) = frame.data_ref() {
-                    writer.write_all(&chunk).await?;
+                    writer.write_all(chunk).await?;
                 }
                 writer.flush().await?;
             }
@@ -91,7 +91,7 @@ impl Client {
         while let Some(next) = res.frame().await {
             let frame = next?;
             if let Some(chunk) = frame.data_ref() {
-                writer.write_all(&chunk).await?;
+                writer.write_all(chunk).await?;
             }
             writer.flush().await?;
         }

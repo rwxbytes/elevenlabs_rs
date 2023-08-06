@@ -175,7 +175,7 @@ impl Speech {
                 Utc::now().timestamp()
             ),
         };
-        let _saved = save(&filename, self.audio.clone())?;
+        save(&filename, self.audio.clone())?;
         Ok(())
     }
 }
