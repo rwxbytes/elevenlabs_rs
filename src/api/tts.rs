@@ -169,11 +169,7 @@ impl Speech {
     pub fn save(&self, filename: Option<String>) -> Result<()> {
         let filename = match filename {
             Some(f) => f,
-            None => format!(
-                "{}_{}.mp3",
-                self.voice.name.clone().unwrap(),
-                Utc::now().timestamp()
-            ),
+            None => format!("{}_{}.mp3", self.voice.name.clone(), Utc::now().timestamp()),
         };
         save(&filename, self.audio.clone())?;
         Ok(())

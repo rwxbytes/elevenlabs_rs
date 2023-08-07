@@ -1,4 +1,11 @@
-An unofficial Rust API client for [ElevenLabs](https://elevenlabs.io/) text-to-speech software. Eleven brings the most compelling, rich and lifelike voices to creators and developers in just a few lines of code.
+An unofficial Rust API client for [ElevenLabs](https://elevenlabs.io/) text-to-speech software.
+
+### API Todos
+
+| API        | Support |
+| ---------- | ------- |
+| Add Voice  | ❌      |
+| Edit Voice | ❌      |
 
 ## ⚙️ Requirements
 
@@ -65,8 +72,8 @@ async fn main() -> Result<()> {
 
     speech.play()?;
 
-
      println!("Voices: {:#?}", voices);
+
      Ok(())
  }
 ```

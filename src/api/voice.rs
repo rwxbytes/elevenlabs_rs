@@ -21,7 +21,7 @@ mod test {
     async fn get_voice_is_returing_a_voice_when_given_valid_voice_id() {
         let want = Voice {
             voice_id: RACHEL_VOICE_ID.to_string(),
-            name: Some("Rachel".to_string()),
+            name: "Rachel".to_string(),
             samples: None,
             category: Some("premade".to_string()),
             // TODO: Fix: This is not the same as the one in the API.
@@ -67,7 +67,7 @@ impl Voices {
     pub fn by_name(&self, name: &str) -> Result<&Voice> {
         self.voices
             .iter()
-            .find(|v| v.name == Some(name.to_string()))
+            .find(|v| v.name == name.to_string())
             .ok_or(Box::new(Error::VoiceNotFound))
     }
     pub async fn get_voice_with_settings(&self, voice_name: &str) -> Result<Voice> {
@@ -80,7 +80,7 @@ impl Voices {
 #[derive(Debug, Serialize, Deserialize, PartialEq, Clone, Comparable)]
 pub struct Voice {
     pub voice_id: String,
-    pub name: Option<String>,
+    pub name: String,
     pub samples: Option<Vec<VoiceSample>>,
     pub category: Option<String>,
     pub labels: Option<Labels>,
