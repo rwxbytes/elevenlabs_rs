@@ -72,8 +72,8 @@ async fn main() -> Result<()> {
 
     speech.play()?;
 
-     println!("Voices: {:#?}", voices);
+    println!("Voices: {:#?}", voices);
 
-     Ok(())
+    Ok(())
  }
 ```
