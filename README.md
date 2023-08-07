@@ -65,7 +65,7 @@ async fn main() -> Result<()> {
 
     let speech = Speech::new(
         "'I haven't the slightest idea', said the Hatter.",
-        &cloned_voices[0].name.as_ref().unwrap(),
+        &cloned_voices[0].name,
         "eleven_monolingual_v1",
         0,
     ).await?;
