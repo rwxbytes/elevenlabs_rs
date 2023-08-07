@@ -56,7 +56,7 @@ impl Client {
         addr
     }
 
-    pub async fn send_request<T: Body + Send>(&self, body: T) -> Result<Bytes>
+    pub async fn send_request<T: Body + Send + 'static>(&self, body: T) -> Result<Bytes>
     where
         T::Data: Send,
         T::Error: Into<Box<dyn std::error::Error + Send + Sync>>,
