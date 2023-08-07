@@ -7,7 +7,7 @@ license = "MIT OR Apache-2.0"
 edition = "2021"
 readme = "README.md"
 repository = "https://github.com/rwxbytes/elevenlabs_rs"
-keywords = ["elevenlabs", "tts", "text-to-speech", "voice clone", "ai"]
+keywords = ["elevenlabs", "tts", "text-to-speech", "voice-clone", "ai"]
 
 
 [dependencies]
