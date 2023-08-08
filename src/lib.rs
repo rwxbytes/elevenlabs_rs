@@ -25,7 +25,7 @@
 //! ```
 
 pub use crate::api::tts::Speech;
-pub use crate::api::voice::get_voices;
+pub use crate::api::voice::{get_voices, Voice, VoiceCloneBuilder};
 pub use crate::prelude::Result;
 
 pub mod api;

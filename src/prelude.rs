@@ -8,3 +8,5 @@ pub const ACCEPT: &str = "ACCEPT";
 pub const APPLICATION_JSON: &str = "application/json";
 pub const AUDIO_ALL: &str = "audio/*";
 pub const AUDIO_MPEG: &str = "audio/mpeg";
+pub const CONTENT_TYPE: &str = "Content-Type";
+pub const MULTIPART_FORM_DATA_BOUNDARY: &str = "multipart/form-data; boundary=";

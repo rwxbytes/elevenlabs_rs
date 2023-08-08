@@ -4,7 +4,6 @@ An unofficial Rust API client for [ElevenLabs](https://elevenlabs.io/) text-to-s
 
 | API        | Support |
 | ---------- | ------- |
-| Add Voice  | ❌      |
 | Edit Voice | ❌      |
 
 ## ⚙️ Requirements
@@ -76,4 +75,37 @@ async fn main() -> Result<()> {
 
     Ok(())
  }
+```
+
+### Clone Voice
+
+```rust
+use elevenlabs_rs::{Result, Speech, VoiceCloneBuilder};
+
+#[tokio::main]
+async fn main() -> Result<()> {
+    let voice_clone = VoiceCloneBuilder::new()
+        .name("Ishmael") // name method is required
+        .description("A very squeaky voice") // description is optional
+        .label("accent", "British") // label is optional
+        .label("age", "young")
+        .label("gender", "male")
+        .file("sample_1.mp3") // at least one file is required
+        .file("sample_2.mp3")
+        .build()?;
+
+    let voice = voice_clone.add().await?;
+
+    let speech = Speech::new(
+        "I can move, I can talk, ....Am I a real boy?",
+        &voice.name,
+        "eleven_multilingual_v1",
+        0,
+    )
+    .await?;
+
+    speech.play()?;
+
+    Ok(())
+}
 ```

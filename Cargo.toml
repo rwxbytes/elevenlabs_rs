@@ -22,6 +22,7 @@ http-body = "1.0.0-rc.2"
 http-body-util = "0.1.0-rc.3"
 hyper = { version = "1.0.0-rc.4", features = ["full"] }
 pin-project-lite = "0.2.10"
+rand = "0.8.5"
 rodio = "0.17.1"
 serde = { version = "1.0.173", features = ["derive"] }
 serde_bytes = "0.11.12"

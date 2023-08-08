@@ -2,12 +2,19 @@ use crate::{api::ClientBuilder, error::Error, prelude::*};
 use comparable::*;
 use http_body_util::{Empty, Full};
 use hyper::body::Bytes;
+use rand::Rng;
 use serde::{Deserialize, Serialize};
+use std::{
+    collections::HashMap,
+    fs::File,
+    io::{self, Read, Write},
+};
 
 const BASE_PATH: &str = "/voices";
 const SETTINGS_PATH: &str = "/settings";
 const DEFAULT_SETTINGS_PATH: &str = "/voices/settings/default";
 const EDIT_PATH: &str = "/edit";
+const ADD_PATH: &str = "/add";
 
 #[cfg(test)]
 mod test {
@@ -50,6 +57,18 @@ mod test {
         let got = get_voice(voice_id, false).await;
         assert!(got.is_err());
     }
+    #[test]
+    fn voice_clone_builders_build_is_errring_when_its_name_is_none() {
+        let vcb = VoiceCloneBuilder::new();
+        let _voice_clone = vcb.file("file_name").build();
+        assert!(_voice_clone.is_err());
+    }
+    #[test]
+    fn voice_clone_builders_build_is_errring_when_its_files_is_empty() {
+        let vcb = VoiceCloneBuilder::new();
+        let _voice_clone = vcb.name("test").build();
+        assert!(_voice_clone.is_err());
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Comparable)]
@@ -90,6 +109,14 @@ pub struct Voice {
 }
 
 impl Voice {
+    //pub async fn add(
+    //    name: &str,
+    //    description: Option<String>,
+    //    labels: Option<HashMap<String, String>>,
+    //    files: Vec<String>,
+    //) -> Result<Voice> {
+    //    let vc = VoiceClone::new(name, description);
+    //}
     pub async fn with_settings(voice_name: &str) -> Result<Self> {
         let voices = get_voices().await?;
         let voice = voices.by_name(voice_name)?;
@@ -105,6 +132,176 @@ pub struct VoiceSample {
     mime_type: String,
     size_bytes: Option<i64>,
     hash: String,
+}
+
+#[derive(Debug)]
+pub struct VoiceClone {
+    name: String,
+    description: String,
+    files: Vec<String>,
+    labels: HashMap<String, String>,
+}
+
+#[derive(Default)]
+pub struct VoiceCloneBuilder {
+    name: Option<String>,
+    description: Option<String>,
+    files: Vec<String>,
+    labels: Option<HashMap<String, String>>,
+}
+
+impl VoiceCloneBuilder {
+    /// Create a new VoiceCloneBuilder
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    ///use elevenlabs_rs::{Result, Speech, VoiceCloneBuilder};
+    ///
+    ///#[tokio::main]
+    ///async fn main() -> Result<()> {
+    ///    let voice_clone = VoiceCloneBuilder::new()
+    ///        .name("Ronald")
+    ///        .description("A cockney underworld boss")
+    ///        .label("accent", "British")
+    ///        .label("age", "middle aged")
+    ///        .file("sample_1.mp3")
+    ///        .file("sample_2.mp3")
+    ///        .file("sample_3.mp3")
+    ///        .build()?;
+    ///
+    ///    let voice = voice_clone.add().await?;
+    ///
+    ///    let speech = Speech::new(
+    ///        "Hence the expression, 'As greedy as a pig'.",
+    ///        &voice.name,
+    ///        "eleven_multilingual_v1",
+    ///        0,
+    ///    )
+    ///    .await?;
+    ///
+    ///    speech.play()?;
+    ///
+    ///    Ok(())
+    ///}
+    /// ```
+    pub fn new() -> Self {
+        VoiceCloneBuilder::default()
+    }
+    pub fn name(mut self, name: &str) -> Self {
+        self.name = Some(name.to_string());
+        self
+    }
+    pub fn description(mut self, description: &str) -> Self {
+        self.description = Some(description.to_string());
+        self
+    }
+    pub fn file(mut self, file_name: &str) -> Self {
+        self.files.push(file_name.to_string());
+        self
+    }
+    pub fn label(mut self, key: &str, value: &str) -> Self {
+        self.labels
+            .get_or_insert_with(HashMap::new)
+            .insert(key.to_string(), value.to_string());
+        self
+    }
+    pub fn build(self) -> Result<VoiceClone> {
+        let name = self.name.ok_or(Box::new(Error::VoiceCloneBuilderError(
+            "name must be set".to_string(),
+        )))?;
+        if self.files.is_empty() {
+            return Err(Box::new(Error::VoiceCloneBuilderError(
+                "At least one file must be given".to_string(),
+            )));
+        }
+        let files = self.files;
+        let description = self.description;
+        let labels = self.labels;
+        Ok(VoiceClone {
+            name,
+            description: description.unwrap_or_default(),
+            files,
+            labels: labels.unwrap_or_default(),
+        })
+    }
+}
+
+impl VoiceClone {
+    pub async fn add(&self) -> Result<Voice> {
+        let boundary = format!(
+            "-----------------------------{}",
+            rand::thread_rng().gen::<u64>()
+        );
+
+        let data = self.to_multipart_form_data(&boundary)?;
+
+        let c = ClientBuilder::new()?
+            .method(POST)?
+            .path(format!("{}{}", BASE_PATH, ADD_PATH))?
+            .header(
+                CONTENT_TYPE,
+                &format!("{}{}", MULTIPART_FORM_DATA_BOUNDARY, boundary),
+            )?
+            .header(ACCEPT, APPLICATION_JSON)?
+            .build()?;
+
+        let resp = c.send_request(Full::<Bytes>::new(data.into())).await?;
+
+        let json = serde_json::from_slice::<serde_json::Value>(&resp)?;
+
+        if let Some(voice_id) = json["voice_id"].as_str() {
+            return Ok(get_voice(voice_id, true).await?);
+        } else {
+            return Err(Box::new(Error::ClientSendRequestError(json)));
+        }
+    }
+
+    fn to_multipart_form_data(&self, boundary: &str) -> io::Result<Vec<u8>> {
+        let mut data = Vec::new();
+
+        write!(data, "--{}\r\n", boundary)?;
+        write!(
+            data,
+            "Content-Disposition: form-data; name=\"name\"\r\n\r\n{}\r\n",
+            self.name
+        )?;
+
+        if !self.description.is_empty() {
+            write!(data, "--{}\r\n", boundary)?;
+            write!(
+                data,
+                "Content-Disposition: form-data; name=\"description\"\r\n\r\n{}\r\n",
+                &self.description
+            )?;
+        }
+
+        for file_path in &self.files {
+            write!(data, "--{}\r\n", boundary)?;
+            write!(
+                data,
+                "Content-Disposition: form-data; name=\"files\"; filename=\"{}\"\r\n",
+                file_path
+            )?;
+            write!(data, "Content-Type: audio/mpeg\r\n\r\n")?;
+
+            let mut f = File::open(file_path)?;
+            f.read_to_end(&mut data)?;
+
+            write!(data, "\r\n")?;
+        }
+
+        write!(data, "--{}\r\n", boundary)?;
+        write!(
+            data,
+            "Content-Disposition: form-data; name=\"labels\"\r\n\r\n{}\r\n",
+            serde_json::to_string(&self.labels).unwrap()
+        )?;
+
+        write!(data, "--{}--\r\n", boundary)?;
+
+        Ok(data)
+    }
 }
 
 #[derive(Serialize, Deserialize, Comparable, Debug, Clone, PartialEq)]

@@ -14,4 +14,6 @@ pub enum Error {
     VoiceNotFound,
     #[error("SpeechGenerationError: {0}")]
     SpeechGenerationError(String),
+    #[error("VoiceCloneBuilderError: {0}")]
+    VoiceCloneBuilderError(String),
 }
