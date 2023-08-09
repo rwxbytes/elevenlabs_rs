@@ -10,6 +10,7 @@ pub fn save(filename: &str, data: Bytes) -> Result<()> {
     Ok(())
 }
 
+/// Play audio
 pub fn play(data: Bytes) -> Result<()> {
     let (_stream, stream_handle) = OutputStream::try_default()?;
     let source = Decoder::new(std::io::Cursor::new(data))?;

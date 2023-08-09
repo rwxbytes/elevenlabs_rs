@@ -1,11 +1,5 @@
 An unofficial Rust API client for [ElevenLabs](https://elevenlabs.io/) text-to-speech software.
 
-### API Todos
-
-| API        | Support |
-| ---------- | ------- |
-| Edit Voice | ❌      |
-
 ## ⚙️ Requirements
 
 - Set API key as environment variable `ELEVEN_API_KEY`
@@ -23,7 +17,13 @@ async fn main() -> Result<()> {
         "eleven_monolingual_v1",
         0,
     ).await?;
+
     speech.play()?;
+
+    // None will generate a filename with the voice name and the current utc timestamp
+    // e.g. Clyde_1624299999.mp3
+    speech.save(None)?; // or speech.save(Some("my_file_name.mp3".to_string()))?;
+
     Ok(())
 }
 ```
@@ -44,7 +44,9 @@ async fn main() -> Result<()> {
         "eleven_multilingual_v1",
         0,
     ).await?;
+
     speech.play()?;
+
     Ok(())
 }
 ```
@@ -99,12 +101,48 @@ async fn main() -> Result<()> {
     let speech = Speech::new(
         "I can move, I can talk, ....Am I a real boy?",
         &voice.name,
-        "eleven_multilingual_v1",
+        "eleven_monolingual_v1",
         0,
     )
     .await?;
 
     speech.play()?;
+
+    Ok(())
+}
+```
+
+### Edit Voice
+
+```rust
+use elevenlabs_rs::{get_voices, Result};
+use std::collections::HashMap;
+#[tokio::main]
+async fn main() -> Result<()> {
+    let voices = get_voices().await?;
+
+    let voice = voices
+        .voices
+        .iter()
+        .find(|v| v.name == "Sabrina")
+        .expect("Sabrina voice not found");
+
+    let mut labels = HashMap::new();
+    labels.insert("use case", "poetry recitation");
+    labels.insert("age", "old");
+
+    let files = vec!["new_recording.m4a", "another_new_recording.m4a"];
+
+    let voice = voice
+        .edit(
+            None,         // or Some("new name")
+            None,         // or Some("new description")
+            Some(labels), // overwrites existing labels
+            Some(files),  // appends to existing files
+        )
+        .await?;
+
+    println!("Voice: {:#?}", voice);
 
     Ok(())
 }

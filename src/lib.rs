@@ -19,13 +19,17 @@
 //!         "eleven_monolingual_v1",
 //!         0,
 //!     ).await?;
+//!
 //!     speech.play()?;
+//!
 //!     Ok(())   
 //! }
 //! ```
 
+pub use crate::api::history::*;
 pub use crate::api::tts::Speech;
-pub use crate::api::voice::{get_voices, Voice, VoiceCloneBuilder};
+pub use crate::api::user::get_user_subscription;
+pub use crate::api::voice::{get_voice, get_voices, Voice, VoiceCloneBuilder};
 pub use crate::prelude::Result;
 
 pub mod api;
