@@ -34,7 +34,7 @@ mod tests {
     #[tokio::test]
     #[ignore]
     async fn history_items_delete_is_deleting_that_history_item() {
-        let _speech = Speech::new("test", "Adam", "eleven_monolingual_v1", 4)
+        let _speech = Speech::new("test", "Adam", "eleven_monolingual_v1", 4, None)
             .await
             .unwrap();
 
