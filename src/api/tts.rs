@@ -176,6 +176,12 @@ impl Speech {
     }
 }
 
+impl AsRef<[u8]> for Speech {
+    fn as_ref(&self) -> &[u8] {
+        self.audio.as_ref()
+    }
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone)]
 struct TTSBody {
     text: String,
