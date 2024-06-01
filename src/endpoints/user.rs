@@ -8,7 +8,7 @@ const SUBSCRIPTION_PATH: &str = "v1/user/subscription";
 
 /// Gets extended information about the users subscription
 /// # Examples
-/// ```
+/// ```no_run
 ///use elevenlabs_rs::client::{ElevenLabsClient, Result};
 ///use elevenlabs_rs::endpoints::user::*;
 ///
@@ -70,7 +70,7 @@ pub struct NextInvoice {
 
 /// Gets information about the user
 /// # Examples
-/// ```
+/// ```no_run
 /// use elevenlabs_rs::client::{ElevenLabsClient, Result};
 /// use elevenlabs_rs::endpoints::user::*;
 ///

@@ -10,8 +10,6 @@ pub enum Error {
     ClientBuildError(String),
     #[error("ClientSendRequestError: {0}")]
     ClientSendRequestError(Value),
-    #[error("InvalidTimestamp: {0}")]
-    InvalidTimestamp(String),
     #[error("FileExtensionNotFound")]
     FileExtensionNotFound,
     #[error("FileExtensionNotValidUTF8")]
@@ -22,8 +20,8 @@ pub enum Error {
     VoiceNotFound,
     #[error("SpeechGenerationError: {0}")]
     SpeechGenerationError(String),
-    #[error("VoiceCloneBuilderError: {0}")]
-    VoiceCloneBuilderError(String),
+    #[error("GeneratedVoiceIDHeaderNotFound")]
+    GeneratedVoiceIDHeaderNotFound,
     //#[error("ElevenLabsClientError: {detail:?}")]
     //ElevenLabsClientError{
     //    detail: Vec<DetailObject>,

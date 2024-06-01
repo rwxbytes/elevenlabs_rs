@@ -6,7 +6,8 @@ pub mod models;
 pub mod samples;
 pub mod tts;
 pub mod user;
-mod voice;
+pub mod voice;
+pub mod voice_generation;
 
 #[allow(async_fn_in_trait)]
 pub trait Endpoint {
