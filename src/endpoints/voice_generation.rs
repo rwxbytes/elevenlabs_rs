@@ -58,7 +58,7 @@ impl Endpoint for GenerateARandomVoice {
     fn json_request_body(&self) -> Option<Result<serde_json::Value>> {
         match self.0.validate() {
             Ok(_) => Some(serde_json::to_value(&self.0).map_err(Into::into)),
-            Err(e) => Some(Err(Box::new(e)))
+            Err(e) => Some(Err(Box::new(e))),
         }
     }
     async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
@@ -147,9 +147,8 @@ impl GenerateVoiceBody {
     }
 }
 
-
 /// Get possible parameters for voice generation endpoint [GenerateARandomVoice]
-#[derive(Clone, Debug,)]
+#[derive(Clone, Debug)]
 pub struct GetGenerationParams;
 
 impl Endpoint for GetGenerationParams {
@@ -185,7 +184,6 @@ pub struct VoiceGenerationParams {
     code: String,
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -199,7 +197,7 @@ mod tests {
             Accent::African,
             Age::Young,
             accents_s[0],
-            &text
+            &text,
         );
         let mut endpoint = GenerateARandomVoice(body);
         for accent_s in accents_s {
@@ -208,6 +206,3 @@ mod tests {
         }
     }
 }
-
-
-

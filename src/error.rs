@@ -14,6 +14,8 @@ pub enum Error {
     FileExtensionNotFound,
     #[error("FileExtensionNotValidUTF8")]
     FileExtensionNotValidUTF8,
+    #[error("FileExtensionNotSupported")]
+    FileExtensionNotSupported,
     #[error("PathNotValidUTF8")]
     PathNotValidUTF8,
     #[error("VoiceNotFound")]

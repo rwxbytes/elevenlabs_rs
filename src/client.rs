@@ -57,22 +57,15 @@ impl ElevenLabsClient {
                         .send()
                         .await?;
                 } else {
-                    // TODO: This should be a custom error
-                    panic!("a post request must have a json or multipart body");
+                    panic!("a post request must have a json or multipart body for ElevenLabs API");
                 }
             }
             _ => {
-                // TODO: This should be a custom error
-                panic!("Unsupported method");
+                panic!("Unsupported method for ElevenLabs API");
             }
         }
         endpoint.response_body(handle_http_error(resp).await?).await
     }
-}
-
-pub(crate) fn fetch_token() -> Result<String> {
-    let token = std::env::var("ELEVEN_API_KEY")?;
-    Ok(token)
 }
 
 async fn handle_http_error(resp: Response) -> Result<Response> {

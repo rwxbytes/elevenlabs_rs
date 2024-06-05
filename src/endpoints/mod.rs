@@ -1,6 +1,9 @@
-use crate::client::Result;
-use serde::{Deserialize, Serialize};
+pub use crate::client::{Result, BASE_URL};
+pub use bytes::Bytes;
+pub use reqwest::{multipart::Form, Method, Response, Url};
+pub use serde::{Deserialize, Serialize};
 
+pub mod dubbing;
 pub mod history;
 pub mod models;
 pub mod samples;
@@ -13,15 +16,15 @@ pub mod voice_generation;
 pub trait Endpoint {
     type ResponseBody;
 
-    fn method(&self) -> reqwest::Method;
+    fn method(&self) -> Method;
     fn json_request_body(&self) -> Option<Result<serde_json::Value>> {
         None
     }
-    fn multipart_request_body(&self) -> Option<Result<reqwest::multipart::Form>> {
+    fn multipart_request_body(&self) -> Option<Result<Form>> {
         None
     }
-    async fn response_body(self, resp: reqwest::Response) -> Result<Self::ResponseBody>;
-    fn url(&self) -> reqwest::Url;
+    async fn response_body(self, resp: Response) -> Result<Self::ResponseBody>;
+    fn url(&self) -> Url;
 }
 
 #[derive(Clone, Debug, Deserialize)]

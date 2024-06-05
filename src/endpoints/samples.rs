@@ -77,7 +77,7 @@ pub struct SamplePathParams {
 ///     let voice = c.hit(GetVoice(voice_id.clone())).await?;
 ///     let sample_id = voice
 ///         .get_samples()
-///         .unwrap()
+///         .unwrap() // TODO: unwrap is not advised in documentation, do ok_or
 ///         .get(0)
 ///         .unwrap()
 ///         .get_sample_id()
