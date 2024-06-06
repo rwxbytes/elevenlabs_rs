@@ -98,7 +98,7 @@ impl GenerateARandomVoiceResponse {
 ///
 /// Text length has to be between 100 and 1000
 ///
-/// See [API documentation](https://elevenlabs.io/docs/api-reference/generate-voice) for more information
+/// See [ElevenLabs API documentation](https://elevenlabs.io/docs/api-reference/generate-voice) for more information
 #[derive(Clone, Debug, Serialize, Validate)]
 pub struct GenerateVoiceBody {
     pub gender: Gender,
@@ -117,6 +117,15 @@ pub enum Gender {
     Male,
 }
 
+impl Gender {
+    pub fn as_str(&self) -> &str {
+        match self {
+            Gender::Female => "female",
+            Gender::Male => "male",
+        }
+    }
+}
+
 #[derive(Clone, Debug, Serialize)]
 #[serde(rename_all = "lowercase")]
 pub enum Accent {
@@ -127,12 +136,34 @@ pub enum Accent {
     Indian,
 }
 
+impl Accent {
+    pub fn as_str(&self) -> &str {
+        match self {
+            Accent::African => "african",
+            Accent::American => "american",
+            Accent::Australian => "australian",
+            Accent::British => "british",
+            Accent::Indian => "indian",
+        }
+    }
+}
+
 #[derive(Clone, Debug, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum Age {
     Young,
     MiddleAged,
     Old,
+}
+
+impl Age {
+    pub fn as_str(&self) -> &str {
+        match self {
+            Age::Young => "young",
+            Age::MiddleAged => "middle_aged",
+            Age::Old => "old",
+        }
+    }
 }
 
 impl GenerateVoiceBody {
