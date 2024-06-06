@@ -138,7 +138,7 @@ impl DubAVideoOrAnAudioFileResponse {
 /// See [ElevenLabs API documentation](https://elevenlabs.io/docs/api-reference/create-dub) for more information.
 ///
 ///
-#[derive(, Clone)]
+#[derive(Clone, Debug, Default)]
 pub struct DubbingBody {
     mode: Option<Mode>,
     file: Option<String>,

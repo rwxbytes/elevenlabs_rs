@@ -42,12 +42,6 @@ struct ServerErrorDetail {
     message: String,
     status: String,
 }
-
-#[derive(Error, Debug, Deserialize)]
-#[error("ClientErrorDetail: {detail:?}")]
-pub struct ElevenLabs400 {
-    detail: ClientErrorDetail,
-}
 #[derive(Debug, Deserialize, Error)]
 #[error("ClientErrorDetail: {message:?}, {status:?}")]
 struct ClientErrorDetail {
@@ -67,10 +61,11 @@ struct DetailObject {
     r#type: String,
 }
 
-#[derive(Debug, Error)]
+#[derive(Debug, Deserialize, Error)]
+#[serde(untagged)]
 pub enum ElevenLabsError {
-    #[error("ElevenLabsClientError: {0}")]
-    BadRequest(ElevenLabs400),
+    #[error("ElevenLabsClientError: {detail:?}")]
+    BadRequest { detail: ClientErrorDetail },
     #[error("ElevenLabsClientError: {detail:?}")]
     UnprocessableEntity { detail: Vec<DetailObject> },
     #[error("ElevenLabsClientError: {0}")]

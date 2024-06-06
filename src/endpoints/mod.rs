@@ -11,6 +11,7 @@ pub mod tts;
 pub mod user;
 pub mod voice;
 pub mod voice_generation;
+pub mod voice_library;
 
 #[allow(async_fn_in_trait)]
 pub trait Endpoint {

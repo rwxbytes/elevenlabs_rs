@@ -9,7 +9,7 @@ use std::collections::HashMap;
 use std::ops::Deref;
 use std::path::Path;
 
-const ADD_VOICE_PATH: &str = "/add";
+pub const ADD_VOICE_PATH: &str = "/add";
 const EDIT_VOICE_PATH: &str = "/edit";
 const EDIT_VOICE_SETTINGS_PATH: &str = "/settings/edit";
 const DEFAULT_SETTINGS_PATH: &str = "/v1/voices/settings/default";
@@ -352,8 +352,8 @@ impl Deref for VoiceID {
 }
 
 impl From<&str> for VoiceID {
-    fn from(name: &str) -> Self {
-        VoiceID(name.to_string())
+    fn from(id: &str) -> Self {
+        VoiceID(id.to_string())
     }
 }
 

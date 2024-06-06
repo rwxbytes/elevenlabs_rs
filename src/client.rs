@@ -1,8 +1,6 @@
 use crate::endpoints::Endpoint;
 use crate::error::Error::ClientSendRequestError;
-use crate::error::{
-    Code4xx, ElevenLabs400, ElevenLabsClientError, ElevenLabsError, ElevenLabsServerError,
-};
+use crate::error::{Code4xx, ElevenLabsClientError, ElevenLabsError, ElevenLabsServerError};
 use reqwest;
 use reqwest::header::CONTENT_TYPE;
 use reqwest::Method;
@@ -80,9 +78,11 @@ async fn handle_http_error(resp: Response) -> Result<Response> {
                 let client_error = resp.json::<ElevenLabsClientError>().await?;
                 Err(Box::new(client_error))
             }
-            StatusCode::BAD_REQUEST => Err(Box::new(ElevenLabsError::BadRequest(
-                resp.json::<ElevenLabs400>().await?,
-            ))),
+            StatusCode::BAD_REQUEST => {
+                let client_error = resp.json::<ElevenLabsError>().await?;
+                Err(Box::new(client_error))
+            }
+
             _ => Err(Box::new(ElevenLabsError::Code4xx(
                 resp.json::<Code4xx>().await?,
             ))),
