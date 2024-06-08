@@ -1,7 +1,6 @@
 //! This module contains the endpoints for the pronunciation dictionaries.
 //!
-//! # Example
-//!
+//! See examples [here](https://www.github.com/rwxbytes/elevenlabs_rs/tree/main/examples/pronunciation_dictionaries).
 use super::*;
 use crate::endpoints::history::DOWNLOAD_PATH;
 use reqwest::multipart::Part;
@@ -31,7 +30,7 @@ const PAGE_SIZE_QUERY: &str = "page_size";
 /// }
 /// ```
 #[derive(Clone, Debug)]
-pub struct AddFromFile(pub AddFromFileBody);
+pub struct AddFromFile(pub(crate) AddFromFileBody);
 
 impl AddFromFile {
     pub fn new(body: AddFromFileBody) -> Self {

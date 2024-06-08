@@ -14,13 +14,14 @@ pub mod voice;
 pub mod voice_generation;
 pub mod voice_library;
 pub mod pronunciation;
+pub mod sts;
 
 #[allow(async_fn_in_trait)]
 pub trait Endpoint {
     type ResponseBody;
 
     fn method(&self) -> Method;
-    fn json_request_body(&self) -> Option<Result<serde_json::Value>> {
+    fn json_request_body(&self) -> Option<Result<Value>> {
         None
     }
     fn multipart_request_body(&self) -> Option<Result<Form>> {
@@ -30,6 +31,7 @@ pub trait Endpoint {
     fn url(&self) -> Url;
 }
 
+// TODO: move to a more appropriate module, make shared
 #[derive(Clone, Debug, Deserialize)]
 pub struct Status {
     status: String,

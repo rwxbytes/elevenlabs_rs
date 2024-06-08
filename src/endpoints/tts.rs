@@ -7,7 +7,7 @@ use serde::Serialize;
 use std::pin::Pin;
 
 const TTS_PATH: &str = "/v1/text-to-speech";
-const STREAM_PATH: &str = "/stream";
+pub const STREAM_PATH: &str = "/stream";
 const LATENCY_QUERY: &str = "optimize_streaming_latency";
 const OUTPUT_FORMAT_QUERY: &str = "output_format";
 const ENABLE_LOGGING_QUERY: &str = "enable_logging";
@@ -39,15 +39,10 @@ impl Endpoint for TextToSpeech {
         let mut url = BASE_URL.parse::<Url>().unwrap();
         url.set_path(&format!("{}/{}", TTS_PATH, self.voice_id.0));
         url.set_query(self.any_query().as_deref());
-        //if let Some(query) = &self.speech_query {
-        //    let query = query.to_string();
-        //    url.set_query(Some(&query));
-        //}
         url
     }
 }
 
-// TODO: any_query() method? `url.set_query(self.any_query())`
 impl TextToSpeech {
     pub fn new(voice_id: &str, text_to_speech_body: TextToSpeechBody) -> Self {
         let voice_id = VoiceID::from(voice_id);
@@ -113,19 +108,8 @@ impl TextToSpeechBody {
         }
         self
     }
-    pub fn with_voice_settings(
-        mut self,
-        similarity_boost: f32,
-        stability: f32,
-        style: Option<f32>,
-        use_speaker_boost: Option<bool>,
-    ) -> Self {
-        self.voice_settings = Some(VoiceSettings {
-            similarity_boost,
-            stability,
-            style,
-            use_speaker_boost,
-        });
+    pub fn with_voice_settings(mut self, voice_settings: VoiceSettings) -> Self {
+        self.voice_settings = Some(voice_settings);
         self
     }
     pub fn with_seed(mut self, seed: u64) -> Self {
@@ -179,7 +163,7 @@ impl SpeechQuery {
         self
     }
 
-    fn to_string(&self) -> String {
+    pub fn to_string(&self) -> String {
         let mut query = String::new();
 
         if let Some(latency) = &self.latency {
@@ -256,7 +240,7 @@ pub struct TextToSpeechStream {
 }
 
 impl TextToSpeechStream {
-    pub fn new_stream(voice_id: &str, text_to_speech_body: TextToSpeechBody) -> Self {
+    pub fn new(voice_id: &str, text_to_speech_body: TextToSpeechBody) -> Self {
         let voice_id = VoiceID::from(voice_id);
         TextToSpeechStream {
             voice_id,
@@ -264,7 +248,7 @@ impl TextToSpeechStream {
             speech_query: None,
         }
     }
-    pub fn with_stream_query(mut self, speech_query: SpeechQuery) -> Self {
+    pub fn with_query(mut self, speech_query: SpeechQuery) -> Self {
         self.speech_query = Some(speech_query);
         self
     }
@@ -300,16 +284,3 @@ impl Endpoint for TextToSpeechStream {
     }
 }
 
-impl TextToSpeechStream {
-    pub fn new(voice_id: VoiceID, text_to_speech_body: TextToSpeechBody) -> Self {
-        TextToSpeechStream {
-            voice_id,
-            text_to_speech_body,
-            speech_query: None,
-        }
-    }
-    pub fn with_query(mut self, speech_query: SpeechQuery) -> Self {
-        self.speech_query = Some(speech_query);
-        self
-    }
-}

@@ -145,7 +145,6 @@ impl GetVoiceWithSettings {
     pub fn new(voice_id: &str) -> Self {
         GetVoiceWithSettings(VoiceID(voice_id.to_string()))
     }
-
 }
 
 impl Endpoint for GetVoiceWithSettings {
@@ -403,7 +402,6 @@ impl EditVoiceBody {
 #[derive(Clone, Debug)]
 pub(crate) struct VoiceID(pub(crate) String);
 
-
 impl From<&str> for VoiceID {
     fn from(id: &str) -> Self {
         VoiceID(id.to_string())
@@ -455,16 +453,51 @@ impl VoiceSample {
     }
 }
 
-// TODO: impl getters & setters.
 #[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
 pub struct VoiceSettings {
-    pub similarity_boost: f32,
-    pub stability: f32,
+    similarity_boost: f32,
+    stability: f32,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub style: Option<f32>,
+    style: Option<f32>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub use_speaker_boost: Option<bool>,
+    use_speaker_boost: Option<bool>,
 }
+
+impl VoiceSettings {
+    pub fn new(similarity_boost: f32, stability: f32) -> Self {
+        VoiceSettings {
+            similarity_boost,
+            stability,
+            style: None,
+            use_speaker_boost: None,
+        }
+    }
+    pub fn with_style(mut self, style: f32) -> Self {
+        self.style = Some(style);
+        self
+    }
+    pub fn with_use_speaker_boost(mut self, use_speaker_boost: bool) -> Self {
+        self.use_speaker_boost = Some(use_speaker_boost);
+        self
+    }
+
+    pub fn similarity_boost(&self) -> f32 {
+        self.similarity_boost
+    }
+
+    pub fn stability(&self) -> f32 {
+        self.stability
+    }
+
+    pub fn style(&self) -> Option<f32> {
+        self.style
+    }
+
+    pub fn use_speaker_boost(&self) -> Option<bool> {
+        self.use_speaker_boost
+    }
+}
+
 impl Default for VoiceSettings {
     fn default() -> Self {
         VoiceSettings {
