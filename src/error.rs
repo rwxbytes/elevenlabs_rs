@@ -33,27 +33,16 @@ pub enum Error {
 #[derive(Error, Debug, Deserialize)]
 #[error("ElevenLabsServerError: {detail:?}")]
 pub struct ElevenLabsServerError {
-    detail: ServerErrorDetail,
+    detail: Detail
 }
 
-#[derive(Error, Debug, Deserialize)]
-#[error("ServerErrorDetail: {message:?}, {status:?}")]
-struct ServerErrorDetail {
-    message: String,
-    status: String,
-}
 #[derive(Debug, Deserialize, Error)]
 #[error("ClientErrorDetail: {message:?}, {status:?}")]
-struct ClientErrorDetail {
+struct Detail {
     message: String,
     status: String,
 }
 
-#[derive(Error, Debug, Deserialize)]
-#[error("ElevenLabsClientError: {detail:?}")]
-pub struct ElevenLabsClientError {
-    detail: Vec<DetailObject>,
-}
 #[derive(Debug, Deserialize)]
 struct DetailObject {
     loc: Vec<String>,
@@ -63,17 +52,13 @@ struct DetailObject {
 
 #[derive(Debug, Deserialize, Error)]
 #[serde(untagged)]
-pub enum ElevenLabsError {
+pub enum ElevenLabsClientError {
     #[error("ElevenLabsClientError: {detail:?}")]
-    BadRequest { detail: ClientErrorDetail },
+    BadRequest { detail: Detail },
+    #[error("ElevenLabsClientError: {detail:?}")]
+    NotFound { detail: Detail },
     #[error("ElevenLabsClientError: {detail:?}")]
     UnprocessableEntity { detail: Vec<DetailObject> },
-    #[error("ElevenLabsClientError: {0}")]
-    Code4xx(Code4xx),
-}
-
-#[derive(Debug, Deserialize, Error)]
-#[error("Error4xx: {detail:?}")]
-pub struct Code4xx {
-    detail: String,
+    #[error("ElevenLabsClientError: {detail:?}")]
+    Code4xx{ detail: String },
 }

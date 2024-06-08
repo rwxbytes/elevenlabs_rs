@@ -10,6 +10,7 @@ const TTS_PATH: &str = "/v1/text-to-speech";
 const STREAM_PATH: &str = "/stream";
 const LATENCY_QUERY: &str = "optimize_streaming_latency";
 const OUTPUT_FORMAT_QUERY: &str = "output_format";
+const ENABLE_LOGGING_QUERY: &str = "enable_logging";
 
 // TODO: Timestamps Endpoints
 // TODO: Websocket Endpoint
@@ -24,24 +25,32 @@ pub struct TextToSpeech {
 impl Endpoint for TextToSpeech {
     type ResponseBody = Bytes;
 
-    fn method(&self) -> reqwest::Method {
-        reqwest::Method::POST
+    fn method(&self) -> Method {
+        Method::POST
     }
-    fn json_request_body(&self) -> Option<Result<serde_json::Value>> {
+    fn json_request_body(&self) -> Option<Result<Value>> {
         Some(serde_json::to_value(&self.text_to_speech_body).map_err(Into::into))
     }
-    async fn response_body(self, resp: reqwest::Response) -> Result<Self::ResponseBody> {
+    async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
         Ok(resp.bytes().await?)
     }
-    fn url(&self) -> reqwest::Url {
-        let mut url = BASE_URL.parse::<reqwest::Url>().unwrap();
+    // TODO: Implement query parameters
+    fn url(&self) -> Url {
+        let mut url = BASE_URL.parse::<Url>().unwrap();
         url.set_path(&format!("{}/{}", TTS_PATH, self.voice_id.0));
+        url.set_query(self.any_query().as_deref());
+        //if let Some(query) = &self.speech_query {
+        //    let query = query.to_string();
+        //    url.set_query(Some(&query));
+        //}
         url
     }
 }
 
+// TODO: any_query() method? `url.set_query(self.any_query())`
 impl TextToSpeech {
-    pub fn new(voice_id: VoiceID, text_to_speech_body: TextToSpeechBody) -> Self {
+    pub fn new(voice_id: &str, text_to_speech_body: TextToSpeechBody) -> Self {
+        let voice_id = VoiceID::from(voice_id);
         TextToSpeech {
             voice_id,
             text_to_speech_body,
@@ -51,6 +60,14 @@ impl TextToSpeech {
     pub fn with_query(mut self, speech_query: SpeechQuery) -> Self {
         self.speech_query = Some(speech_query);
         self
+    }
+
+    fn any_query(&self) -> Option<String> {
+        if let Some(query) = &self.speech_query {
+            Some(query.to_string())
+        } else {
+            None
+        }
     }
 }
 
@@ -82,7 +99,7 @@ impl TextToSpeechBody {
             ..Default::default()
         }
     }
-    pub fn with_pronunciation(mut self, pronunciation_id: &str, version_id: &str) -> Self {
+    pub fn with_pronunciation_dict(mut self, pronunciation_id: &str, version_id: &str) -> Self {
         if let Some(dictionary) = &mut self.pronunciation_dictionary_locators {
             dictionary.push(PronunciationDictionaryLocator {
                 pronunciation_dictionary_id: pronunciation_id.to_string(),
@@ -140,11 +157,51 @@ struct PronunciationDictionaryLocator {
 
 #[derive(Clone, Debug, Default)]
 pub struct SpeechQuery {
-    latency: Option<Latency>,
-    output_format: Option<OutputFormat>,
+    latency: Option<String>,
+    output_format: Option<String>,
+    enable_logging: Option<String>,
 }
 
-#[derive(Clone, Debug, Serialize)]
+impl SpeechQuery {
+    pub fn new() -> Self {
+        SpeechQuery::default()
+    }
+    pub fn with_latency(mut self, latency: Latency) -> Self {
+        self.latency = Some(format!("{}={}", LATENCY_QUERY, latency as u8));
+        self
+    }
+    pub fn with_output_format(mut self, output_format: OutputFormat) -> Self {
+        self.output_format = Some(format!("{}={}", OUTPUT_FORMAT_QUERY, output_format.to_query()));
+        self
+    }
+    pub fn with_logging(mut self, enable_logging: bool) -> Self {
+        self.enable_logging = Some(format!("{}={}", ENABLE_LOGGING_QUERY, enable_logging));
+        self
+    }
+
+    fn to_string(&self) -> String {
+        let mut query = String::new();
+
+        if let Some(latency) = &self.latency {
+            query.push_str(latency);
+        }
+        if let Some(output_format) = &self.output_format {
+            if !query.is_empty() {
+                query.push('&');
+            }
+            query.push_str(output_format);
+        }
+        if let Some(enable_logging) = &self.enable_logging {
+            if !query.is_empty() {
+                query.push('&');
+            }
+            query.push_str(enable_logging);
+        }
+        query
+    }
+}
+
+#[derive(Clone, Debug)]
 pub enum Latency {
     /// Default latency
     None = 0,
@@ -190,19 +247,6 @@ impl OutputFormat {
     }
 }
 
-impl SpeechQuery {
-    pub fn new() -> Self {
-        SpeechQuery::default()
-    }
-    pub fn with_latency(mut self, latency: Latency) -> Self {
-        self.latency = Some(latency);
-        self
-    }
-    pub fn with_output_format(mut self, output_format: OutputFormat) -> Self {
-        self.output_format = Some(output_format);
-        self
-    }
-}
 
 #[derive(Clone, Debug)]
 pub struct TextToSpeechStream {
@@ -211,13 +255,36 @@ pub struct TextToSpeechStream {
     speech_query: Option<SpeechQuery>,
 }
 
+impl TextToSpeechStream {
+    pub fn new_stream(voice_id: &str, text_to_speech_body: TextToSpeechBody) -> Self {
+        let voice_id = VoiceID::from(voice_id);
+        TextToSpeechStream {
+            voice_id,
+            text_to_speech_body,
+            speech_query: None,
+        }
+    }
+    pub fn with_stream_query(mut self, speech_query: SpeechQuery) -> Self {
+        self.speech_query = Some(speech_query);
+        self
+    }
+    fn any_query(&self) -> Option<String> {
+        if let Some(query) = &self.speech_query {
+            Some(query.to_string())
+        } else {
+            None
+        }
+    }
+
+}
+
 impl Endpoint for TextToSpeechStream {
     type ResponseBody = Pin<Box<dyn Stream<Item = Result<Bytes>>>>;
 
-    fn method(&self) -> reqwest::Method {
-        reqwest::Method::POST
+    fn method(&self) -> Method {
+        Method::POST
     }
-    fn json_request_body(&self) -> Option<Result<serde_json::Value>> {
+    fn json_request_body(&self) -> Option<Result<Value>> {
         Some(serde_json::to_value(&self.text_to_speech_body).map_err(Into::into))
     }
 
@@ -227,7 +294,7 @@ impl Endpoint for TextToSpeechStream {
         Ok(Box::pin(stream))
     }
     fn url(&self) -> reqwest::Url {
-        let mut url = BASE_URL.parse::<reqwest::Url>().unwrap();
+        let mut url = BASE_URL.parse::<Url>().unwrap();
         url.set_path(&format!("{}/{}{}", TTS_PATH, self.voice_id.0, STREAM_PATH));
         url
     }

@@ -6,7 +6,6 @@ use reqwest::multipart::{Form, Part};
 use reqwest::{Method, Response, Url};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::ops::Deref;
 use std::path::Path;
 
 pub const ADD_VOICE_PATH: &str = "/add";
@@ -37,10 +36,16 @@ impl Endpoint for GetVoices {
 }
 
 #[derive(Clone, Debug)]
-pub struct GetVoiceIDByName(pub String);
+pub struct GetVoiceIDByName(String);
+
+impl GetVoiceIDByName {
+    pub fn new(name: &str) -> Self {
+        GetVoiceIDByName(name.to_string())
+    }
+}
 
 impl Endpoint for GetVoiceIDByName {
-    type ResponseBody = VoiceID;
+    type ResponseBody = String;
 
     fn method(&self) -> Method {
         Method::GET
@@ -52,7 +57,7 @@ impl Endpoint for GetVoiceIDByName {
             .ok_or(Box::new(Error::VoiceNotFound))?
             .voice_id
             .clone();
-        Ok(VoiceID(voice_id))
+        Ok(voice_id)
     }
     fn url(&self) -> Url {
         let mut url = BASE_URL.parse::<Url>().unwrap();
@@ -81,7 +86,13 @@ impl Endpoint for GetDefaultSettings {
 }
 
 #[derive(Clone, Debug)]
-pub struct GetVoiceSettings(pub VoiceID);
+pub struct GetVoiceSettings(VoiceID);
+
+impl GetVoiceSettings {
+    pub fn new(voice_id: &str) -> Self {
+        GetVoiceSettings(VoiceID(voice_id.to_string()))
+    }
+}
 
 impl Endpoint for GetVoiceSettings {
     type ResponseBody = VoiceSettings;
@@ -103,7 +114,13 @@ impl Endpoint for GetVoiceSettings {
 }
 
 #[derive(Clone, Debug)]
-pub struct GetVoice(pub VoiceID);
+pub struct GetVoice(VoiceID);
+
+impl GetVoice {
+    pub fn new(voice_id: &str) -> Self {
+        GetVoice(VoiceID(voice_id.to_string()))
+    }
+}
 
 impl Endpoint for GetVoice {
     type ResponseBody = Voice;
@@ -122,7 +139,14 @@ impl Endpoint for GetVoice {
 }
 
 #[derive(Clone, Debug)]
-pub struct GetVoiceWithSettings(pub VoiceID);
+pub struct GetVoiceWithSettings(VoiceID);
+
+impl GetVoiceWithSettings {
+    pub fn new(voice_id: &str) -> Self {
+        GetVoiceWithSettings(VoiceID(voice_id.to_string()))
+    }
+
+}
 
 impl Endpoint for GetVoiceWithSettings {
     type ResponseBody = Voice;
@@ -142,7 +166,13 @@ impl Endpoint for GetVoiceWithSettings {
 }
 
 #[derive(Clone, Debug)]
-pub struct DeleteVoice(pub VoiceID);
+pub struct DeleteVoice(VoiceID);
+
+impl DeleteVoice {
+    pub fn new(voice_id: &str) -> Self {
+        DeleteVoice(VoiceID(voice_id.to_string()))
+    }
+}
 
 impl Endpoint for DeleteVoice {
     type ResponseBody = Status;
@@ -162,8 +192,17 @@ impl Endpoint for DeleteVoice {
 
 #[derive(Clone, Debug)]
 pub struct EditVoiceSettings {
-    pub voice_id: VoiceID,
-    pub body: EditVoiceSettingsBody,
+    voice_id: VoiceID,
+    body: EditVoiceSettingsBody,
+}
+
+impl EditVoiceSettings {
+    pub fn new(voice_id: &str, body: EditVoiceSettingsBody) -> Self {
+        EditVoiceSettings {
+            voice_id: VoiceID(voice_id.to_string()),
+            body,
+        }
+    }
 }
 
 impl Endpoint for EditVoiceSettings {
@@ -218,7 +257,13 @@ impl EditVoiceSettingsBody {
 }
 
 #[derive(Clone, Debug)]
-pub struct AddVoice(pub AddVoiceBody);
+pub struct AddVoice(AddVoiceBody);
+
+impl AddVoice {
+    pub fn new(body: AddVoiceBody) -> Self {
+        AddVoice(body)
+    }
+}
 
 impl Endpoint for AddVoice {
     type ResponseBody = AddVoiceResponse;
@@ -276,10 +321,25 @@ pub struct AddVoiceResponse {
     voice_id: String,
 }
 
+impl AddVoiceResponse {
+    pub fn get_voice_id(&self) -> &String {
+        &self.voice_id
+    }
+}
+
 #[derive(Clone, Debug)]
 pub struct EditVoice {
     pub voice_id: VoiceID,
     pub body: EditVoiceBody,
+}
+
+impl EditVoice {
+    pub fn new(voice_id: &str, body: EditVoiceBody) -> Self {
+        EditVoice {
+            voice_id: VoiceID(voice_id.to_string()),
+            body,
+        }
+    }
 }
 
 impl Endpoint for EditVoice {
@@ -341,15 +401,8 @@ impl EditVoiceBody {
 }
 
 #[derive(Clone, Debug)]
-pub struct VoiceID(pub(crate) String);
+pub(crate) struct VoiceID(pub(crate) String);
 
-impl Deref for VoiceID {
-    type Target = String;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
 
 impl From<&str> for VoiceID {
     fn from(id: &str) -> Self {

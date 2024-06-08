@@ -1,6 +1,6 @@
 use crate::endpoints::Endpoint;
 use crate::error::Error::ClientSendRequestError;
-use crate::error::{Code4xx, ElevenLabsClientError, ElevenLabsError, ElevenLabsServerError};
+use crate::error::{ElevenLabsClientError, ElevenLabsServerError};
 use reqwest;
 use reqwest::header::CONTENT_TYPE;
 use reqwest::Method;
@@ -66,29 +66,17 @@ impl ElevenLabsClient {
     }
 }
 
+// TODO: Simplify this function
 async fn handle_http_error(resp: Response) -> Result<Response> {
     if resp.status().is_server_error() {
         let server_error = resp.json::<ElevenLabsServerError>().await?;
         return Err(Box::new(server_error));
     }
-
     if resp.status().is_client_error() {
-        return match resp.status() {
-            StatusCode::UNPROCESSABLE_ENTITY => {
-                let client_error = resp.json::<ElevenLabsClientError>().await?;
-                Err(Box::new(client_error))
-            }
-            StatusCode::BAD_REQUEST => {
-                let client_error = resp.json::<ElevenLabsError>().await?;
-                Err(Box::new(client_error))
-            }
-
-            _ => Err(Box::new(ElevenLabsError::Code4xx(
-                resp.json::<Code4xx>().await?,
-            ))),
-        };
+        let client_error = resp.json::<ElevenLabsClientError>().await?;
+        return Err(Box::new(client_error));
     }
-
+    // TODO: improve this error handling
     if !resp.status().is_success() {
         return Err(Box::new(ClientSendRequestError(resp.json().await?)));
     }

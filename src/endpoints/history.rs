@@ -192,7 +192,7 @@ impl HistoryQuery {
     }
 
     pub fn with_voice_id(mut self, voice_id: VoiceID) -> Self {
-        self.voice_id = Some(format!("{}={}", VOICE_ID_QUERY, voice_id.as_str()));
+        self.voice_id = Some(format!("{}={}", VOICE_ID_QUERY, voice_id.0));
         self
     }
     pub fn join(&mut self) -> Option<String> {

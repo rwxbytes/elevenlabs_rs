@@ -532,8 +532,8 @@ impl Endpoint for AddSharedVoice {
             "{}{}/{}/{}",
             VOICES_PATH,
             ADD_VOICE_PATH,
-            self.params.public_user_id.deref(),
-            self.params.voice_id.deref()
+            self.params.public_user_id.0,
+            self.params.voice_id.0
         ));
         url
     }
@@ -565,15 +565,9 @@ impl AddSharedVoiceParams {
 
 /// Public user ID used to publicly identify ElevenLabs users.
 #[derive(Clone, Debug)]
-pub struct PublicUserID(pub(crate) String);
+pub(crate) struct PublicUserID(pub(crate) String);
 
-impl Deref for PublicUserID {
-    type Target = String;
 
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
 
 impl From<&str> for PublicUserID {
     fn from(id: &str) -> Self {
