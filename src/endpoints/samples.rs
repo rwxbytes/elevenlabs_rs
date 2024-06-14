@@ -16,7 +16,7 @@ const AUDIO_PATH: &str = "/audio";
 ///
 /// #[tokio::main]
 /// async fn main() -> Result<()> {
-///     let c = ElevenLabsClient::new()?;
+///     let c = ElevenLabsClient::default()?;
 ///     let voice_id = VoiceID::from("some voice id");
 ///     let voice = c.hit(GetVoice(voice_id.clone())).await?;
 ///     let sample_id = voice
@@ -72,7 +72,7 @@ pub struct SamplePathParams {
 ///
 /// #[tokio::main]
 /// async fn main() -> Result<()> {
-///     let c = ElevenLabsClient::new()?;
+///     let c = ElevenLabsClient::default()?;
 ///     let voice_id = VoiceID::from("some voice id");
 ///     let voice = c.hit(GetVoice(voice_id.clone())).await?;
 ///     let sample_id = voice

@@ -1,19 +1,19 @@
 //! Speech-to-speech endpoints
 
-use reqwest::multipart::Part;
 use super::*;
-pub use crate::endpoints::tts::{Latency,SpeechQuery, OutputFormat, STREAM_PATH};
-pub use crate::endpoints::voice::VoiceSettings;
+pub use crate::endpoints::tts::{Latency, OutputFormat, SpeechQuery, STREAM_PATH};
 use crate::endpoints::voice::VoiceID;
+pub use crate::endpoints::voice::VoiceSettings;
 use crate::error::Error;
 use futures_util::{Stream, StreamExt};
+use reqwest::multipart::Part;
 use std::pin::Pin;
 
 const STS_PATH: &str = "/v1/speech-to-speech";
 
 /// Speech-to-speech endpoint
 ///
-/// Use Speech to Speech API to transform uploaded speech, 
+/// Use Speech to Speech API to transform uploaded speech,
 /// so it sounds like it was spoken by another voice.
 ///
 /// # Example
@@ -27,7 +27,7 @@ const STS_PATH: &str = "/v1/speech-to-speech";
 /// async fn main() -> Result<()> {
 ///    let model = "eleven_multilingual_sts_v2"; // default is eleven_english_sts_v2
 ///    let body = SpeechToSpeechBody::new("some_audio.mp3").with_model_id(model);
-///    let client = ElevenLabsClient::new()?;
+///    let client = ElevenLabsClient::default()?;
 ///    let resp = client.hit(SpeechToSpeech::new("voice_id", body)).await?;
 ///    play(resp).await?;
 ///    Ok(())
@@ -79,8 +79,9 @@ impl SpeechToSpeechBody {
         let mut form = Form::new();
         let path = std::path::Path::new(&self.audio);
         let audio_bytes = std::fs::read(path)?;
-        let file_name = path.to_str().
-            ok_or(Box::new(Error::PathNotValidUTF8))?
+        let file_name = path
+            .to_str()
+            .ok_or(Box::new(Error::PathNotValidUTF8))?
             .to_string();
         let audio = Part::bytes(audio_bytes)
             .file_name(file_name)
@@ -99,7 +100,6 @@ impl SpeechToSpeechBody {
         Ok(form)
     }
 }
-
 
 impl SpeechToSpeech {
     /// Create a new SpeechToSpeech endpoint
@@ -134,9 +134,9 @@ impl Endpoint for SpeechToSpeech {
         Method::POST
     }
     fn multipart_request_body(&self) -> Option<Result<Form>> {
-       Some(self.speech_to_speech_body.to_form().map_err(Into::into))
+        Some(self.speech_to_speech_body.to_form().map_err(Into::into))
     }
-    
+
     async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
         Ok(resp.bytes().await?)
     }
@@ -161,7 +161,7 @@ impl Endpoint for SpeechToSpeech {
 ///    let model = "eleven_multilingual_sts_v2";
 ///    let body = SpeechToSpeechBody::new("some_audio.mp3")
 ///        .with_model_id(model);
-///    let client = ElevenLabsClient::new()?;
+///    let client = ElevenLabsClient::default()?;
 ///    let resp_stream = client
 ///        .hit(SpeechToSpeechStream::new("voice_id", body))
 ///        .await?;
@@ -172,7 +172,7 @@ impl Endpoint for SpeechToSpeech {
 /// See the [ElevenLabs docs](https://elevenlabs.io/docs/api-reference/speech-to-speech-streaming) for more information.
 
 #[derive(Clone, Debug)]
-pub struct  SpeechToSpeechStream {
+pub struct SpeechToSpeechStream {
     voice_id: VoiceID,
     speech_to_speech_body: SpeechToSpeechBody,
     speech_query: Option<SpeechQuery>,
@@ -220,4 +220,3 @@ impl Endpoint for SpeechToSpeechStream {
         url
     }
 }
-

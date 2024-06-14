@@ -14,7 +14,7 @@ const SUBSCRIPTION_PATH: &str = "v1/user/subscription";
 ///
 /// #[tokio::main]
 /// async fn main() -> Result<()> {
-///     let c = ElevenLabsClient::new()?;
+///     let c = ElevenLabsClient::default()?;
 ///     let resp = c.hit(GetUserSubscriptionInfo).await?;
 ///     println!("{:#?}", resp);
 ///     Ok(())
@@ -76,7 +76,7 @@ pub struct NextInvoice {
 ///
 /// #[tokio::main]
 /// async fn main() -> Result<()> {
-///    let c = ElevenLabsClient::new()?;
+///    let c = ElevenLabsClient::default()?;
 ///    let resp = c.hit(GetUserInfo).await?;
 ///    println!("{:#?}", resp);
 ///   Ok(())

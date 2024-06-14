@@ -22,7 +22,7 @@ const PAGE_SIZE_QUERY: &str = "page_size";
 ///
 /// #[tokio::main]
 /// async fn main() -> Result<()> {
-///    let c = ElevenLabsClient::new()?;
+///    let c = ElevenLabsClient::default()?;
 ///    let body = AddFromFileBody::new("acronyms.pls", "acronyms");
 ///    let resp = c.hit(AddFromFile::new(body)).await?;
 ///    println!("{:?}", resp);
@@ -159,7 +159,7 @@ impl AddFromFileResponse {
 ///
 /// #[tokio::main]
 /// async fn main() -> Result<()> {
-///   let c = ElevenLabsClient::new()?;
+///   let c = ElevenLabsClient::default()?;
 ///   let rules = vec![
 ///      Rule::new_alias("TTS", "text to speech"),
 ///      Rule::new_alias("API", "application programming interface"),
@@ -286,7 +286,7 @@ impl RulesResponse {
 ///
 /// #[tokio::main]
 /// async fn main() -> Result<()> {
-///    let c = ElevenLabsClient::new()?;
+///    let c = ElevenLabsClient::default()?;
 ///    let resp = c.hit(GetDictionaries::new()).await?;
 ///    println!("{:?}", resp);
 ///   Ok(())
@@ -430,7 +430,7 @@ impl PronunciationDictionary {
 ///
 /// #[tokio::main]
 /// async fn main() -> Result<()> {
-///   let c = ElevenLabsClient::new()?;
+///   let c = ElevenLabsClient::default()?;
 ///   let resp = c.hit(GetDictionary::new("dictionary_id")).await?;
 ///   println!("{:?}", resp);
 ///  Ok(())
@@ -476,7 +476,7 @@ impl Endpoint for GetDictionary {
 ///
 /// #[tokio::main]
 /// async fn main() -> Result<()> {
-///   let c = ElevenLabsClient::new()?;
+///   let c = ElevenLabsClient::default()?;
 ///   let resp_bytes = c.hit(DownloadVersionByID::new("dictionary_id", "version_id")).await?;
 ///   save("dictionary_rules.pls", resp_bytes)?;
 ///   Ok(())
@@ -531,7 +531,7 @@ impl Endpoint for DownloadVersionByID {
 ///
 /// #[tokio::main]
 /// async fn main() -> Result<()> {
-///    let c = ElevenLabsClient::new()?;
+///    let c = ElevenLabsClient::default()?;
 ///    let remove_rules = vec!["rule_string_1", "rule_string_2"];
 ///    let resp = c.hit(RemoveRules::new("dictionary_id", remove_rules)).await?;
 ///    println!("{:?}", resp);

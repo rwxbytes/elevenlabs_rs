@@ -21,7 +21,7 @@ impl DubAVideoOrAnAudioFile {
     ///
     /// #[tokio::main]
     /// async fn main() -> Result<()> {
-    ///    let c = ElevenLabsClient::new()?;
+    ///    let c = ElevenLabsClient::default()?;
     ///    let file = "some_video_file.mp4";
     ///    let endpoint = DubAVideoOrAnAudioFile::from_file(file, "ja", "en");
     ///    let resp = c.hit(endpoint).await?;
@@ -50,7 +50,7 @@ impl DubAVideoOrAnAudioFile {
     ///
     /// #[tokio::main]
     /// async fn main() -> Result<()> {
-    ///    let c = ElevenLabsClient::new()?;
+    ///    let c = ElevenLabsClient::default()?;
     ///    let url = "some_url";
     ///    let endpoint = DubAVideoOrAnAudioFile::from_url(url, "en", "fr");
     ///    let resp = c.hit(endpoint).await?;
@@ -336,7 +336,7 @@ impl GetDubbingProjectMetadataResponse {
 ///
 /// #[tokio::main]
 /// async fn main() -> Result<()> {
-///     let c = ElevenLabsClient::new()?;
+///     let c = ElevenLabsClient::default()?;
 ///     let dub_params = GetDubbedFileParams::new(
 ///         DubbingID::from("some dubbing id"),
 ///         "en"

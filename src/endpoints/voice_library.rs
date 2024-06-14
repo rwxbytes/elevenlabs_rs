@@ -27,7 +27,7 @@
 //!
 //! #[tokio::main]
 //! async fn main() -> Result<()> {
-//!     let c = ElevenLabsClient::new()?;
+//!     let c = ElevenLabsClient::default()?;
 //!
 //!     let mut query = SharedVoicesQuery::default();
 //!     query = query
@@ -82,7 +82,7 @@ const PAGE_QUERY: &str = "page";
 ///
 /// #[tokio::main]
 /// async fn main() -> Result<()> {
-///     let c = ElevenLabsClient::new()?;
+///     let c = ElevenLabsClient::default()?;
 ///     let mut query = SharedVoicesQuery::default();
 ///     query = query
 ///         .with_page_size(1)
@@ -459,7 +459,7 @@ impl Category {
 ///
 /// #[tokio::main]
 /// async fn main() -> Result<()> {
-///     let c = ElevenLabsClient::new()?;
+///     let c = ElevenLabsClient::default()?;
 ///     let public_user_id = "some_public_user_id";
 ///     let voice_id = "some_voice_id";
 ///     let name = "new_voice_name";
@@ -492,7 +492,7 @@ impl AddSharedVoice {
     ///
     /// #[tokio::main]
     /// async fn main() -> Result<()> {
-    ///     let c = ElevenLabsClient::new()?;
+    ///     let c = ElevenLabsClient::default()?;
     ///     let mut query = SharedVoicesQuery::default();
     ///     query = query
     ///         .with_page_size(1)
@@ -530,10 +530,7 @@ impl Endpoint for AddSharedVoice {
         let mut url = BASE_URL.parse::<Url>().unwrap();
         url.set_path(&format!(
             "{}{}/{}/{}",
-            VOICES_PATH,
-            ADD_VOICE_PATH,
-            self.params.public_user_id.0,
-            self.params.voice_id.0
+            VOICES_PATH, ADD_VOICE_PATH, self.params.public_user_id.0, self.params.voice_id.0
         ));
         url
     }
@@ -566,8 +563,6 @@ impl AddSharedVoiceParams {
 /// Public user ID used to publicly identify ElevenLabs users.
 #[derive(Clone, Debug)]
 pub(crate) struct PublicUserID(pub(crate) String);
-
-
 
 impl From<&str> for PublicUserID {
     fn from(id: &str) -> Self {

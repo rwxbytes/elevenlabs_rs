@@ -25,7 +25,7 @@ const TEXT_LENGTH_MAX: u64 = 1000;
 ///
 /// #[tokio::main]
 /// async fn main() -> Result<()> {
-///     let c = ElevenLabsClient::new()?;
+///     let c = ElevenLabsClient::default()?;
 ///
 ///     let body = GenerateVoiceBody::new(
 ///         Gender::Female,

@@ -7,14 +7,14 @@ pub use serde_json::Value;
 pub mod dubbing;
 pub mod history;
 pub mod models;
+pub mod pronunciation;
 pub mod samples;
+pub mod sts;
 pub mod tts;
 pub mod user;
 pub mod voice;
 pub mod voice_generation;
 pub mod voice_library;
-pub mod pronunciation;
-pub mod sts;
 
 #[allow(async_fn_in_trait)]
 pub trait Endpoint {

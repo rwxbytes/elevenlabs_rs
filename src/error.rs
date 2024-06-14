@@ -33,7 +33,7 @@ pub enum Error {
 #[derive(Error, Debug, Deserialize)]
 #[error("ElevenLabsServerError: {detail:?}")]
 pub struct ElevenLabsServerError {
-    detail: Detail
+    detail: Detail,
 }
 
 #[derive(Debug, Deserialize, Error)]
@@ -60,5 +60,5 @@ pub enum ElevenLabsClientError {
     #[error("ElevenLabsClientError: {detail:?}")]
     UnprocessableEntity { detail: Vec<DetailObject> },
     #[error("ElevenLabsClientError: {detail:?}")]
-    Code4xx{ detail: String },
+    Code4xx { detail: String },
 }

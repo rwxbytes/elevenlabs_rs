@@ -42,7 +42,7 @@ impl Endpoint for DeleteHistoryItem {
 ///
 /// #[tokio::main]
 /// async fn main() -> Result<()> {
-///     let c = ElevenLabsClient::new()?;
+///     let c = ElevenLabsClient::default()?;
 ///     let history_item_ids = c
 ///         .hit(GetGeneratedItems(HistoryQuery::default())) // Returns 100 history items by default
 ///         .await?

@@ -11,7 +11,7 @@ async fn main() -> Result<()> {
         "examples/pronunciation_dictionaries/dictionary.pls",
         "example",
     );
-    let client = ElevenLabsClient::new()?;
+    let client = ElevenLabsClient::default()?;
     let resp = client.hit(AddFromFile::new(body)).await?;
     let mut dictionary_id = resp.id();
     let mut version_id = resp.version_id();
