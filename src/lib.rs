@@ -27,12 +27,12 @@
 ////! }
 ////! ```
 
-//pub use crate::endpoints::history::*;
-//pub use crate::endpoints::tts::Speech;
-//pub use crate::endpoints::user::get_user_subscription;
-//pub use crate::endpoints::voice::{get_voice, get_voices, Voice, VoiceCloneBuilder};
+pub use crate::client::{ElevenLabsClient, Result};
+pub use crate::endpoints::shared::identifiers::{PreMadeVoiceID};
+pub use crate::endpoints::models::*;
+pub use crate::endpoints::voice::*;
 
-pub mod client;
+mod client;
 pub mod endpoints;
 pub mod error;
 pub mod utils;
