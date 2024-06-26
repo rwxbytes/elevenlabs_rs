@@ -8,7 +8,7 @@ const PROJECTS_PATH: &str = "/v1/projects";
 /// # Example
 ///
 /// ```no_run
-/// use elevenlabs_rs::client::{ElevenLabsClient, Result};
+/// use elevenlabs_rs::*;
 /// use elevenlabs_rs::endpoints::projects::*;
 ///
 /// #[tokio::main]

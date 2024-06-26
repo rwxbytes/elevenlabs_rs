@@ -1,25 +1,20 @@
 //! Speech-to-speech endpoints
-
 use super::*;
-pub use crate::endpoints::tts::{Latency, OutputFormat, SpeechQuery, STREAM_PATH};
-use crate::endpoints::voice::VoiceID;
+pub use crate::endpoints::tts::{SpeechQuery};
 pub use crate::endpoints::voice::VoiceSettings;
 use crate::error::Error;
 use futures_util::{Stream, StreamExt};
-use reqwest::multipart::Part;
 use std::pin::Pin;
 
 const STS_PATH: &str = "/v1/speech-to-speech";
 
 /// Speech-to-speech endpoint
 ///
-/// Use Speech to Speech API to transform uploaded speech,
-/// so it sounds like it was spoken by another voice.
 ///
 /// # Example
 ///
 /// ```no_run
-/// use elevenlabs_rs::client::{ElevenLabsClient, Result};
+/// use elevenlabs_rs::*;
 /// use elevenlabs_rs::endpoints::sts::*;
 /// use elevenlabs_rs::utils::play;
 ///
@@ -103,10 +98,9 @@ impl SpeechToSpeechBody {
 
 impl SpeechToSpeech {
     /// Create a new SpeechToSpeech endpoint
-    pub fn new(voice_id: &str, speech_to_speech_body: SpeechToSpeechBody) -> Self {
-        let voice_id = VoiceID::from(voice_id);
+    pub fn new<T: Into<String>>(voice_id: T, speech_to_speech_body: SpeechToSpeechBody) -> Self {
         SpeechToSpeech {
-            voice_id,
+            voice_id: VoiceID::from(voice_id.into()),
             speech_to_speech_body,
             speech_query: None,
         }
@@ -133,8 +127,8 @@ impl Endpoint for SpeechToSpeech {
     fn method(&self) -> Method {
         Method::POST
     }
-    fn multipart_request_body(&self) -> Option<Result<Form>> {
-        Some(self.speech_to_speech_body.to_form().map_err(Into::into))
+    fn request_body(&self) -> Result<RequestBody> {
+        Ok(RequestBody::Multipart(self.speech_to_speech_body.to_form()?))
     }
 
     async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
@@ -152,7 +146,7 @@ impl Endpoint for SpeechToSpeech {
 /// # Example
 ///
 /// ```no_run
-/// use elevenlabs_rs::client::{ElevenLabsClient, Result};
+/// use elevenlabs_rs::*;
 /// use elevenlabs_rs::endpoints::sts::*;
 /// use elevenlabs_rs::utils::stream_audio;
 ///
@@ -179,10 +173,9 @@ pub struct SpeechToSpeechStream {
 }
 
 impl SpeechToSpeechStream {
-    pub fn new(voice_id: &str, speech_to_speech_body: SpeechToSpeechBody) -> Self {
-        let voice_id = VoiceID::from(voice_id);
+    pub fn new<T: Into<String>>(voice_id: T, speech_to_speech_body: SpeechToSpeechBody) -> Self {
         SpeechToSpeechStream {
-            voice_id,
+            voice_id: VoiceID::from(voice_id.into()),
             speech_to_speech_body,
             speech_query: None,
         }
@@ -205,8 +198,8 @@ impl Endpoint for SpeechToSpeechStream {
     fn method(&self) -> Method {
         Method::POST
     }
-    fn multipart_request_body(&self) -> Option<Result<Form>> {
-        Some(self.speech_to_speech_body.to_form().map_err(Into::into))
+    fn request_body(&self) -> Result<RequestBody> {
+        Ok(RequestBody::Multipart(self.speech_to_speech_body.to_form()?))
     }
     async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
         let stream = resp.bytes_stream();

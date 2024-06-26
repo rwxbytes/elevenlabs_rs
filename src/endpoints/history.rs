@@ -1,10 +1,5 @@
-use super::Endpoint;
-use crate::{
-    client::{Result, BASE_URL},
-    endpoints::voice::{VoiceID, VoiceSettings},
-};
-use bytes::Bytes;
-use serde::{Deserialize, Serialize};
+use super::*;
+use crate::endpoints::voice::VoiceSettings;
 
 pub const HISTORY_PATH: &str = "/v1/history";
 pub const AUDIO_PATH: &str = "/audio";
@@ -17,15 +12,15 @@ pub const VOICE_ID_QUERY: &str = "voice_id";
 #[derive(Clone, Debug)]
 pub struct DeleteHistoryItem(pub HistoryItemID);
 impl Endpoint for DeleteHistoryItem {
-    type ResponseBody = super::Status;
-    fn method(&self) -> reqwest::Method {
-        reqwest::Method::DELETE
+    type ResponseBody = StatusResponseBody;
+    fn method(&self) -> Method {
+        Method::DELETE
     }
-    async fn response_body(self, resp: reqwest::Response) -> Result<Self::ResponseBody> {
+    async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
         Ok(resp.json().await?)
     }
-    fn url(&self) -> reqwest::Url {
-        let mut url = BASE_URL.parse::<reqwest::Url>().unwrap();
+    fn url(&self) -> Url {
+        let mut url = BASE_URL.parse::<Url>().unwrap();
         url.set_path(&format!("{}/{}", HISTORY_PATH, self.0 .0));
         url
     }
@@ -36,7 +31,7 @@ impl Endpoint for DeleteHistoryItem {
 /// If more than one history item IDs are provided, we will provide the history items packed into a .zip file.
 /// # Example
 /// ```no_run
-/// use elevenlabs_rs::client::{ElevenLabsClient, Result};
+/// use elevenlabs_rs::*;
 /// use elevenlabs_rs::endpoints::history::*;
 /// use elevenlabs_rs::utils::save;
 ///
@@ -65,12 +60,16 @@ pub struct DownloadHistoryItems(pub DownloadBody);
 
 impl Endpoint for DownloadHistoryItems {
     type ResponseBody = Bytes;
-    fn method(&self) -> reqwest::Method {
-        reqwest::Method::POST
+    fn method(&self) -> Method {
+        Method::POST
     }
-    fn json_request_body(&self) -> Option<Result<serde_json::Value>> {
-        Some(serde_json::to_value(&self.0).map_err(Into::into))
+    fn request_body(&self) -> Result<RequestBody> {
+        Ok(RequestBody::Json(serde_json::to_value(&self.0)?))
+
     }
+    //fn json_request_body(&self) -> Option<Result<serde_json::Value>> {
+    //    Some(serde_json::to_value(&self.0).map_err(Into::into))
+    //}
     async fn response_body(self, resp: reqwest::Response) -> Result<Self::ResponseBody> {
         Ok(resp.bytes().await?)
     }

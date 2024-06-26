@@ -70,8 +70,8 @@ impl Endpoint for SoundGeneration {
         Method::POST
     }
 
-    fn json_request_body(&self) -> Option<Result<Value>> {
-        Some(serde_json::to_value(&self.0).map_err(Into::into))
+    fn request_body(&self) -> Result<RequestBody> {
+        Ok(RequestBody::Json(serde_json::to_value(&self.0)?))
     }
 
     async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {

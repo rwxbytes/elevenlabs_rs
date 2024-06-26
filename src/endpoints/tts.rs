@@ -1,27 +1,38 @@
+//! Text to Speech endpoints
 use super::*;
-use crate::client::BASE_URL;
-use crate::endpoints::voice::{VoiceID, VoiceSettings};
-use async_stream::try_stream;
-use base64::{
-    engine::{self, general_purpose},
-    Engine as _,
-};
-use bytes::Bytes;
-use futures_util::{Stream, StreamExt};
-use serde::Serialize;
+use crate::endpoints::voice::VoiceSettings;
+use base64::{engine::general_purpose, Engine as _};
+use futures_util::{pin_mut, Stream, StreamExt};
 use std::pin::Pin;
 
 const TTS_PATH: &str = "/v1/text-to-speech";
-pub const STREAM_PATH: &str = "/stream";
 const WITH_TIMESTAMP_PATH: &str = "/with-timestamps";
 const LATENCY_QUERY: &str = "optimize_streaming_latency";
 const OUTPUT_FORMAT_QUERY: &str = "output_format";
 const ENABLE_LOGGING_QUERY: &str = "enable_logging";
 const ENABLE_SSML_PARSING_QUERY: &str = "enable_ssml_parsing";
 
-// TODO: Timestamps Endpoints
-// TODO: Websocket Endpoint
-
+/// Text to Speech endpoint
+///
+/// # Example
+/// ```no_run
+/// use elevenlabs_rs::*;
+/// use::elevenlabs_rs::utils::play;
+///
+/// #[tokio::main]
+/// async fn main() -> Result<()> {
+///     let c = ElevenLabsClient::default()?;
+///     let body = TextToSpeechBody::new(
+///         "This is the way the world ends, not with a bang but a whimper",
+///         Model::ElevenMultilingualV2,
+///     );
+///     let endpoint = TextToSpeech::new(PreMadeVoiceID::Clyde, body);
+///     let speech = c.hit(endpoint).await?;
+///     play(speech)?;
+///
+///     Ok(())
+/// }
+/// ```
 #[derive(Clone, Debug)]
 pub struct TextToSpeech {
     voice_id: VoiceID,
@@ -35,9 +46,10 @@ impl Endpoint for TextToSpeech {
     fn method(&self) -> Method {
         Method::POST
     }
-    fn json_request_body(&self) -> Option<Result<Value>> {
-        Some(serde_json::to_value(&self.text_to_speech_body).map_err(Into::into))
+    fn request_body(&self) -> Result<RequestBody> {
+        Ok(RequestBody::Json(serde_json::to_value(&self.text_to_speech_body)?))
     }
+
     async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
         Ok(resp.bytes().await?)
     }
@@ -45,16 +57,14 @@ impl Endpoint for TextToSpeech {
         let mut url = BASE_URL.parse::<Url>().unwrap();
         url.set_path(&format!("{}/{}", TTS_PATH, self.voice_id.0));
         url.set_query(self.any_query().as_deref());
-        // url.set_query(self.speech_query(self.speech_query));
         url
     }
 }
 
 impl TextToSpeech {
-    pub fn new(voice_id: &str, text_to_speech_body: TextToSpeechBody) -> Self {
-        let voice_id = VoiceID::from(voice_id);
+    pub fn new<T: Into<String>>(voice_id: T, text_to_speech_body: TextToSpeechBody) -> Self {
         TextToSpeech {
-            voice_id,
+            voice_id: VoiceID::from(voice_id.into()),
             text_to_speech_body,
             speech_query: None,
         }
@@ -76,7 +86,7 @@ impl TextToSpeech {
 #[derive(Clone, Debug, Serialize, Default)]
 pub struct TextToSpeechBody {
     text: String,
-    model_id: String,
+    model_id: ModelID,
     #[serde(skip_serializing_if = "Option::is_none")]
     voice_settings: Option<VoiceSettings>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -94,10 +104,10 @@ pub struct TextToSpeechBody {
 }
 
 impl TextToSpeechBody {
-    pub fn new(text: &str, model_id: &str) -> Self {
+    pub fn new<T: Into<String>>(text: &str, model_id: T) -> Self {
         TextToSpeechBody {
             text: text.to_string(),
-            model_id: model_id.to_string(),
+            model_id: ModelID::from(model_id.into()),
             ..Default::default()
         }
     }
@@ -155,9 +165,6 @@ pub struct SpeechQuery {
 }
 
 impl SpeechQuery {
-    pub fn new() -> Self {
-        SpeechQuery::default()
-    }
     pub fn with_latency(mut self, latency: Latency) -> Self {
         self.latency = Some(format!("{}={}", LATENCY_QUERY, latency as u8));
         self
@@ -177,8 +184,7 @@ impl SpeechQuery {
     pub fn with_ssml_parsing(mut self, enable_ssml_parsing: bool) -> Self {
         self.enable_ssml_parsing = Some(format!(
             "{}={}",
-            ENABLE_SSML_PARSING_QUERY,
-            enable_ssml_parsing
+            ENABLE_SSML_PARSING_QUERY, enable_ssml_parsing
         ));
         self
     }
@@ -211,52 +217,26 @@ impl SpeechQuery {
     }
 }
 
-#[derive(Clone, Debug)]
-pub enum Latency {
-    /// Default latency
-    None = 0,
-    ///  normal latency optimizations (about 50% of possible latency improvement of option 3)
-    Normal = 1,
-    /// strong latency optimizations (about 75% of possible latency improvement of option 3)
-    Strong = 2,
-    /// max latency optimizations
-    Max = 3,
-    /// max latency optimizations, but also with text normalizer turned off for even more latency
-    /// savings (the best latency, but can mispronounce e.g. numbers and dates)
-    MaxBest = 4,
-}
-
-/// See Elevenlabs documentation on [supported output formats](https://help.elevenlabs.io/hc/en-us/articles/15754340124305-What-audio-formats-do-you-support).
-#[derive(Clone, Debug)]
-pub enum OutputFormat {
-    Mp3_22050Hz32kbps,
-    Mp3_44100Hz32kbps,
-    Mp3_44100Hz64kbps,
-    Mp3_44100Hz96kbps,
-    Mp3_44100Hz192kbps,
-    Pcm16000Hz,
-    Pcm22050Hz,
-    Pcm24000Hz,
-    Pcm44100Hz,
-    MuLaw8000Hz,
-}
-impl OutputFormat {
-    fn to_query(&self) -> &str {
-        match self {
-            OutputFormat::Pcm16000Hz => "pcm_16000",
-            OutputFormat::Pcm22050Hz => "pcm_22050",
-            OutputFormat::Pcm24000Hz => "pcm_24000",
-            OutputFormat::Pcm44100Hz => "pcm_44100",
-            OutputFormat::Mp3_22050Hz32kbps => "mp3_22050_32",
-            OutputFormat::Mp3_44100Hz32kbps => "mp3_44100_32",
-            OutputFormat::Mp3_44100Hz64kbps => "mp3_44100_64",
-            OutputFormat::Mp3_44100Hz96kbps => "mp3_44100_96",
-            OutputFormat::Mp3_44100Hz192kbps => "mp3_44100_192",
-            OutputFormat::MuLaw8000Hz => "ulaw_8000",
-        }
-    }
-}
-
+/// Text to Speech Stream
+/// # Example
+///
+/// ```no_run
+/// use elevenlabs_rs::utils::stream_audio;
+/// use elevenlabs_rs::*;
+///
+/// #[tokio::main]
+/// async fn main() -> Result<()> {
+///     let c = ElevenLabsClient::default()?;
+///     let body = TextToSpeechBody::new(
+///         "The art of progress is to preserve order amid change and to preserve change amid order.",
+///             Model::ElevenMultilingualV2
+///         );
+///         let endpoint = TextToSpeechStream::new(PreMadeVoiceID::Alice, body);
+///         let mut stream = c.hit(endpoint).await?;
+///         stream_audio(&mut stream).await?;
+///     Ok(())
+/// }
+/// ```
 #[derive(Clone, Debug)]
 pub struct TextToSpeechStream {
     voice_id: VoiceID,
@@ -265,10 +245,9 @@ pub struct TextToSpeechStream {
 }
 
 impl TextToSpeechStream {
-    pub fn new(voice_id: &str, text_to_speech_body: TextToSpeechBody) -> Self {
-        let voice_id = VoiceID::from(voice_id);
+    pub fn new<T: Into<String>>(voice_id: T, text_to_speech_body: TextToSpeechBody) -> Self {
         TextToSpeechStream {
-            voice_id,
+            voice_id: VoiceID::from(voice_id.into()),
             text_to_speech_body,
             speech_query: None,
         }
@@ -286,22 +265,23 @@ impl TextToSpeechStream {
     }
 }
 
+type TextToSpeechStreamResponse = Pin<Box<dyn Stream<Item = Result<Bytes>>>>;
 impl Endpoint for TextToSpeechStream {
-    type ResponseBody = Pin<Box<dyn Stream<Item = Result<Bytes>>>>;
+    type ResponseBody = TextToSpeechStreamResponse;
 
     fn method(&self) -> Method {
         Method::POST
     }
-    fn json_request_body(&self) -> Option<Result<Value>> {
-        Some(serde_json::to_value(&self.text_to_speech_body).map_err(Into::into))
+    fn request_body(&self) -> Result<RequestBody> {
+        Ok(RequestBody::Json(serde_json::to_value(&self.text_to_speech_body)?))
     }
 
-    async fn response_body(self, resp: reqwest::Response) -> Result<Self::ResponseBody> {
+    async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
         let stream = resp.bytes_stream();
         let stream = stream.map(|r| r.map_err(Into::into));
         Ok(Box::pin(stream))
     }
-    fn url(&self) -> reqwest::Url {
+    fn url(&self) -> Url {
         let mut url = BASE_URL.parse::<Url>().unwrap();
         url.set_path(&format!("{}/{}{}", TTS_PATH, self.voice_id.0, STREAM_PATH));
         url
@@ -311,15 +291,16 @@ impl Endpoint for TextToSpeechStream {
 ///
 /// # Example
 /// ```no_run
-/// use elevenlabs_rs::client::{ElevenLabsClient, Result};
+/// use elevenlabs_rs::*;
 /// use elevenlabs_rs::endpoints::tts::*;
 /// use elevenlabs_rs::utils::play;
 ///
 /// #[tokio::main]
 /// async fn main() -> Result<()> {
 ///     let c = ElevenLabsClient::default()?;
-///     let voice_id = "21m00Tcm4TlvDq8ikWAM";
-///     let model_id = "eleven_multilingual_v2";
+///     let voice_id = PreMadeVoiceID::Rachel;
+///     let model_id = Model::ElevenMultilingualV2;
+///
 ///     let txt = "To see a world in a grain of sand, and a heaven in a wild flower, \
 ///     hold infinity in the palm of your hand, and eternity in an hour.";
 ///     let body = TextToSpeechBody::new(txt, model_id);
@@ -334,7 +315,6 @@ impl Endpoint for TextToSpeechStream {
 ///     Ok(())
 /// }
 /// ```
-
 #[derive(Clone, Debug)]
 pub struct TextToSpeechWithTimestamps {
     voice_id: VoiceID,
@@ -343,10 +323,9 @@ pub struct TextToSpeechWithTimestamps {
 }
 
 impl TextToSpeechWithTimestamps {
-    pub fn new(voice_id: &str, text_to_speech_body: TextToSpeechBody) -> Self {
-        let voice_id = VoiceID::from(voice_id);
+    pub fn new<T: Into<String>>(voice_id: T, text_to_speech_body: TextToSpeechBody) -> Self {
         TextToSpeechWithTimestamps {
-            voice_id,
+            voice_id: VoiceID::from(voice_id.into()),
             text_to_speech_body,
             speech_query: None,
         }
@@ -370,8 +349,8 @@ impl Endpoint for TextToSpeechWithTimestamps {
     fn method(&self) -> Method {
         Method::POST
     }
-    fn json_request_body(&self) -> Option<Result<Value>> {
-        Some(serde_json::to_value(&self.text_to_speech_body).map_err(Into::into))
+    fn request_body(&self) -> Result<RequestBody> {
+        Ok(RequestBody::Json(serde_json::to_value(&self.text_to_speech_body)?))
     }
     async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
         Ok(resp.json().await?)
@@ -387,16 +366,17 @@ impl Endpoint for TextToSpeechWithTimestamps {
     }
 }
 
+/// The response from the TextToSpeechWithTimestamps endpoint
 #[derive(Clone, Debug, Deserialize)]
 pub struct TextToSpeechWithTimestampsResponse {
-    alignment: Alignment,
+    alignment: Option<Alignment>,
     audio_base64: String,
-    normalized_alignment: Alignment,
+    normalized_alignment: Option<Alignment>,
 }
 
 impl TextToSpeechWithTimestampsResponse {
-    pub fn alignment(&self) -> &Alignment {
-        &self.alignment
+    pub fn alignment(&self) -> Option<&Alignment> {
+        self.alignment.as_ref()
     }
     pub fn audio_base64(&self) -> &str {
         &self.audio_base64
@@ -405,16 +385,28 @@ impl TextToSpeechWithTimestampsResponse {
         let decoded_audio_b64 = general_purpose::STANDARD.decode(&self.audio_base64())?;
         Ok(Bytes::from(decoded_audio_b64))
     }
-    pub fn normalized_alignment(&self) -> &Alignment {
-        &self.normalized_alignment
+    pub fn normalized_alignment(&self) -> Option<&Alignment> {
+        self.normalized_alignment.as_ref()
     }
-    pub fn iter(&self) -> impl Iterator<Item = (&String, (&f32, &f32))> {
-        self.alignment().characters().iter().zip(
-            self.alignment
-                .character_start_times_seconds
-                .iter()
-                .zip(self.alignment.character_end_times_seconds.iter()),
-        )
+    pub fn iter(&self) -> Option<impl Iterator<Item = (&String, (&f32, &f32))>> {
+        if let Some(alignment) = &self.alignment {
+            Some(
+                alignment.characters().iter().zip(
+                    alignment
+                        .character_start_times_seconds()
+                        .iter()
+                        .zip(alignment.character_end_times_seconds().iter()),
+                ),
+            )
+        } else {
+            None
+        }
+        //self.alignment().characters().iter().zip(
+        //self.alignment
+        //.character_start_times_seconds
+        //.iter()
+        //.zip(self.alignment.character_end_times_seconds.iter()),
+        //)
     }
 }
 
@@ -437,6 +429,7 @@ impl Alignment {
     }
 }
 
+/// Text to Speech Stream with Timestamps endpoint
 #[derive(Clone, Debug)]
 pub struct TextToSpeechStreamWithTimestamps {
     voice_id: VoiceID,
@@ -445,10 +438,9 @@ pub struct TextToSpeechStreamWithTimestamps {
 }
 
 impl TextToSpeechStreamWithTimestamps {
-    pub fn new(voice_id: &str, text_to_speech_body: TextToSpeechBody) -> Self {
-        let voice_id = VoiceID::from(voice_id);
+    pub fn new<T: Into<String>>(voice_id: T, text_to_speech_body: TextToSpeechBody) -> Self {
         TextToSpeechStreamWithTimestamps {
-            voice_id,
+            voice_id: VoiceID::from(voice_id.into()),
             text_to_speech_body,
             speech_query: None,
         }
@@ -466,8 +458,10 @@ impl TextToSpeechStreamWithTimestamps {
     }
 }
 
+// TODO: Implement Stream
 impl Endpoint for TextToSpeechStreamWithTimestamps {
-    type ResponseBody = Pin<Box<dyn Stream<Item = Result<TextToSpeechWithTimestampsResponse>>>>;
+    type ResponseBody = ();
+    //type ResponseBody = Pin<Box<dyn Stream<Item = Result<TextToSpeechWithTimestampsResponse>>>>;
     //type ResponseBody = AsyncStream<Result<Result<Pin<Box<Result<TextToSpeechWithTimestampsResponse>>>>>, U>;
 
     //type ResponseBody = impl Stream<Item = Result<TextToSpeechWithTimestampsResponse>>;
@@ -476,23 +470,31 @@ impl Endpoint for TextToSpeechStreamWithTimestamps {
     fn method(&self) -> Method {
         Method::POST
     }
-    fn json_request_body(&self) -> Option<Result<Value>> {
-        Some(serde_json::to_value(&self.text_to_speech_body).map_err(Into::into))
+    fn request_body(&self) -> Result<RequestBody> {
+        Ok(RequestBody::Json(serde_json::to_value(&self.text_to_speech_body)?))
     }
 
     async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
         let stream = resp.bytes_stream();
-        let stream =
-            stream.map(|r| r.map_err(Into::<Box<dyn std::error::Error + Send + Sync>>::into));
+        //let stream =
+        //    stream.map(|r| r.map_err(Into::<Box<dyn std::error::Error + Send + Sync>>::into));
+        pin_mut!(stream);
+        while let Some(r) = stream.next().await {
+            let bytes = r?;
+            let chunk = std::str::from_utf8(&bytes)?;
+            //let json: TextToSpeechWithTimestampsResponse = serde_json::from_str(&chunk)?;
+            println!("new_line-->{:#?}", chunk);
+        }
+        Ok(())
 
-        Ok(Box::pin(try_stream! {
-            for await value in stream {
-                let bytes = value?;
-                let chunk = std::str::from_utf8(&bytes)?;
-                let json: TextToSpeechWithTimestampsResponse = serde_json::from_str(&chunk)?;
-                yield json;
-            }
-        }))
+        //Ok(Box::pin(try_stream! {
+        //    for await value in stream {
+        //        let bytes = value?;
+        //        let chunk = std::str::from_utf8(&bytes)?;
+        //        let json: TextToSpeechWithTimestampsResponse = serde_json::from_str(&chunk)?;
+        //        yield json;
+        //    }
+        //}))
     }
     fn url(&self) -> Url {
         let mut url = BASE_URL.parse::<Url>().unwrap();
@@ -507,39 +509,36 @@ impl Endpoint for TextToSpeechStreamWithTimestamps {
 
 pub mod ws {
     use super::*;
-    //use crate::client::Result;
-    //use crate::endpoints::Deserialize;
-    //use async_stream::try_stream;
-    //use base64::engine::general_purpose;
-    //use base64::Engine;
-    //use bytes::Bytes;
-    //use futures_util::{Stream, StreamExt};
-    use crate::utils::stream_audio;
-    use futures_util::stream::SplitStream;
-    use serde::de::Unexpected::Str;
-    use tokio::net::TcpStream;
-    use tokio_tungstenite::tungstenite::Message;
-    use tokio_tungstenite::{MaybeTlsStream, WebSocketStream};
 
     const WS_BASE_URL: &str = "wss://api.elevenlabs.io";
     const WS_STREAM_PATH: &str = "/stream-input";
     const MODEL_ID_QUERY: &str = "model_id";
-    
 
-    #[derive(Clone, Debug)]
-    pub struct WebSocketTTS<T>
-        where T: IntoIterator<Item = String> + Send + Sync + 'static {
+    pub type StreamAfterFlush = Pin<Box<dyn Stream<Item = String> + Send + 'static>>;
+
+    //#[derive(Clone, Debug)]
+    pub struct WebSocketTTS<S>
+    where
+        S: Stream<Item = String> + Send + 'static,
+    {
         path_params: WebSocketTTSPathParams,
-        text_to_speech_body: WebSocketTTSBody<T>,
+        text_to_speech_body: WebSocketTTSBody<S>,
         speech_query: Option<SpeechQuery>,
     }
 
-    impl<T> WebSocketTTS<T>
-    where T: IntoIterator<Item = String> + Send + Sync + 'static {
-        pub fn new(voice_id: &str, model_id: &str, text_to_speech_body: WebSocketTTSBody<T>) -> Self {
+    impl<S> WebSocketTTS<S>
+    where
+        S: Stream<Item = String> + Send + 'static,
+    {
+        // TODO: Sort out signature, need two type parameters for voice_id and model_id
+        pub fn new<V, M>(voice_id: V, model_id: M, text_to_speech_body: WebSocketTTSBody<S>) -> Self
+        where
+            V: Into<String>,
+            M: Into<String>,
+        {
             let path_params = WebSocketTTSPathParams {
-                voice_id: VoiceID::from(voice_id),
-                model_id: model_id.to_string(),
+                voice_id: VoiceID::from(voice_id.into()),
+                model_id: ModelID::from(model_id.into()),
             };
             WebSocketTTS {
                 path_params,
@@ -551,7 +550,7 @@ pub mod ws {
             self.speech_query = Some(speech_query);
             self
         }
-        pub fn url(&self) -> Url {
+        pub fn url(&self) -> String {
             let mut url = WS_BASE_URL.parse::<Url>().unwrap();
             url.set_path(&format!(
                 "{}/{}{}",
@@ -561,67 +560,96 @@ pub mod ws {
             if let Some(q) = &self.speech_query {
                 query.push_str(&q.to_string());
                 query.push('&');
-                query.push_str(&format!("{}={}", MODEL_ID_QUERY, self.path_params.model_id));
+                query.push_str(&format!(
+                    "{}={}",
+                    MODEL_ID_QUERY, self.path_params.model_id.0
+                ));
+                url.set_query(Some(&query));
             } else {
-                query.push_str(&format!("?{}={}", MODEL_ID_QUERY, self.path_params.model_id));
+                query.push_str(&format!(
+                    "?{}={}",
+                    MODEL_ID_QUERY, self.path_params.model_id.0
+                ));
+                url.set_query(Some(&query));
             }
-            url
+            url.to_string()
         }
-        //pub fn body(&self) -> &WebSocketTTSBody<'a, T> {
-        //    &self.text_to_speech_body
-        //}
-        pub fn body(self) -> WebSocketTTSBody<T> {
-            self.text_to_speech_body
+        // TODO: redundant, simplify
+        pub fn bos_message(&self) -> &BOSMessage {
+            self.text_to_speech_body.bos_message()
         }
-        pub fn initial_message(&self) -> &InitialMessage {
-            self.text_to_speech_body.initial_message()
+        pub fn text_stream(self) -> S {
+            self.text_to_speech_body.text_stream
         }
-        pub fn text(self) -> T {
-            self.text_to_speech_body.text
+        pub fn try_trigger_generation(&self) -> Option<Vec<usize>> {
+            self.text_to_speech_body.try_trigger_generation.clone()
+        }
+        pub fn flush(&self) -> bool {
+            self.text_to_speech_body.flush
+        }
+        pub fn streams_after_flush(&mut self) -> Option<Vec<StreamAfterFlush>> {
+            self.text_to_speech_body.streams_after_flush.take()
         }
     }
 
-
-     #[derive(Clone, Debug)]
+    #[derive(Clone, Debug)]
     struct WebSocketTTSPathParams {
         voice_id: VoiceID,
-        model_id: String,
+        model_id: ModelID,
     }
-    #[derive(Clone, Debug, Serialize)]
-    pub struct WebSocketTTSBody<T>
-    where T: IntoIterator<Item = String> + Send + Sync + 'static {
-        initial_message: InitialMessage,
-        text: T,
+    #[derive(Serialize)]
+    pub struct WebSocketTTSBody<S>
+    where
+        S: Stream<Item = String> + Send + 'static,
+    {
+        bos_message: BOSMessage,
+        #[serde(skip_serializing)]
+        text_stream: S,
         try_trigger_generation: Option<Vec<usize>>,
-        flush: Option<bool>,
+        flush: bool,
+        #[serde(skip_serializing)]
+        streams_after_flush: Option<Vec<StreamAfterFlush>>,
+        //#[serde(skip_serializing)]
+        //is_try_trigger_always: bool,
     }
 
-    impl<T> WebSocketTTSBody<T>
-    where T: IntoIterator<Item = String> + Send + Sync + 'static {
-        pub fn new(initial_message: InitialMessage, text: T) -> Self {
+    impl<S> WebSocketTTSBody<S>
+    where
+        S: Stream<Item = String> + Send + 'static,
+    {
+        pub fn new(bos_message: BOSMessage, text_stream: S) -> Self {
             WebSocketTTSBody {
-                initial_message,
-                text,
+                bos_message,
+                text_stream,
                 try_trigger_generation: None,
-                flush: None,
+                flush: false,
+                streams_after_flush: None,
+                //is_try_trigger_always: false,
             }
         }
         pub fn with_try_trigger_generation(mut self, try_trigger_generation: Vec<usize>) -> Self {
             self.try_trigger_generation = Some(try_trigger_generation);
             self
         }
-        pub fn with_flush(mut self, flush: bool) -> Self {
-            self.flush = Some(flush);
+        //pub fn with_try_trigger_always(mut self) -> Self {
+        //    self.is_try_trigger_always = true;
+        //    self
+        //}
+        pub fn with_flush(mut self) -> Self {
+            self.flush = true;
             self
         }
-        pub fn initial_message(&self) -> &InitialMessage {
-            &self.initial_message
+        pub fn with_streams_after_flush(mut self, flush_stream: Vec<StreamAfterFlush>) -> Self {
+            self.streams_after_flush = Some(flush_stream);
+            self
+        }
+        pub fn bos_message(&self) -> &BOSMessage {
+            &self.bos_message
         }
     }
 
-
     #[derive(Clone, Debug, Serialize)]
-    pub struct InitialMessage {
+    pub struct BOSMessage {
         text: String,
         #[serde(skip_serializing_if = "Option::is_none")]
         xi_api_key: Option<String>,
@@ -632,7 +660,10 @@ pub mod ws {
         #[serde(skip_serializing_if = "Option::is_none")]
         generation_config: Option<GenerationConfig>,
     }
-    impl InitialMessage {
+    impl BOSMessage {
+        pub fn is_api_key(&self) -> bool {
+            self.xi_api_key.is_some()
+        }
         pub fn with_api_key(mut self, api_key: &str) -> Self {
             self.xi_api_key = Some(api_key.to_string());
             self
@@ -647,15 +678,15 @@ pub mod ws {
         }
         pub fn with_generation_config(mut self, generation_config: [usize; 4]) -> Self {
             self.generation_config = Some(GenerationConfig {
-                chunk_length_schedule: generation_config
+                chunk_length_schedule: generation_config,
             });
             self
         }
     }
 
-    impl Default for InitialMessage {
+    impl Default for BOSMessage {
         fn default() -> Self {
-            InitialMessage {
+            BOSMessage {
                 text: " ".to_string(),
                 xi_api_key: None,
                 voice_settings: None,
@@ -667,17 +698,56 @@ pub mod ws {
 
     #[derive(Clone, Debug, Serialize)]
     struct GenerationConfig {
-        // TODO: find out if the docs just used four elements as an example, so this should be a Vec.
-        chunk_length_schedule: [usize;4]
+        // TODO: find out if the docs just used four elements as an example to see if this could be a Vec instead.
+        chunk_length_schedule: [usize; 4],
     }
 
+    #[derive(Clone, Debug, Serialize)]
+    pub struct TextChunk {
+        text: String,
+        try_trigger_generation: bool,
+    }
 
+    impl TextChunk {
+        pub fn new(text: String, try_trigger_generation: bool) -> Self {
+            TextChunk {
+                text,
+                try_trigger_generation,
+            }
+        }
+        pub fn json(self) -> Result<String> {
+            serde_json::to_string(&self).map_err(Into::into)
+        }
+    }
 
+    #[derive(Clone, Debug, Serialize)]
+    pub struct Flush {
+        text: String,
+        flush: bool,
+    }
+    impl Flush {
+        pub fn new() -> Self {
+            Flush {
+                text: " ".to_string(),
+                flush: true,
+            }
+        }
+        pub fn json(self) -> Result<String> {
+            serde_json::to_string(&self).map_err(Into::into)
+        }
+    }
 
+    #[derive(Clone, Debug, Default, Serialize)]
+    pub struct EOSMessage {
+        text: String,
+    }
+    impl EOSMessage {
+        pub fn json(self) -> Result<String> {
+            serde_json::to_string(&self).map_err(Into::into)
+        }
+    }
 
-
-
-    #[derive(Clone, Debug, Default,  Deserialize)]
+    #[derive(Clone, Debug, Default, Deserialize)]
     #[serde(rename_all = "camelCase")]
     pub struct WebSocketTTSResponse {
         audio: Option<String>,
@@ -686,53 +756,38 @@ pub mod ws {
         alignment: Option<WebSocketAlignment>,
     }
 
+    impl WebSocketTTSResponse {
+        pub fn audio_b64(&self) -> Option<&str> {
+            self.audio.as_deref()
+        }
+        pub fn audio_as_bytes(&self) -> Result<Bytes> {
+            if self.is_final().is_some() {
+                return Ok(Bytes::new());
+            }
+            if let Some(audio_b64) = self.audio_b64() {
+                return Ok(Bytes::from(general_purpose::STANDARD.decode(audio_b64)?));
+            }
+            // TODO: improve
+
+            // 'Self' is returned after a `Flush` message with all fields set to `None`
+            Ok(Bytes::new())
+        }
+        pub fn is_final(&self) -> Option<bool> {
+            self.is_final
+        }
+        pub fn normalized_alignment(&self) -> Option<&WebSocketAlignment> {
+            self.normalized_alignment.as_ref()
+        }
+        pub fn alignment(&self) -> Option<&WebSocketAlignment> {
+            self.alignment.as_ref()
+        }
+    }
+
     #[derive(Clone, Debug, Deserialize)]
     #[serde(rename_all = "camelCase")]
     pub struct WebSocketAlignment {
         char_start_times_ms: Vec<f32>,
         char_durations_ms: Vec<f32>,
         chars: Vec<String>,
-    }
-
-    // TODO: Make generic
-    pub async fn stream_ws_audio(
-        mut ws_reader: SplitStream<WebSocketStream<MaybeTlsStream<TcpStream>>>,
-    ) -> Result<()> {
-        let audio_stream = try_stream! {
-            let mut buf = String::new();
-            for await msg in ws_reader {
-                match msg? {
-                    Message::Text(text) => {
-                        buf.push_str(&text);
-                        match serde_json::from_str::<WebSocketTTSResponse>(&buf) {
-                            Ok(json) => {
-                                if json.audio.is_some() {
-                                    let decoded_audio_b64 = general_purpose::STANDARD.decode(&json.audio.unwrap())?;
-                                    buf.clear();
-                                    yield Bytes::from(decoded_audio_b64);
-                                }
-                            }
-                            Err(e) => {
-                                if e.is_eof() {
-                                    continue
-                                } else {
-                                    // Other errors, clear the buffer
-                                     eprintln!("Failed to parse JSON: {}", e);
-                                     buf.clear();
-                                }
-                            }
-                        }
-                    }
-                    Message::Close(close_msg) => {
-                        if close_msg.is_some() {
-                            println!("{:?}", close_msg.unwrap())
-                        }
-                    }
-                    _ => panic!("unexpected websocket response from Elevenlabs")
-                }
-            }
-        };
-        stream_audio(audio_stream).await.expect("playing audio");
-        Ok(())
     }
 }

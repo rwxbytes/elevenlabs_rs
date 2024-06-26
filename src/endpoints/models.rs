@@ -28,8 +28,8 @@ type ModelResponse = Vec<Model>;
 
 #[derive(Clone, Debug, Deserialize)]
 pub struct Model {
-    model_id: String,
-    name: String,
+    pub model_id: String,
+    pub name: String,
     can_be_finetuned: bool,
     can_do_text_to_speech: bool,
     can_do_voice_conversion: bool,

@@ -1,8 +1,13 @@
 pub use crate::client::{Result, BASE_URL};
+pub use crate::shared::query_params::*;
+pub use crate::shared::response_bodies::*;
+pub (crate) use crate::shared::identifiers::{ModelID, VoiceID};
+pub (crate) use crate::shared::path_segments::*;
 pub use bytes::Bytes;
 pub use reqwest::{multipart::{Form,Part}, Method, Response, Url, };
 pub use serde::{Deserialize, Serialize};
 pub use serde_json::Value;
+
 
 pub mod audio_native;
 pub mod dubbing;
@@ -18,21 +23,31 @@ pub mod user;
 pub mod voice;
 pub mod voice_generation;
 pub mod voice_library;
-pub mod shared;
 
 #[allow(async_fn_in_trait)]
 pub trait Endpoint {
     type ResponseBody;
 
     fn method(&self) -> Method;
-    fn json_request_body(&self) -> Option<Result<Value>> {
-        None
+    fn request_body(&self) -> Result<RequestBody> {
+        Ok(RequestBody::Empty)
     }
-    fn multipart_request_body(&self) -> Option<Result<Form>> {
-        None
-    }
+    //fn json_request_body(&self) -> Option<Result<Value>> {
+    //    None
+    //}
+    //fn multipart_request_body(&self) -> Option<Result<Form>> {
+    //    None
+    //}
     async fn response_body(self, resp: Response) -> Result<Self::ResponseBody>;
     fn url(&self) -> Url;
 }
+
+
+pub enum RequestBody {
+    Json(Value),
+    Multipart(Form),
+    Empty,
+}
+
 
 

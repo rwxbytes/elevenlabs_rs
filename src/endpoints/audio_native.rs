@@ -122,16 +122,15 @@ impl AudioNativeBody {
 }
 
 impl Endpoint for AudioNative {
-    //type ResponseBody = AudioNativeResponseBody;
-    type ResponseBody = Value;
-
+    type ResponseBody = AudioNativeResponseBody;
 
     fn method(&self) -> Method {
         Method::POST
     }
-    fn multipart_request_body(&self) -> Option<Result<Form>> {
-        Some(self.0.clone().to_form())
+    fn request_body(&self) -> Result<RequestBody> {
+        Ok(RequestBody::Multipart(self.0.clone().to_form()?))
     }
+
 
     async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
         Ok(resp.json().await?)

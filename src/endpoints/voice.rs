@@ -1,26 +1,41 @@
+//! Voice endpoints
+//!
+//! See the [ElevenLabs docs](https://elevenlabs.io/docs/api-reference/get-voices) for more information.
 use super::*;
-use crate::client::BASE_URL;
-use crate::endpoints::Endpoint;
+//use crate::endpoints::shared::{
+//    identifiers::VoiceID,
+//    path_segments::{VOICES_PATH, ADD_VOICE_PATH},
+//    response_bodies::StatusResponseBody,
+//};
 use crate::error::Error;
-use reqwest::multipart::{Form, Part};
-use reqwest::{Method, Response, Url};
-use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::Path;
 
-pub const ADD_VOICE_PATH: &str = "/add";
 const EDIT_VOICE_PATH: &str = "/edit";
 const EDIT_VOICE_SETTINGS_PATH: &str = "/settings/edit";
 const DEFAULT_SETTINGS_PATH: &str = "/v1/voices/settings/default";
-pub const VOICES_PATH: &str = "/v1/voices";
 const VOICE_SETTINGS_PATH: &str = "/settings";
 const WITH_SETTINGS_QUERY: &str = "with_settings=true";
 
+/// Get all voices endpoint
+///
+/// # Example
+/// ```no_run
+/// use elevenlabs_rs::*;
+///
+/// #[tokio::main]
+/// async fn main() -> Result<()> {
+///    let c = ElevenLabsClient::default()?;
+///    let voices = c.hit(GetVoices).await?;
+///    println!("{:#?}", voices);
+///    Ok(())
+/// }
+/// ```
 #[derive(Clone, Debug)]
 pub struct GetVoices;
 
 impl Endpoint for GetVoices {
-    type ResponseBody = Voices;
+    type ResponseBody = VoicesResponseBody;
 
     fn method(&self) -> Method {
         Method::GET
@@ -35,6 +50,7 @@ impl Endpoint for GetVoices {
     }
 }
 
+/// Hits [GetVoices] endpoint then finds the voices by name given
 #[derive(Clone, Debug)]
 pub struct GetVoiceIDByName(String);
 
@@ -51,8 +67,8 @@ impl Endpoint for GetVoiceIDByName {
         Method::GET
     }
     async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
-        let voices = resp.json::<Voices>().await?;
-        let voice = voices.voices.iter().find(|v| v.name == self.0);
+        let resp = resp.json::<VoicesResponseBody>().await?;
+        let voice = resp.voices.iter().find(|v| v.name == self.0);
         let voice_id = voice
             .ok_or(Box::new(Error::VoiceNotFound))?
             .voice_id
@@ -66,6 +82,19 @@ impl Endpoint for GetVoiceIDByName {
     }
 }
 
+/// Get the default voice settings endpoint
+/// # Example
+/// ```no_run
+/// use elevenlabs_rs::*;
+///
+/// #[tokio::main]
+/// async fn main() -> Result<()> {
+///    let c = ElevenLabsClient::default()?;
+///    let default_settings = c.hit(GetDefaultSettings).await?;
+///    println!("{:#?}", default_settings);
+///    Ok(())
+/// }
+/// ```
 #[derive(Clone, Debug)]
 pub struct GetDefaultSettings;
 
@@ -85,12 +114,26 @@ impl Endpoint for GetDefaultSettings {
     }
 }
 
+/// Get the voice settings endpoint
+/// # Example
+/// ```no_run
+/// use elevenlabs_rs::*;
+///
+/// #[tokio::main]
+/// async fn main() -> Result<()> {
+///   let c = ElevenLabsClient::default()?;
+///   // Or for a premade voice: GetVoiceSettings::new(PreMadeVoiceID::Adam)
+///   let voice_settings = c.hit(GetVoiceSettings::new("some_voice_id")).await?;
+///   println!("{:#?}", voice_settings);
+///   Ok(())
+/// }
+/// ```
 #[derive(Clone, Debug)]
 pub struct GetVoiceSettings(VoiceID);
 
 impl GetVoiceSettings {
-    pub fn new(voice_id: &str) -> Self {
-        GetVoiceSettings(VoiceID(voice_id.to_string()))
+    pub fn new<T: Into<String>>(voice_id: T) -> Self {
+        GetVoiceSettings(VoiceID::from(voice_id.into()))
     }
 }
 
@@ -113,17 +156,31 @@ impl Endpoint for GetVoiceSettings {
     }
 }
 
+/// Get a voice endpoint
+/// # Example
+/// ```no_run
+/// use elevenlabs_rs::*;
+///
+/// #[tokio::main]
+/// async fn main() -> Result<()> {
+///    let c = ElevenLabsClient::default()?;
+///    // Or for IVC's & PVC's: GetVoice::new("some_voice_id")
+///    let voice = c.hit(GetVoice::new(PreMadeVoiceID::Brian)).await?;
+///    println!("{:#?}", voice);
+///   Ok(())
+/// }
+/// ```
 #[derive(Clone, Debug)]
 pub struct GetVoice(VoiceID);
 
 impl GetVoice {
-    pub fn new(voice_id: &str) -> Self {
-        GetVoice(VoiceID(voice_id.to_string()))
+    pub fn new<T: Into<String>>(voice_id: T) -> Self {
+        GetVoice(VoiceID::from(voice_id.into()))
     }
 }
 
 impl Endpoint for GetVoice {
-    type ResponseBody = Voice;
+    type ResponseBody = VoiceResponseBody;
 
     fn method(&self) -> Method {
         Method::GET
@@ -138,17 +195,18 @@ impl Endpoint for GetVoice {
     }
 }
 
+/// Hits [GetVoice] endpoint with the query `with_settings=true`
 #[derive(Clone, Debug)]
 pub struct GetVoiceWithSettings(VoiceID);
 
 impl GetVoiceWithSettings {
-    pub fn new(voice_id: &str) -> Self {
-        GetVoiceWithSettings(VoiceID(voice_id.to_string()))
+    pub fn new<T: Into<String>>(voice_id: T) -> Self {
+        GetVoiceWithSettings(VoiceID::from(voice_id.into()))
     }
 }
 
 impl Endpoint for GetVoiceWithSettings {
-    type ResponseBody = Voice;
+    type ResponseBody = VoiceResponseBody;
 
     fn method(&self) -> Method {
         Method::GET
@@ -164,17 +222,18 @@ impl Endpoint for GetVoiceWithSettings {
     }
 }
 
+/// Delete a voice endpoint
 #[derive(Clone, Debug)]
 pub struct DeleteVoice(VoiceID);
 
 impl DeleteVoice {
-    pub fn new(voice_id: &str) -> Self {
-        DeleteVoice(VoiceID(voice_id.to_string()))
+    pub fn new<T: Into<String>>(voice_id: T) -> Self {
+        DeleteVoice(VoiceID::from(voice_id.into()))
     }
 }
 
 impl Endpoint for DeleteVoice {
-    type ResponseBody = Status;
+    type ResponseBody = StatusResponseBody;
 
     fn method(&self) -> Method {
         Method::DELETE
@@ -189,6 +248,22 @@ impl Endpoint for DeleteVoice {
     }
 }
 
+/// Edit voice settings endpoint
+/// # Example
+/// ```no_run
+/// use elevenlabs_rs::*;
+///
+/// #[tokio::main]
+/// async fn main() -> Result<()> {
+///   let c = ElevenLabsClient::default()?;
+///   let body = EditVoiceSettingsBody::new(0.5, 0.7)
+///         .with_style(0.5)
+///         .with_use_speaker_boost(true);
+///   let endpoint = EditVoiceSettings::new("some_voice_id", body);
+///   let resp = c.hit(endpoint).await?;
+///   println!("{:#?}", resp);
+///   Ok(())
+/// }
 #[derive(Clone, Debug)]
 pub struct EditVoiceSettings {
     voice_id: VoiceID,
@@ -196,22 +271,22 @@ pub struct EditVoiceSettings {
 }
 
 impl EditVoiceSettings {
-    pub fn new(voice_id: &str, body: EditVoiceSettingsBody) -> Self {
+    pub fn new<T: Into<String>>(voice_id: T, body: EditVoiceSettingsBody) -> Self {
         EditVoiceSettings {
-            voice_id: VoiceID(voice_id.to_string()),
+            voice_id: VoiceID::from(voice_id.into()),
             body,
         }
     }
 }
 
 impl Endpoint for EditVoiceSettings {
-    type ResponseBody = Status;
+    type ResponseBody = StatusResponseBody;
 
     fn method(&self) -> Method {
         Method::POST
     }
-    fn json_request_body(&self) -> Option<Result<serde_json::Value>> {
-        Some(serde_json::to_value(&self.body).map_err(Into::into))
+    fn request_body(&self) -> Result<RequestBody> {
+        Ok(RequestBody::Json(serde_json::to_value(&self.body)?))
     }
     async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
         Ok(resp.json().await?)
@@ -226,6 +301,7 @@ impl Endpoint for EditVoiceSettings {
     }
 }
 
+/// Edit voice settings body
 #[derive(Clone, Debug, Serialize)]
 pub struct EditVoiceSettingsBody {
     similarity_boost: f32,
@@ -255,6 +331,25 @@ impl EditVoiceSettingsBody {
     }
 }
 
+/// Add a voice endpoint
+/// # Example
+/// ```no_run
+/// use elevenlabs_rs::*;
+///
+/// #[tokio::main]
+/// async fn main() -> Result<()> {
+///     let c = ElevenLabsClient::default()?;
+///     let samples = vec!["some_file_path.mp3".to_string(), "another.mp3".into(),];
+///     let labels = vec![("age".to_string(), "old".into()), ("gender".into(), "male".into())];
+///     let body = AddVoiceBody::new("John Doe", samples)
+///         .with_description("A public intellectual")
+///         .with_labels(labels);
+///     let endpoint = AddVoice::new(body);
+///     let resp = c.hit(endpoint).await?;
+///     println!("{:#?}", resp);
+///     Ok(())
+/// }
+/// ```
 #[derive(Clone, Debug)]
 pub struct AddVoice(AddVoiceBody);
 
@@ -270,14 +365,18 @@ impl Endpoint for AddVoice {
     fn method(&self) -> Method {
         Method::POST
     }
-    fn multipart_request_body(&self) -> Option<Result<Form>> {
-        Some(to_multipart(
-            self.0.name.clone(),
-            Some(self.0.files.clone()),
-            self.0.description.clone(),
-            self.0.labels.clone(),
+
+    fn request_body(&self) -> Result<RequestBody> {
+        Ok(RequestBody::Multipart(
+            to_multipart(
+                self.0.name.clone(),
+                Some(self.0.files.clone()),
+                self.0.description.clone(),
+                self.0.labels.clone(),
+            )?,
         ))
     }
+
     async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
         Ok(resp.json().await?)
     }
@@ -288,6 +387,7 @@ impl Endpoint for AddVoice {
     }
 }
 
+/// Add voice body
 #[derive(Clone, Debug)]
 pub struct AddVoiceBody {
     name: String,
@@ -315,6 +415,7 @@ impl AddVoiceBody {
     }
 }
 
+/// Add voice response
 #[derive(Clone, Debug, Deserialize)]
 pub struct AddVoiceResponse {
     voice_id: String,
@@ -326,6 +427,7 @@ impl AddVoiceResponse {
     }
 }
 
+/// Edit a voice endpoint
 #[derive(Clone, Debug)]
 pub struct EditVoice {
     pub voice_id: VoiceID,
@@ -333,28 +435,31 @@ pub struct EditVoice {
 }
 
 impl EditVoice {
-    pub fn new(voice_id: &str, body: EditVoiceBody) -> Self {
+    pub fn new<T: Into<String>>(voice_id: T, body: EditVoiceBody) -> Self {
         EditVoice {
-            voice_id: VoiceID(voice_id.to_string()),
+            voice_id: VoiceID::from(voice_id.into()),
             body,
         }
     }
 }
 
 impl Endpoint for EditVoice {
-    type ResponseBody = Status;
+    type ResponseBody = StatusResponseBody;
 
     fn method(&self) -> Method {
         Method::POST
     }
-    fn multipart_request_body(&self) -> Option<Result<Form>> {
-        Some(to_multipart(
-            self.body.name.clone(),
-            self.body.files.clone(),
-            self.body.description.clone(),
-            self.body.labels.clone(),
+    fn request_body(&self) -> Result<RequestBody> {
+        Ok(RequestBody::Multipart(
+            to_multipart(
+                self.body.name.clone(),
+                self.body.files.clone(),
+                self.body.description.clone(),
+                self.body.labels.clone(),
+            )?,
         ))
     }
+
     async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
         Ok(resp.json().await?)
     }
@@ -368,6 +473,7 @@ impl Endpoint for EditVoice {
     }
 }
 
+/// Edit voice body
 #[derive(Clone, Debug)]
 pub struct EditVoiceBody {
     name: String,
@@ -399,23 +505,24 @@ impl EditVoiceBody {
     }
 }
 
-#[derive(Clone, Debug)]
-pub(crate) struct VoiceID(pub(crate) String);
 
-impl From<&str> for VoiceID {
-    fn from(id: &str) -> Self {
-        VoiceID(id.to_string())
+
+/// Get all voices response body
+#[derive(Clone, Debug, Deserialize)]
+pub struct VoicesResponseBody {
+    voices: Vec<VoiceResponseBody>,
+}
+
+impl VoicesResponseBody {
+    pub fn get_voices(&self) -> &Vec<VoiceResponseBody> {
+        &self.voices
     }
 }
 
-#[derive(Clone, Debug, Deserialize)]
-pub struct Voices {
-    voices: Vec<Voice>,
-}
-
-// TODO: update this to use the new Voice struct
+// TODO: update this
+/// Voice response body
 #[derive(Debug, Deserialize, PartialEq, Clone)]
-pub struct Voice {
+pub struct VoiceResponseBody {
     voice_id: String,
     name: String,
     samples: Option<Vec<VoiceSample>>,
@@ -426,6 +533,7 @@ pub struct Voice {
     settings: Option<VoiceSettings>,
 }
 
+/// Voice sample
 #[derive(Deserialize, Debug, Clone, PartialEq)]
 pub struct VoiceSample {
     sample_id: String,
@@ -453,6 +561,7 @@ impl VoiceSample {
     }
 }
 
+/// Voice settings
 #[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
 pub struct VoiceSettings {
     similarity_boost: f32,
@@ -509,7 +618,7 @@ impl Default for VoiceSettings {
     }
 }
 
-impl Voice {
+impl VoiceResponseBody {
     pub fn get_voice_id(&self) -> &String {
         &self.voice_id
     }
@@ -536,7 +645,7 @@ impl Voice {
     }
 }
 
-pub fn to_multipart<P: AsRef<Path>>(
+fn to_multipart<P: AsRef<Path>>(
     voice_name: String,
     file_paths: Option<Vec<P>>,
     description: Option<String>,

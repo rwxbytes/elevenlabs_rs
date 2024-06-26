@@ -1,9 +1,4 @@
-use crate::client::{ElevenLabsClient, Result, BASE_URL};
-use crate::endpoints::voice::{GetVoice, VoiceID, VOICES_PATH};
-use crate::endpoints::Endpoint;
-use crate::utils::play;
-use bytes::Bytes;
-use reqwest::Response;
+use super::*;
 
 const SAMPLES_PATH: &str = "/samples";
 const AUDIO_PATH: &str = "/audio";
@@ -12,12 +7,12 @@ const AUDIO_PATH: &str = "/audio";
 /// ``` no_run
 /// use elevenlabs_rs::client::{ElevenLabsClient, Result};
 /// use elevenlabs_rs::endpoints::samples::*;
-/// use elevenlabs_rs::endpoints::voice::{GetVoice, VoiceID};
+/// use elevenlabs_rs::endpoints::voice::GetVoice;
 ///
 /// #[tokio::main]
 /// async fn main() -> Result<()> {
 ///     let c = ElevenLabsClient::default()?;
-///     let voice_id = VoiceID::from("some voice id");
+///     let voice_id = "some voice id".to_string();
 ///     let voice = c.hit(GetVoice(voice_id.clone())).await?;
 ///     let sample_id = voice
 ///         .get_samples()
@@ -39,16 +34,14 @@ const AUDIO_PATH: &str = "/audio";
 pub struct DeleteSample(pub SamplePathParams);
 
 impl Endpoint for DeleteSample {
-    type ResponseBody = super::Status;
+    type ResponseBody = StatusResponseBody;
 
-    fn method(&self) -> reqwest::Method {
-        reqwest::Method::DELETE
-    }
+    fn method(&self) -> Method { Method::DELETE }
     async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
         Ok(resp.json().await?)
     }
-    fn url(&self) -> reqwest::Url {
-        let mut url = BASE_URL.parse::<reqwest::Url>().unwrap();
+    fn url(&self) -> Url {
+        let mut url = BASE_URL.parse::<Url>().unwrap();
         url.set_path(&format!(
             "{}/{}{}/{}",
             VOICES_PATH, self.0.voice_id.0, SAMPLES_PATH, self.0.sample_id
@@ -92,7 +85,6 @@ pub struct SamplePathParams {
 ///     Ok(())
 /// }
 /// ```
-
 #[derive(Clone, Debug)]
 pub struct GetAudioFromSample(pub SamplePathParams);
 impl Endpoint for GetAudioFromSample {

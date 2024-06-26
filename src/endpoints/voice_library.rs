@@ -54,9 +54,8 @@
 //! }
 //! ```
 use super::*;
-use crate::endpoints::voice::{VoiceID, ADD_VOICE_PATH, VOICES_PATH};
+//use crate::endpoints::shared::{identifiers::VoiceID, path_segments::{ADD_VOICE_PATH, VOICES_PATH}};
 pub use crate::endpoints::voice_generation::Age;
-use std::ops::Deref;
 const SHARED_VOICES_PATH: &str = "/v1/shared-voices";
 const PAGE_SIZE_QUERY: &str = "page_size";
 const CATEGORY_QUERY: &str = "category";
@@ -520,8 +519,8 @@ impl Endpoint for AddSharedVoice {
     fn method(&self) -> Method {
         Method::POST
     }
-    fn json_request_body(&self) -> Option<Result<serde_json::Value>> {
-        Some(serde_json::to_value(&self.body).map_err(|e| e.into()))
+    fn request_body(&self) -> Result<RequestBody> {
+        Ok(RequestBody::Json(serde_json::to_value(&self.body)?))
     }
     async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
         Ok(resp.json().await?)
@@ -552,7 +551,7 @@ pub struct AddSharedVoiceParams {
 impl AddSharedVoiceParams {
     pub fn new(public_user_id: &str, voice_id: &str) -> Self {
         let public_user_id = PublicUserID::from(public_user_id);
-        let voice_id = VoiceID::from(voice_id);
+        let voice_id = VoiceID::from(voice_id.to_string());
         AddSharedVoiceParams {
             public_user_id,
             voice_id,
@@ -560,7 +559,6 @@ impl AddSharedVoiceParams {
     }
 }
 
-/// Public user ID used to publicly identify ElevenLabs users.
 #[derive(Clone, Debug)]
 pub(crate) struct PublicUserID(pub(crate) String);
 

@@ -98,8 +98,8 @@ impl Endpoint for AddFromFile {
         Method::POST
     }
 
-    fn multipart_request_body(&self) -> Option<Result<Form>> {
-        Some(self.0.to_form().map_err(Into::into))
+    fn request_body(&self) -> Result<RequestBody> {
+        Ok(RequestBody::Multipart(self.0.to_form()?))
     }
 
     async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
@@ -240,8 +240,8 @@ impl Endpoint for AddRules {
         Method::POST
     }
 
-    fn json_request_body(&self) -> Option<Result<Value>> {
-        Some(serde_json::to_value(&self.body).map_err(Into::into))
+    fn request_body(&self) -> Result<RequestBody> {
+        Ok(RequestBody::Json(serde_json::to_value(&self.body)?))
     }
 
     async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
@@ -576,8 +576,8 @@ impl Endpoint for RemoveRules {
         Method::POST
     }
 
-    fn json_request_body(&self) -> Option<Result<Value>> {
-        Some(serde_json::to_value(&self.body).map_err(Into::into))
+    fn request_body(&self) -> Result<RequestBody> {
+        Ok(RequestBody::Json(serde_json::to_value(&self.body)?))
     }
 
     async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {

@@ -1,3 +1,4 @@
+use super::*;
 use crate::client::{Result, BASE_URL};
 use crate::endpoints::Endpoint;
 use crate::error::Error;
@@ -55,12 +56,12 @@ impl Endpoint for GenerateARandomVoice {
     fn method(&self) -> reqwest::Method {
         reqwest::Method::POST
     }
-    fn json_request_body(&self) -> Option<Result<serde_json::Value>> {
-        match self.0.validate() {
-            Ok(_) => Some(serde_json::to_value(&self.0).map_err(Into::into)),
-            Err(e) => Some(Err(Box::new(e))),
-        }
+
+    fn request_body(&self) -> Result<RequestBody> {
+        Ok(RequestBody::Json(serde_json::to_value(&self.0)?))
+
     }
+
     async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
         let generated_voice_id = resp
             .headers()

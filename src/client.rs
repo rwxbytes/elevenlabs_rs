@@ -1,8 +1,7 @@
 use crate::endpoints::tts::ws::{EOSMessage, Flush, TextChunk, WebSocketTTS, WebSocketTTSResponse};
-use crate::endpoints::Endpoint;
+use crate::endpoints::{Endpoint, RequestBody};
 use crate::error::Error::ClientSendRequestError;
 use crate::error::{ElevenLabsClientError, ElevenLabsServerError, WebSocketError};
-use async_stream::stream;
 use futures_util::{pin_mut, SinkExt, Stream, StreamExt};
 use reqwest;
 use reqwest::header::CONTENT_TYPE;
@@ -45,30 +44,30 @@ impl ElevenLabsClient {
             .request(endpoint.method(), endpoint.url())
             .header(XI_API_KEY_HEADER, &self.api_key);
 
-        let method = endpoint.method();
         let resp: Response;
 
-        match method {
+        match endpoint.method() {
             Method::GET | Method::DELETE => {
                 resp = init.send().await?;
             }
             Method::POST => {
-                if endpoint.json_request_body().is_some() {
-                    resp = init
-                        .header(CONTENT_TYPE, APPLICATION_JSON)
-                        // TODO: This should be a custom error
-                        .json(&endpoint.json_request_body().unwrap()?)
-                        .send()
-                        .await?;
-                } else if endpoint.multipart_request_body().is_some() {
-                    resp = init
-                        //.header(CONTENT_TYPE, MULTIPART_FORM_DATA)
-                        // TODO: This should be a custom error
-                        .multipart(endpoint.multipart_request_body().unwrap()?)
-                        .send()
-                        .await?;
-                } else {
-                    panic!("a post request must have a json or multipart body for ElevenLabs API");
+                match endpoint.request_body()? {
+                    RequestBody::Json(json) => {
+                        resp = init
+                            .header(CONTENT_TYPE, APPLICATION_JSON)
+                            .json(&json)
+                            .send()
+                            .await?;
+                    }
+                    RequestBody::Multipart(form) => {
+                        resp = init
+                            .multipart(form)
+                            .send()
+                            .await?;
+                    }
+                    RequestBody::Empty => {
+                        panic!("a post request must have a json or multipart body for ElevenLabs API");
+                    }
                 }
             }
             _ => {
@@ -77,6 +76,7 @@ impl ElevenLabsClient {
         }
         endpoint.response_body(handle_http_error(resp).await?).await
     }
+
     pub async fn hit_ws<S>(
         &self,
         mut endpoint: WebSocketTTS<S>,
@@ -130,7 +130,6 @@ impl ElevenLabsClient {
             ws_writer.send(Message::text(bos_message)).await?;
 
             let generation_triggers = endpoint.try_trigger_generation().unwrap_or_default();
-            //let flush = endpoint.flush();
             let flush_streams = endpoint.streams_after_flush();
             let text_stream = endpoint.text_stream();
             let stream = text_stream.enumerate();
@@ -148,9 +147,8 @@ impl ElevenLabsClient {
             match flush_streams {
                 Some(streams) => {
                     ws_writer.send(Message::text(Flush::new().json()?)).await?;
-                    //tokio::time::sleep(tokio::time::Duration::from_secs(3)).await;
 
-                    // TODO: impl generation_triggers for flush streams too?
+                    // TODO: impl generation_triggers for flush streams
                     for s in streams {
                         pin_mut!(s);
                         while let Some(item) = s.next().await {
@@ -177,19 +175,15 @@ impl ElevenLabsClient {
 
 async fn handle_http_error(resp: Response) -> Result<Response> {
     if resp.status().is_server_error() {
-        //dbg!(resp.status());
         let server_error = resp.json::<ElevenLabsServerError>().await?;
         return Err(Box::new(server_error));
     }
     if resp.status().is_client_error() {
-        dbg!(resp.status());
-        //return Err(Box::new(ClientSendRequestError(resp.json().await?)));
         let client_error = resp.json::<ElevenLabsClientError>().await?;
         return Err(Box::new(client_error));
     }
     // TODO: improve this error handling
     if !resp.status().is_success() {
-        //dbg!(resp.status());
         return Err(Box::new(ClientSendRequestError(resp.json().await?)));
     }
     Ok(resp)

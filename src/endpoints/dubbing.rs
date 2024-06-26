@@ -1,6 +1,5 @@
 use super::*;
 use crate::error::Error;
-use reqwest::multipart::Part;
 use std::path::Path;
 
 const DUBBING_PATH: &str = "v1/dubbing";
@@ -16,7 +15,7 @@ impl DubAVideoOrAnAudioFile {
     ///
     /// # Example
     ///```no_run
-    /// use elevenlabs_rs::client::{ElevenLabsClient, Result};
+    /// use elevenlabs_rs::*;
     /// use elevenlabs_rs::endpoints::dubbing::*;
     ///
     /// #[tokio::main]
@@ -45,7 +44,7 @@ impl DubAVideoOrAnAudioFile {
     ///
     /// # Example
     /// ```no_run
-    /// use elevenlabs_rs::client::{ElevenLabsClient, Result};
+    /// use elevenlabs_rs::*;
     /// use elevenlabs_rs::endpoints::dubbing::*;
     ///
     /// #[tokio::main]
@@ -77,9 +76,9 @@ impl Endpoint for DubAVideoOrAnAudioFile {
     fn method(&self) -> Method {
         Method::POST
     }
-    fn multipart_request_body(&self) -> Option<Result<Form>> {
-        let body = self.0.clone();
-        Some(to_multipart(body))
+    fn request_body(&self) -> Result<RequestBody> {
+        Ok(RequestBody::Multipart(to_multipart(self.0.clone())?))
+
     }
     async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
         Ok(resp.json().await?)
@@ -330,7 +329,7 @@ impl GetDubbingProjectMetadataResponse {
 ///
 /// # Example
 /// ```no_run
-/// use elevenlabs_rs::client::{ElevenLabsClient, Result};
+/// use elevenlabs_rs::*;
 /// use elevenlabs_rs::endpoints::dubbing::*;
 /// use elevenlabs_rs::utils::save;
 ///
@@ -387,7 +386,7 @@ impl GetDubbedFileParams {
 pub struct DeleteDubbingProject(pub DubbingID);
 
 impl Endpoint for DeleteDubbingProject {
-    type ResponseBody = Status;
+    type ResponseBody = StatusResponseBody;
 
     fn method(&self) -> Method {
         Method::DELETE
