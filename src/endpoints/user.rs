@@ -1,7 +1,6 @@
-use crate::client::{Result, BASE_URL};
-use crate::endpoints::Endpoint;
-use reqwest::Response;
-use serde::Deserialize;
+#![allow(dead_code)]
+//! The user endpoints
+use super::*;
 
 const USER_PATH: &str = "v1/user";
 const SUBSCRIPTION_PATH: &str = "v1/user/subscription";
@@ -9,8 +8,7 @@ const SUBSCRIPTION_PATH: &str = "v1/user/subscription";
 /// Gets extended information about the users subscription
 /// # Examples
 /// ```no_run
-///use elevenlabs_rs::client::{ElevenLabsClient, Result};
-///use elevenlabs_rs::endpoints::user::*;
+///use elevenlabs_rs::*;
 ///
 /// #[tokio::main]
 /// async fn main() -> Result<()> {
@@ -26,14 +24,14 @@ pub struct GetUserSubscriptionInfo;
 impl Endpoint for GetUserSubscriptionInfo {
     type ResponseBody = Subscription;
 
-    fn method(&self) -> reqwest::Method {
-        reqwest::Method::GET
+    fn method(&self) -> Method {
+        Method::GET
     }
     async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
         Ok(resp.json().await?)
     }
-    fn url(&self) -> reqwest::Url {
-        let mut url = BASE_URL.parse::<reqwest::Url>().unwrap();
+    fn url(&self) -> Url {
+        let mut url = BASE_URL.parse::<Url>().unwrap();
         url.set_path(SUBSCRIPTION_PATH);
         url
     }
@@ -71,8 +69,7 @@ pub struct NextInvoice {
 /// Gets information about the user
 /// # Examples
 /// ```no_run
-/// use elevenlabs_rs::client::{ElevenLabsClient, Result};
-/// use elevenlabs_rs::endpoints::user::*;
+/// use elevenlabs_rs::*;
 ///
 /// #[tokio::main]
 /// async fn main() -> Result<()> {
@@ -88,14 +85,14 @@ pub struct GetUserInfo;
 impl Endpoint for GetUserInfo {
     type ResponseBody = UserInfo;
 
-    fn method(&self) -> reqwest::Method {
-        reqwest::Method::GET
+    fn method(&self) -> Method {
+        Method::GET
     }
     async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
         Ok(resp.json().await?)
     }
-    fn url(&self) -> reqwest::Url {
-        let mut url = BASE_URL.parse::<reqwest::Url>().unwrap();
+    fn url(&self) -> Url {
+        let mut url = BASE_URL.parse::<Url>().unwrap();
         url.set_path(USER_PATH);
         url
     }

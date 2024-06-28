@@ -1,5 +1,18 @@
 pub mod identifiers {
     use serde::Serialize;
+    use crate::endpoints::Deserialize;
+
+
+
+
+    #[derive(Clone, Debug, Deserialize)]
+    pub(crate) struct HistoryItemID(pub(crate)String);
+
+    impl From<String> for HistoryItemID {
+        fn from(id: String) -> Self {
+            Self(id)
+        }
+    }
 
     #[derive(Clone, Debug, Default, Serialize)]
     #[serde(rename_all = "snake_case")]
@@ -11,8 +24,8 @@ pub mod identifiers {
         }
     }
 
-   #[derive(Clone, Debug)]
-   pub enum Model {
+    #[derive(Clone, Debug)]
+    pub enum Model {
         ElevenMultilingualV2,
         ElevenMultilingualV1,
         ElevenEnglishV1,
@@ -32,7 +45,8 @@ pub mod identifiers {
                 Model::ElevenMultilingualV2STS => "eleven_multilingual_sts_v2".to_string(),
             }
         }
-   }
+    }
+
 
 
     #[derive(Clone, Debug)]
@@ -145,16 +159,15 @@ pub mod identifiers {
     }
 }
 
-
 pub(crate) mod path_segments {
     pub(crate) const ADD_VOICE_PATH: &str = "/add";
+    pub(crate) const DOWNLOAD_PATH: &str = "/download";
     pub(crate) const STREAM_PATH: &str = "/stream";
     pub(crate) const VOICES_PATH: &str = "/v1/voices";
-
 }
 
 pub mod response_bodies {
-use serde::Deserialize;
+    use serde::Deserialize;
     #[derive(Clone, Debug, Deserialize)]
     pub struct StatusResponseBody {
         pub status: String,

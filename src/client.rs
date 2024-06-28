@@ -1,6 +1,6 @@
 use crate::endpoints::tts::ws::{EOSMessage, Flush, TextChunk, WebSocketTTS, WebSocketTTSResponse};
 use crate::endpoints::{Endpoint, RequestBody};
-use crate::error::Error::ClientSendRequestError;
+use crate::error::Error::HttpError;
 use crate::error::{ElevenLabsClientError, ElevenLabsServerError, WebSocketError};
 use futures_util::{pin_mut, SinkExt, Stream, StreamExt};
 use reqwest;
@@ -8,16 +8,14 @@ use reqwest::header::CONTENT_TYPE;
 use reqwest::Method;
 use reqwest::Response;
 use tokio_tungstenite::tungstenite::protocol::frame::coding::CloseCode;
-use tokio_tungstenite::{
-    connect_async, tungstenite::protocol::Message,
-};
+use tokio_tungstenite::{connect_async, tungstenite::protocol::Message};
 
 pub type Result<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync>>;
 
 pub const BASE_URL: &str = "https://api.elevenlabs.io";
 const XI_API_KEY_HEADER: &str = "xi-api-key";
 const APPLICATION_JSON: &str = "application/json";
-const MULTIPART_FORM_DATA: &str = "multipart/form-data";
+//const MULTIPART_FORM_DATA: &str = "multipart/form-data"; // Client errs with this content type
 
 pub struct ElevenLabsClient {
     inner: reqwest::Client,
@@ -50,26 +48,21 @@ impl ElevenLabsClient {
             Method::GET | Method::DELETE => {
                 resp = init.send().await?;
             }
-            Method::POST => {
-                match endpoint.request_body()? {
-                    RequestBody::Json(json) => {
-                        resp = init
-                            .header(CONTENT_TYPE, APPLICATION_JSON)
-                            .json(&json)
-                            .send()
-                            .await?;
-                    }
-                    RequestBody::Multipart(form) => {
-                        resp = init
-                            .multipart(form)
-                            .send()
-                            .await?;
-                    }
-                    RequestBody::Empty => {
-                        panic!("a post request must have a json or multipart body for ElevenLabs API");
-                    }
+            Method::POST => match endpoint.request_body()? {
+                RequestBody::Json(json) => {
+                    resp = init
+                        .header(CONTENT_TYPE, APPLICATION_JSON)
+                        .json(&json)
+                        .send()
+                        .await?;
                 }
-            }
+                RequestBody::Multipart(form) => {
+                    resp = init.multipart(form).send().await?;
+                }
+                RequestBody::Empty => {
+                    panic!("a post request must have a json or multipart body for ElevenLabs API");
+                }
+            },
             _ => {
                 panic!("Unsupported method for ElevenLabs API");
             }
@@ -119,13 +112,11 @@ impl ElevenLabsClient {
             Ok::<(), Box<dyn std::error::Error + Send + Sync>>(())
         });
 
+
         let api_key = self.api_key.clone();
         tokio::spawn(async move {
-            // TODO: is this necessary? We always have a api key
             let mut bos_message = endpoint.bos_message().clone();
-            if !bos_message.is_api_key() {
-                bos_message = bos_message.with_api_key(&api_key);
-            }
+            bos_message = bos_message.with_api_key(&api_key);
             let bos_message = serde_json::to_string(&bos_message)?;
             ws_writer.send(Message::text(bos_message)).await?;
 
@@ -135,7 +126,7 @@ impl ElevenLabsClient {
             let stream = text_stream.enumerate();
             pin_mut!(stream);
 
-            // TODO: impl try_trigger_always
+            // TODO: add try_trigger_always?
             while let Some((i, chunk)) = stream.next().await {
                 let trigger_index = i + 1;
                 let trigger = generation_triggers.contains(&trigger_index);
@@ -148,10 +139,10 @@ impl ElevenLabsClient {
                 Some(streams) => {
                     ws_writer.send(Message::text(Flush::new().json()?)).await?;
 
-                    // TODO: impl generation_triggers for flush streams
-                    for s in streams {
-                        pin_mut!(s);
-                        while let Some(item) = s.next().await {
+                    // TODO: add generation_triggers for flush streams?
+                    for stream in streams {
+                        pin_mut!(stream);
+                        while let Some(item) = stream.next().await {
                             ws_writer
                                 .send(Message::text(TextChunk::new(item, true).json()?))
                                 .await?;
@@ -184,7 +175,7 @@ async fn handle_http_error(resp: Response) -> Result<Response> {
     }
     // TODO: improve this error handling
     if !resp.status().is_success() {
-        return Err(Box::new(ClientSendRequestError(resp.json().await?)));
+        return Err(Box::new(HttpError(resp.json().await?)));
     }
     Ok(resp)
 }

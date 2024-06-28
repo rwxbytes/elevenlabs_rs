@@ -1,3 +1,5 @@
+//! The models endpoint
+#![allow(dead_code)]
 use crate::client::{Result, BASE_URL};
 use crate::endpoints::Endpoint;
 use reqwest::Response;
@@ -28,8 +30,8 @@ type ModelResponse = Vec<Model>;
 
 #[derive(Clone, Debug, Deserialize)]
 pub struct Model {
-    pub model_id: String,
-    pub name: String,
+    model_id: String,
+    name: String,
     can_be_finetuned: bool,
     can_do_text_to_speech: bool,
     can_do_voice_conversion: bool,

@@ -1,8 +1,7 @@
-workspace = { members = ["examples/openai_websocket", "examples/pronunciation_dictionaries"] }
 [package]
 name = "elevenlabs_rs"
-version = "0.2.0"
-description = "A lib crate for ElevenLabs' AI technology"
+version = "0.3.0"
+description = "A lib crate for ElevenLabs"
 authors = ["rwxbytes <rwxbytes@proton.me>"]
 license = "MIT"
 edition = "2021"
@@ -38,4 +37,18 @@ opt-level = 'z'
 [[example]]
 name = "basic_twilio"
 path = "examples/basic_twilio.rs"
+
+[[example]]
+name = "websocket_openai"
+path = "examples/websocket_openai.rs"
+
+[[example]]
+name = "pronunciation_dictionaries"
+path = "examples/pronunciation_dictionaries.rs"
+
+[[example]]
+name = "twilio_openai"
+path = "examples/twilio_openai.rs"
+
+
 

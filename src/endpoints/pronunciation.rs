@@ -1,9 +1,8 @@
-//! This module contains the endpoints for the pronunciation dictionaries.
+//! The pronunciation dictionaries endpoints.
 //!
 //! See examples [here](https://www.github.com/rwxbytes/elevenlabs_rs/tree/main/examples/pronunciation_dictionaries).
+#[allow(dead_code)]
 use super::*;
-use crate::endpoints::history::DOWNLOAD_PATH;
-use reqwest::multipart::Part;
 
 const PRONUNCIATION_PATH: &str = "/v1/pronunciation-dictionaries";
 const ADD_FROM_FILE_PATH: &str = "/add-from-file";
@@ -17,7 +16,7 @@ const PAGE_SIZE_QUERY: &str = "page_size";
 ///
 /// # Example
 /// ```no_run
-/// use elevenlabs_rs::client::{ElevenLabsClient, Result};
+/// use elevenlabs_rs::*;
 /// use elevenlabs_rs::endpoints::pronunciation::*;
 ///
 /// #[tokio::main]
@@ -30,7 +29,7 @@ const PAGE_SIZE_QUERY: &str = "page_size";
 /// }
 /// ```
 #[derive(Clone, Debug)]
-pub struct AddFromFile(pub(crate) AddFromFileBody);
+pub struct AddFromFile(AddFromFileBody);
 
 impl AddFromFile {
     pub fn new(body: AddFromFileBody) -> Self {
@@ -154,7 +153,7 @@ impl AddFromFileResponse {
 ///
 /// # Example
 /// ```no_run
-/// use elevenlabs_rs::client::{ElevenLabsClient, Result};
+/// use elevenlabs_rs::*;
 /// use elevenlabs_rs::endpoints::pronunciation::*;
 ///
 /// #[tokio::main]
@@ -281,7 +280,7 @@ impl RulesResponse {
 ///
 /// # Example
 /// ```no_run
-/// use elevenlabs_rs::client::{ElevenLabsClient, Result};
+/// use elevenlabs_rs::*;
 /// use elevenlabs_rs::endpoints::pronunciation::*;
 ///
 /// #[tokio::main]
@@ -425,7 +424,7 @@ impl PronunciationDictionary {
 ///
 /// # Example
 /// ```no_run
-/// use elevenlabs_rs::client::{ElevenLabsClient, Result};
+/// use elevenlabs_rs::*;
 /// use elevenlabs_rs::endpoints::pronunciation::*;
 ///
 /// #[tokio::main]
@@ -441,12 +440,19 @@ pub struct GetDictionary(DictionaryID);
 
 impl GetDictionary {
     pub fn new(id: &str) -> Self {
-        Self(DictionaryID(id.to_string()))
+        Self(DictionaryID::from(id.to_string()))
     }
 }
 
 #[derive(Clone, Debug)]
 struct DictionaryID(String);
+
+impl From<String> for DictionaryID {
+    fn from(id: String) -> Self {
+        Self(id)
+    }
+
+}
 
 impl Endpoint for GetDictionary {
     type ResponseBody = PronunciationDictionary;
@@ -470,7 +476,7 @@ impl Endpoint for GetDictionary {
 ///
 /// # Example
 /// ```no_run
-/// use elevenlabs_rs::client::{ElevenLabsClient, Result};
+/// use elevenlabs_rs::*;
 /// use elevenlabs_rs::endpoints::pronunciation::*;
 /// use elevenlabs_rs::utils::save;
 ///
@@ -491,8 +497,8 @@ pub struct DownloadVersionByID {
 impl DownloadVersionByID {
     pub fn new(dictionary_id: &str, version_id: &str) -> Self {
         Self {
-            dictionary_id: DictionaryID(dictionary_id.to_string()),
-            version_id: VersionID(version_id.to_string()),
+            dictionary_id: DictionaryID::from(dictionary_id.to_string()),
+            version_id: VersionID::from(version_id.to_string()),
         }
     }
 }
@@ -500,6 +506,12 @@ impl DownloadVersionByID {
 /// This struct represents the version ID of a pronunciation dictionary.
 #[derive(Clone, Debug)]
 struct VersionID(String);
+
+impl From<String> for VersionID {
+    fn from(id: String) -> Self {
+        Self(id)
+    }
+}
 
 impl Endpoint for DownloadVersionByID {
     type ResponseBody = Bytes;
@@ -526,7 +538,7 @@ impl Endpoint for DownloadVersionByID {
 ///
 /// # Example
 /// ```no_run
-/// use elevenlabs_rs::client::{ElevenLabsClient, Result};
+/// use elevenlabs_rs::*;
 /// use elevenlabs_rs::endpoints::pronunciation::*;
 ///
 /// #[tokio::main]
@@ -548,7 +560,7 @@ impl RemoveRules {
     pub fn new(dictionary_id: &str, rules: Vec<&str>) -> Self {
         let body = RemoveRulesBody::new(rules);
         Self {
-            param: DictionaryID(dictionary_id.to_string()),
+            param: DictionaryID::from(dictionary_id.to_string()),
             body,
         }
     }

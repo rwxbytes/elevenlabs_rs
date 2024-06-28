@@ -1,4 +1,5 @@
-//! Voice library endpoints
+#![allow(dead_code)]
+//! The voice library endpoints
 //!
 //! This module contains endpoints related to the voice library.
 //! The voice library is a collection of shared voices that can be used by users.
@@ -22,8 +23,7 @@
 //!
 //! # Example
 //! ```no_run
-//! use elevenlabs_rs::client::{ElevenLabsClient, Result};
-//! use elevenlabs_rs::endpoints::voice_library::*;
+//! use elevenlabs_rs::*;
 //!
 //! #[tokio::main]
 //! async fn main() -> Result<()> {
@@ -39,7 +39,7 @@
 //!         .with_accent("indian")
 //!         .with_use_cases(vec!["social_media".to_string()]);
 //!
-//!     let resp = c.hit(GetSharedVoices(query)).await?;
+//!     let resp = c.hit(GetSharedVoices::new(query)).await?;
 //!
 //!     if let Some(shared_voice) = resp.voices().first() {
 //!         let public_user_id = shared_voice.public_owner_id();
@@ -54,7 +54,6 @@
 //! }
 //! ```
 use super::*;
-//use crate::endpoints::shared::{identifiers::VoiceID, path_segments::{ADD_VOICE_PATH, VOICES_PATH}};
 pub use crate::endpoints::voice_generation::Age;
 const SHARED_VOICES_PATH: &str = "/v1/shared-voices";
 const PAGE_SIZE_QUERY: &str = "page_size";
@@ -76,7 +75,7 @@ const PAGE_QUERY: &str = "page";
 ///
 /// # Example
 /// ```no_run
-/// use elevenlabs_rs::client::{ElevenLabsClient, Result};
+/// use elevenlabs_rs::*;
 /// use elevenlabs_rs::endpoints::voice_library::*;
 ///
 /// #[tokio::main]
@@ -92,14 +91,20 @@ const PAGE_QUERY: &str = "page";
 ///         .with_language("en")
 ///         .with_use_cases(vec!["narrative_story".to_string()])
 ///         .with_descriptives(vec!["confident".to_string()]);
-///     let resp = c.hit(GetSharedVoices(query)).await?;
+///     let resp = c.hit(GetSharedVoices::new(query)).await?;
 ///     println!("{:#?}", resp);
 ///     Ok(())
 /// }
 /// ```
 /// See [ElevenLabs API documentation](https://elevenlabs.io/docs/api-reference/query-library) for more information
 #[derive(Clone, Debug)]
-pub struct GetSharedVoices(pub SharedVoicesQuery);
+pub struct GetSharedVoices(SharedVoicesQuery);
+
+impl GetSharedVoices {
+    pub fn new(query: SharedVoicesQuery) -> Self {
+        GetSharedVoices(query)
+    }
+}
 
 impl Endpoint for GetSharedVoices {
     type ResponseBody = SharedVoicesResponse;
@@ -453,8 +458,7 @@ impl Category {
 ///
 /// # Example
 /// ```no_run
-/// use elevenlabs_rs::client::{ElevenLabsClient, Result};
-/// use elevenlabs_rs::endpoints::voice_library::*;
+/// use elevenlabs_rs::*;
 ///
 /// #[tokio::main]
 /// async fn main() -> Result<()> {
@@ -481,13 +485,11 @@ impl AddSharedVoice {
         let body = AddSharedVoiceBody::new(new_name);
         AddSharedVoice { params, body }
     }
-    /// If you don't care about the name of the voice,
-    /// you can use this method to convert a `SharedVoice` into an `AddSharedVoice` instance
+    /// If you don't care about changing the name of the voice, use `from_shared_voice`
     ///
     /// # Example
     /// ```no_run
-    /// use elevenlabs_rs::client::{ElevenLabsClient, Result};
-    /// use elevenlabs_rs::endpoints::voice_library::*;
+    /// use elevenlabs_rs::*;
     ///
     /// #[tokio::main]
     /// async fn main() -> Result<()> {
@@ -497,7 +499,7 @@ impl AddSharedVoice {
     ///         .with_page_size(1)
     ///         .with_use_cases(vec!["characters_animation".to_string()])
     ///         .with_descriptives(vec!["deep".to_string()]);
-    ///     let resp = c.hit(GetSharedVoices(query)).await?;
+    ///     let resp = c.hit(GetSharedVoices::new(query)).await?;
     ///     println!("{:#?}", resp);
     ///     if let Some(shared_voice) = resp.voices().first() {
     ///         let resp = c.hit(AddSharedVoice::from_shared_voice(shared_voice)).await?;

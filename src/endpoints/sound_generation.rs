@@ -1,7 +1,8 @@
+//! The sound generation endpoint.
+#[allow(dead_code)]
 use super::*;
 
 const SOUND_GENERATION_PATH: &str = "/v1/sound-generation";
-
 
 /// Sound Generation endpoint
 ///
@@ -10,8 +11,7 @@ const SOUND_GENERATION_PATH: &str = "/v1/sound-generation";
 /// # Example
 ///
 /// ```no_run
-/// use elevenlabs_rs::client::{ElevenLabsClient, Result};
-/// use elevenlabs_rs::endpoints::sound_generation::*;
+/// use elevenlabs_rs::*;
 /// use elevenlabs_rs::utils::{save, play};
 ///
 /// #[tokio::main]
@@ -32,7 +32,7 @@ pub struct SoundGeneration(SoundGenerationBody);
 #[derive(Debug, Clone, Serialize)]
 pub struct SoundGenerationBody {
     text: String,
-    generation_settings: GenerationSettings
+    generation_settings: GenerationSettings,
 }
 
 /// `duration_seconds` expected to be greater or equal to 0.5 and less or equal to 22,
@@ -48,7 +48,7 @@ impl SoundGeneration {
     pub fn new(text: &str, generation_settings: GenerationSettings) -> Self {
         SoundGeneration(SoundGenerationBody {
             text: text.to_string(),
-            generation_settings
+            generation_settings,
         })
     }
 }
@@ -58,7 +58,7 @@ impl GenerationSettings {
         GenerationSettings {
             use_auto_duration,
             duration_seconds,
-            prompt_influence
+            prompt_influence,
         }
     }
 }
@@ -84,4 +84,3 @@ impl Endpoint for SoundGeneration {
         url
     }
 }
-

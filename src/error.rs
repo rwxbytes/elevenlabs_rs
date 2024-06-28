@@ -4,12 +4,8 @@ use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum Error {
-    #[error("Invalid API response: {0}")]
-    InvalidApiResponse(String),
-    #[error("Client build error: {0}")]
-    ClientBuildError(String),
-    #[error("ClientSendRequestError: {0}")]
-    ClientSendRequestError(Value),
+    #[error("HttpError: {0}")]
+    HttpError(Value),
     #[error("FileExtensionNotFound")]
     FileExtensionNotFound,
     #[error("FileExtensionNotValidUTF8")]
@@ -20,14 +16,8 @@ pub enum Error {
     PathNotValidUTF8,
     #[error("VoiceNotFound")]
     VoiceNotFound,
-    #[error("SpeechGenerationError: {0}")]
-    SpeechGenerationError(String),
     #[error("GeneratedVoiceIDHeaderNotFound")]
     GeneratedVoiceIDHeaderNotFound,
-    //#[error("ElevenLabsClientError: {detail:?}")]
-    //ElevenLabsClientError{
-    //    detail: Vec<DetailObject>,
-    //},
 }
 
 #[derive(Error, Debug, Deserialize)]
@@ -38,13 +28,14 @@ pub struct ElevenLabsServerError {
 
 #[derive(Debug, Deserialize, Error)]
 #[error("ClientErrorDetail: {message:?}, {status:?}")]
-struct Detail {
+pub struct Detail {
     message: String,
     status: String,
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Deserialize)]
-struct DetailObject {
+pub struct DetailObject {
     loc: Vec<String>,
     msg: String,
     r#type: String,
@@ -61,4 +52,14 @@ pub enum ElevenLabsClientError {
     UnprocessableEntity { detail: Vec<DetailObject> },
     #[error("ElevenLabsClientError: {detail:?}")]
     Code4xx { detail: String },
+}
+
+#[derive(Error, Debug)]
+pub enum WebSocketError {
+    #[error("NonNormalCloseCode: {0}")]
+    NonNormalCloseCode(String),
+    #[error("ClosedWithoutCloseFrame")]
+    ClosedWithoutCloseFrame,
+    #[error("UnexpectedMessageType")]
+    UnexpectedMessageType,
 }

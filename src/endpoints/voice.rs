@@ -1,12 +1,9 @@
-//! Voice endpoints
+#![allow(dead_code)]
+//! The voice endpoints
 //!
 //! See the [ElevenLabs docs](https://elevenlabs.io/docs/api-reference/get-voices) for more information.
+//!
 use super::*;
-//use crate::endpoints::shared::{
-//    identifiers::VoiceID,
-//    path_segments::{VOICES_PATH, ADD_VOICE_PATH},
-//    response_bodies::StatusResponseBody,
-//};
 use crate::error::Error;
 use std::collections::HashMap;
 use std::path::Path;
@@ -178,6 +175,7 @@ impl GetVoice {
         GetVoice(VoiceID::from(voice_id.into()))
     }
 }
+
 
 impl Endpoint for GetVoice {
     type ResponseBody = VoiceResponseBody;
@@ -367,14 +365,12 @@ impl Endpoint for AddVoice {
     }
 
     fn request_body(&self) -> Result<RequestBody> {
-        Ok(RequestBody::Multipart(
-            to_multipart(
-                self.0.name.clone(),
-                Some(self.0.files.clone()),
-                self.0.description.clone(),
-                self.0.labels.clone(),
-            )?,
-        ))
+        Ok(RequestBody::Multipart(to_multipart(
+            self.0.name.clone(),
+            Some(self.0.files.clone()),
+            self.0.description.clone(),
+            self.0.labels.clone(),
+        )?))
     }
 
     async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
@@ -430,8 +426,8 @@ impl AddVoiceResponse {
 /// Edit a voice endpoint
 #[derive(Clone, Debug)]
 pub struct EditVoice {
-    pub voice_id: VoiceID,
-    pub body: EditVoiceBody,
+    voice_id: VoiceID,
+    body: EditVoiceBody,
 }
 
 impl EditVoice {
@@ -450,14 +446,12 @@ impl Endpoint for EditVoice {
         Method::POST
     }
     fn request_body(&self) -> Result<RequestBody> {
-        Ok(RequestBody::Multipart(
-            to_multipart(
-                self.body.name.clone(),
-                self.body.files.clone(),
-                self.body.description.clone(),
-                self.body.labels.clone(),
-            )?,
-        ))
+        Ok(RequestBody::Multipart(to_multipart(
+            self.body.name.clone(),
+            self.body.files.clone(),
+            self.body.description.clone(),
+            self.body.labels.clone(),
+        )?))
     }
 
     async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
@@ -504,8 +498,6 @@ impl EditVoiceBody {
         self
     }
 }
-
-
 
 /// Get all voices response body
 #[derive(Clone, Debug, Deserialize)]

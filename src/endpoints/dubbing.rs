@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+//! The dubbing endpoints
 use super::*;
 use crate::error::Error;
 use std::path::Path;
@@ -5,12 +7,24 @@ use std::path::Path;
 const DUBBING_PATH: &str = "v1/dubbing";
 const AUDIO_PATH: &str = "/audio";
 
-/// TODO: Add CSV file example
+#[derive(Clone, Debug)]
+pub struct DubbingID(String);
+
+impl From<String> for DubbingID {
+    fn from(id: String) -> Self {
+        DubbingID(id)
+    }
+}
+
+// TODO: Add CSV file example
 /// The dubbing endpoint for the ElevenLabs API.
 #[derive(Clone, Debug)]
-pub struct DubAVideoOrAnAudioFile(pub DubbingBody);
+pub struct DubAVideoOrAnAudioFile(DubbingBody);
 
 impl DubAVideoOrAnAudioFile {
+    pub fn new(body: DubbingBody) -> Self {
+        DubAVideoOrAnAudioFile(body)
+    }
     /// Create a dub from a video or audio file.
     ///
     /// # Example
@@ -37,7 +51,7 @@ impl DubAVideoOrAnAudioFile {
             .with_mode(Mode::Automatic)
             .with_num_speakers(1)
             .with_watermark(false);
-        DubAVideoOrAnAudioFile(body)
+        DubAVideoOrAnAudioFile::new(body)
     }
 
     /// Create a dub from a link to a video or audio file.
@@ -66,7 +80,7 @@ impl DubAVideoOrAnAudioFile {
             .with_mode(Mode::Automatic)
             .with_num_speakers(1)
             .with_watermark(true);
-        DubAVideoOrAnAudioFile(body)
+        DubAVideoOrAnAudioFile::new(body)
     }
 }
 
@@ -77,8 +91,7 @@ impl Endpoint for DubAVideoOrAnAudioFile {
         Method::POST
     }
     fn request_body(&self) -> Result<RequestBody> {
-        Ok(RequestBody::Multipart(to_multipart(self.0.clone())?))
-
+        Ok(RequestBody::Multipart(to_form(self.0.clone())?))
     }
     async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
         Ok(resp.json().await?)
@@ -267,14 +280,11 @@ impl DubbingBody {
 }
 
 #[derive(Clone, Debug)]
-pub struct GetDubbingProjectMetadata(pub DubbingID);
+pub struct GetDubbingProjectMetadata(DubbingID);
 
-#[derive(Clone, Debug)]
-pub struct DubbingID(pub String);
-
-impl From<&str> for DubbingID {
-    fn from(value: &str) -> Self {
-        DubbingID(value.to_string())
+impl GetDubbingProjectMetadata {
+    pub fn new(dubbing_id: DubbingID) -> Self {
+        GetDubbingProjectMetadata(dubbing_id)
     }
 }
 
@@ -336,17 +346,14 @@ impl GetDubbingProjectMetadataResponse {
 /// #[tokio::main]
 /// async fn main() -> Result<()> {
 ///     let c = ElevenLabsClient::default()?;
-///     let dub_params = GetDubbedFileParams::new(
-///         DubbingID::from("some dubbing id"),
-///         "en"
-///     );
+///     let dub_params = GetDubbedFileParams::new("some dubbing id", "en");
 ///     let resp = c.hit(GetDubbedFile(dub_params)).await?;
 ///     save("dubbed_vid.mp4", resp)?;
 ///     Ok(())
 /// }
 /// ```
 #[derive(Clone, Debug)]
-pub struct GetDubbedFile(pub GetDubbedFileParams);
+pub struct GetDubbedFile(GetDubbedFileParams);
 
 impl Endpoint for GetDubbedFile {
     type ResponseBody = Bytes;
@@ -369,21 +376,27 @@ impl Endpoint for GetDubbedFile {
 
 #[derive(Clone, Debug)]
 pub struct GetDubbedFileParams {
-    pub dubbing_id: DubbingID,
-    pub language_code: String,
+    dubbing_id: DubbingID,
+    language_code: String,
 }
 
 impl GetDubbedFileParams {
-    pub fn new(dubbing_id: DubbingID, language_code: &str) -> Self {
+    pub fn new(dubbing_id: &str, language_code: &str) -> Self {
         GetDubbedFileParams {
-            dubbing_id,
+            dubbing_id: DubbingID::from(dubbing_id.to_string()),
             language_code: language_code.to_string(),
         }
     }
 }
 
 #[derive(Clone, Debug)]
-pub struct DeleteDubbingProject(pub DubbingID);
+pub struct DeleteDubbingProject(DubbingID);
+
+impl DeleteDubbingProject {
+    pub fn new(dubbing_id: &str) -> Self {
+        DeleteDubbingProject(DubbingID::from(dubbing_id.to_string()))
+    }
+}
 
 impl Endpoint for DeleteDubbingProject {
     type ResponseBody = StatusResponseBody;
@@ -402,7 +415,7 @@ impl Endpoint for DeleteDubbingProject {
         url
     }
 }
-fn to_multipart(body: DubbingBody) -> Result<Form> {
+fn to_form(body: DubbingBody) -> Result<Form> {
     let mut form = Form::new();
     if let Some(mode) = body.mode {
         form = form.text("mode", mode.to_string());
@@ -421,7 +434,6 @@ fn to_multipart(body: DubbingBody) -> Result<Form> {
             .ok_or(Box::new(Error::FileExtensionNotFound))?
             .to_str()
             .ok_or(Box::new(Error::FileExtensionNotValidUTF8))?;
-        // TODO: find out if wav is supported and any other supported file extensions
         if mime_subtype == "mp4" {
             part = part.mime_str("video/mp4")?;
         } else if mime_subtype == "mp3" {

@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+//! The audio native endpoint
 use super::*;
 
 const AUDIO_NATIVE_PATH: &str = "/v1/audio-native";
@@ -12,7 +14,7 @@ impl AudioNative {
     }
 }
 
-#[derive(Clone, Debug, Default )]
+#[derive(Clone, Debug, Default)]
 pub struct AudioNativeBody {
     name: String,
     image: Option<String>,
@@ -117,8 +119,6 @@ impl AudioNativeBody {
         }
         Ok(form)
     }
-
-
 }
 
 impl Endpoint for AudioNative {
@@ -130,7 +130,6 @@ impl Endpoint for AudioNative {
     fn request_body(&self) -> Result<RequestBody> {
         Ok(RequestBody::Multipart(self.0.clone().to_form()?))
     }
-
 
     async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
         Ok(resp.json().await?)

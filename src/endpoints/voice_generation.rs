@@ -1,10 +1,11 @@
+#![allow(dead_code)]
+//! The voice generation endpoints
 use super::*;
 use crate::client::{Result, BASE_URL};
 use crate::endpoints::Endpoint;
 use crate::error::Error;
 use reqwest::Response;
 use serde::{Deserialize, Serialize};
-use validator::Validate;
 
 const VOICE_GENERATION_PATH: &str = "/v1/voice-generation/generate-voice";
 const PARAMETERS_PATH: &str = "/parameters";
@@ -16,12 +17,10 @@ const TEXT_LENGTH_MAX: u64 = 1000;
 
 /// Generate a random voice
 ///
-/// This endpoint generates a random voice based on the provided parameters.
 ///
 /// # Example
 /// ```no_run
-/// use elevenlabs_rs::client::{ElevenLabsClient, Result};
-/// use elevenlabs_rs::endpoints::voice_generation::*;
+/// use elevenlabs_rs::*;
 /// use elevenlabs_rs::utils::save;
 ///
 /// #[tokio::main]
@@ -29,14 +28,14 @@ const TEXT_LENGTH_MAX: u64 = 1000;
 ///     let c = ElevenLabsClient::default()?;
 ///
 ///     let body = GenerateVoiceBody::new(
-///         Gender::Female,
+///         GenderType::Female,
 ///         Accent::African,
 ///         Age::Old,
 ///         2.0,
-///         &std::fs::read_to_string("poem.txt")?,
+///         "Hello, I am a random voice",
 ///     );
 ///
-///     let resp = c.hit(GenerateARandomVoice(body)).await?;
+///     let resp = c.hit(GenerateARandomVoice::new(body)).await?;
 ///     let id = resp.generated_voice_id();
 ///     println!("Generated voice id: {}", id);
 ///
@@ -48,18 +47,23 @@ const TEXT_LENGTH_MAX: u64 = 1000;
 /// }
 /// ```
 #[derive(Clone, Debug)]
-pub struct GenerateARandomVoice(pub GenerateVoiceBody);
+pub struct GenerateARandomVoice(GenerateVoiceBody);
+
+impl GenerateARandomVoice {
+    pub fn new(body: GenerateVoiceBody) -> Self {
+        Self(body)
+    }
+}
 
 impl Endpoint for GenerateARandomVoice {
     type ResponseBody = GenerateARandomVoiceResponse;
 
-    fn method(&self) -> reqwest::Method {
-        reqwest::Method::POST
+    fn method(&self) -> Method {
+        Method::POST
     }
 
     fn request_body(&self) -> Result<RequestBody> {
         Ok(RequestBody::Json(serde_json::to_value(&self.0)?))
-
     }
 
     async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
@@ -74,8 +78,8 @@ impl Endpoint for GenerateARandomVoice {
             sample: resp.bytes().await?,
         })
     }
-    fn url(&self) -> reqwest::Url {
-        let mut url = BASE_URL.parse::<reqwest::Url>().unwrap();
+    fn url(&self) -> Url {
+        let mut url = BASE_URL.parse::<Url>().unwrap();
         url.set_path(VOICE_GENERATION_PATH);
         url
     }
@@ -83,14 +87,14 @@ impl Endpoint for GenerateARandomVoice {
 
 pub struct GenerateARandomVoiceResponse {
     generated_voice_id: String,
-    sample: bytes::Bytes,
+    sample: Bytes,
 }
 
 impl GenerateARandomVoiceResponse {
     pub fn generated_voice_id(&self) -> &str {
         &self.generated_voice_id
     }
-    pub fn sample(&self) -> &bytes::Bytes {
+    pub fn sample(&self) -> &Bytes {
         &self.sample
     }
 }
@@ -100,29 +104,27 @@ impl GenerateARandomVoiceResponse {
 /// Text length has to be between 100 and 1000
 ///
 /// See [ElevenLabs API documentation](https://elevenlabs.io/docs/api-reference/generate-voice) for more information
-#[derive(Clone, Debug, Serialize, Validate)]
+#[derive(Clone, Debug, Serialize)]
 pub struct GenerateVoiceBody {
-    pub gender: Gender,
+    pub gender: GenderType,
     pub accent: Accent,
     pub age: Age,
-    #[validate(range(min = "ACCENT_STRENGTH_MIN", max = "ACCENT_STRENGTH_MAX"))]
     pub accent_strength: f32,
-    #[validate(length(min = "TEXT_LENGTH_MIN", max = "TEXT_LENGTH_MAX"))]
     pub text: String,
 }
 
 #[derive(Clone, Debug, Serialize)]
 #[serde(rename_all = "lowercase")]
-pub enum Gender {
+pub enum GenderType {
     Female,
     Male,
 }
 
-impl Gender {
+impl GenderType {
     pub fn as_str(&self) -> &str {
         match self {
-            Gender::Female => "female",
-            Gender::Male => "male",
+            GenderType::Female => "female",
+            GenderType::Male => "male",
         }
     }
 }
@@ -168,7 +170,7 @@ impl Age {
 }
 
 impl GenerateVoiceBody {
-    pub fn new(gender: Gender, accent: Accent, age: Age, accent_strength: f32, text: &str) -> Self {
+    pub fn new(gender: GenderType, accent: Accent, age: Age, accent_strength: f32, text: &str) -> Self {
         Self {
             gender,
             accent,
@@ -186,14 +188,14 @@ pub struct GetGenerationParams;
 impl Endpoint for GetGenerationParams {
     type ResponseBody = VoiceGenerationParamsResponse;
 
-    fn method(&self) -> reqwest::Method {
-        reqwest::Method::GET
+    fn method(&self) -> Method {
+        Method::GET
     }
     async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
         Ok(resp.json().await?)
     }
-    fn url(&self) -> reqwest::Url {
-        let mut url = BASE_URL.parse::<reqwest::Url>().unwrap();
+    fn url(&self) -> Url {
+        let mut url = BASE_URL.parse::<Url>().unwrap();
         url.set_path(&format!("{}{}", VOICE_GENERATION_PATH, PARAMETERS_PATH));
         url
     }
@@ -210,31 +212,9 @@ pub struct VoiceGenerationParamsResponse {
     maximum_accent_strength: f32,
 }
 
+#[allow(dead_code)]
 #[derive(Clone, Debug, Deserialize)]
 pub struct VoiceGenerationParams {
     name: String,
     code: String,
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn generate_a_random_voice_errs_when_body_accent_strength_has_invalid_values() {
-        let text = std::iter::repeat("a").take(101).collect::<String>();
-        let accents_s = vec![0.0, 0.1, 0.2, 2.1, 2.2, 3.0];
-        let body = GenerateVoiceBody::new(
-            Gender::Female,
-            Accent::African,
-            Age::Young,
-            accents_s[0],
-            &text,
-        );
-        let mut endpoint = GenerateARandomVoice(body);
-        for accent_s in accents_s {
-            endpoint.0.accent_strength = accent_s;
-            assert!(endpoint.json_request_body().unwrap().is_err());
-        }
-    }
 }

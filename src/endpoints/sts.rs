@@ -1,6 +1,7 @@
-//! Speech-to-speech endpoints
+#![allow(dead_code)]
+//! The speech-to-speech endpoints
 use super::*;
-pub use crate::endpoints::tts::{SpeechQuery};
+pub use crate::endpoints::tts::SpeechQuery;
 pub use crate::endpoints::voice::VoiceSettings;
 use crate::error::Error;
 use futures_util::{Stream, StreamExt};
@@ -20,7 +21,7 @@ const STS_PATH: &str = "/v1/speech-to-speech";
 ///
 /// #[tokio::main]
 /// async fn main() -> Result<()> {
-///    let model = "eleven_multilingual_sts_v2"; // default is eleven_english_sts_v2
+///    let model = Model::ElevenMultilingualV2STS;
 ///    let body = SpeechToSpeechBody::new("some_audio.mp3").with_model_id(model);
 ///    let client = ElevenLabsClient::default()?;
 ///    let resp = client.hit(SpeechToSpeech::new("voice_id", body)).await?;
@@ -56,8 +57,8 @@ impl SpeechToSpeechBody {
         }
     }
     /// Set the model id
-    pub fn with_model_id(mut self, model_id: &str) -> Self {
-        self.model_id = Some(model_id.to_string());
+    pub fn with_model_id<T: Into<String>>(mut self, model_id: T) -> Self {
+        self.model_id = Some(model_id.into());
         self
     }
     /// Set the voice settings
@@ -80,7 +81,6 @@ impl SpeechToSpeechBody {
             .to_string();
         let audio = Part::bytes(audio_bytes)
             .file_name(file_name)
-            // TODO: what about wav files?
             .mime_str("audio/mpeg")?;
         form = form.part("audio", audio);
         if let Some(model_id) = &self.model_id {
@@ -128,7 +128,9 @@ impl Endpoint for SpeechToSpeech {
         Method::POST
     }
     fn request_body(&self) -> Result<RequestBody> {
-        Ok(RequestBody::Multipart(self.speech_to_speech_body.to_form()?))
+        Ok(RequestBody::Multipart(
+            self.speech_to_speech_body.to_form()?,
+        ))
     }
 
     async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
@@ -152,7 +154,7 @@ impl Endpoint for SpeechToSpeech {
 ///
 /// #[tokio::main]
 /// async fn main() -> Result<()> {
-///    let model = "eleven_multilingual_sts_v2";
+///    let model = Model::ElevenMultilingualV2STS;
 ///    let body = SpeechToSpeechBody::new("some_audio.mp3")
 ///        .with_model_id(model);
 ///    let client = ElevenLabsClient::default()?;
@@ -199,7 +201,9 @@ impl Endpoint for SpeechToSpeechStream {
         Method::POST
     }
     fn request_body(&self) -> Result<RequestBody> {
-        Ok(RequestBody::Multipart(self.speech_to_speech_body.to_form()?))
+        Ok(RequestBody::Multipart(
+            self.speech_to_speech_body.to_form()?,
+        ))
     }
     async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
         let stream = resp.bytes_stream();

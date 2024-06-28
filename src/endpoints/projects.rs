@@ -1,4 +1,5 @@
 // TODO: Get API access to the projects endpoint
+#![allow(dead_code)]
 use super::*;
 
 const PROJECTS_PATH: &str = "/v1/projects";
@@ -37,7 +38,6 @@ impl Endpoint for GetProjects {
 
     async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
         Ok(resp.json().await?)
-
     }
     fn url(&self) -> Url {
         let mut url = BASE_URL.parse::<Url>().unwrap();

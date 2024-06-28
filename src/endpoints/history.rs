@@ -1,16 +1,25 @@
+//! The history endpoints
+#![allow(dead_code)]
+
 use super::*;
 use crate::endpoints::voice::VoiceSettings;
 
-pub const HISTORY_PATH: &str = "/v1/history";
-pub const AUDIO_PATH: &str = "/audio";
-pub const DOWNLOAD_PATH: &str = "/download";
-pub const PAGE_SIZE_QUERY: &str = "page_size";
-pub const HISTORY_ITEM_IDS: &str = "history_item_ids";
-pub const START_AFTER_HISTORY_ITEM_ID_QUERY: &str = "start_after_history_item_id";
-pub const VOICE_ID_QUERY: &str = "voice_id";
+const HISTORY_PATH: &str = "/v1/history";
+const AUDIO_PATH: &str = "/audio";
+const PAGE_SIZE_QUERY: &str = "page_size";
+const HISTORY_ITEM_IDS: &str = "history_item_ids";
+const START_AFTER_HISTORY_ITEM_ID_QUERY: &str = "start_after_history_item_id";
+const VOICE_ID_QUERY: &str = "voice_id";
 
 #[derive(Clone, Debug)]
-pub struct DeleteHistoryItem(pub HistoryItemID);
+pub struct DeleteHistoryItem(HistoryItemID);
+
+impl DeleteHistoryItem {
+    pub fn new<T: Into<String>>(history_item_id: T) -> Self {
+        Self(HistoryItemID(history_item_id.into()))
+    }
+}
+
 impl Endpoint for DeleteHistoryItem {
     type ResponseBody = StatusResponseBody;
     fn method(&self) -> Method {
@@ -29,34 +38,36 @@ impl Endpoint for DeleteHistoryItem {
 /// Download one or more history items.
 /// If one history item ID is provided, we will return a single audio file.
 /// If more than one history item IDs are provided, we will provide the history items packed into a .zip file.
+///
 /// # Example
 /// ```no_run
 /// use elevenlabs_rs::*;
-/// use elevenlabs_rs::endpoints::history::*;
 /// use elevenlabs_rs::utils::save;
 ///
 /// #[tokio::main]
 /// async fn main() -> Result<()> {
-///     let c = ElevenLabsClient::default()?;
-///     let history_item_ids = c
-///         .hit(GetGeneratedItems(HistoryQuery::default())) // Returns 100 history items by default
+///     let client = ElevenLabsClient::default()?;
+///     let history_item_ids = client
+///         .hit(GetGeneratedItems::new(HistoryQuery::default()))
 ///         .await?
 ///         .history()
 ///         .iter()
 ///         .map(|i| i.history_item_id().to_string())
 ///         .collect::<Vec<String>>();
-///     let items = c
-///         .hit(DownloadHistoryItems(DownloadBody {
-///             history_item_ids,
-///             output_format: OutputFormat::default(),
-///         }))
-///         .await?;
-///     save("last_100_items.zip", items)?;
+///     let body = DownloadBody::new(history_item_ids);
+///     let downloaded_items = client.hit(DownloadHistoryItems::new(body)).await?;
+///     save("last_100_items.zip", downloaded_items)?;
 ///     Ok(())
 /// }
 /// ```
 #[derive(Clone, Debug)]
-pub struct DownloadHistoryItems(pub DownloadBody);
+pub struct DownloadHistoryItems(DownloadBody);
+
+impl DownloadHistoryItems {
+    pub fn new(body: DownloadBody) -> Self {
+        Self(body)
+    }
+}
 
 impl Endpoint for DownloadHistoryItems {
     type ResponseBody = Bytes;
@@ -65,16 +76,13 @@ impl Endpoint for DownloadHistoryItems {
     }
     fn request_body(&self) -> Result<RequestBody> {
         Ok(RequestBody::Json(serde_json::to_value(&self.0)?))
-
     }
-    //fn json_request_body(&self) -> Option<Result<serde_json::Value>> {
-    //    Some(serde_json::to_value(&self.0).map_err(Into::into))
-    //}
-    async fn response_body(self, resp: reqwest::Response) -> Result<Self::ResponseBody> {
+
+    async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
         Ok(resp.bytes().await?)
     }
-    fn url(&self) -> reqwest::Url {
-        let mut url = BASE_URL.parse::<reqwest::Url>().unwrap();
+    fn url(&self) -> Url {
+        let mut url = BASE_URL.parse::<Url>().unwrap();
         url.set_path(&format!("{}{}", HISTORY_PATH, DOWNLOAD_PATH));
         url
     }
@@ -83,57 +91,124 @@ impl Endpoint for DownloadHistoryItems {
 pub struct DownloadBody {
     pub history_item_ids: Vec<String>,
     /// Output format to transcode the audio file, can be wav or default (Mp3).
-    #[serde(skip_serializing_if = "OutputFormat::is_mp3")]
-    pub output_format: OutputFormat,
+    #[serde(skip_serializing_if = "DownloadOutputFormat::is_mp3")]
+    pub output_format: DownloadOutputFormat,
+}
+
+impl DownloadBody {
+    pub fn new(history_item_ids: Vec<String>) -> Self {
+        Self  {
+            history_item_ids,
+            output_format: DownloadOutputFormat::default(),
+        }
+    }
+    pub fn with_output_format(mut self, output_format: DownloadOutputFormat) -> Self {
+        self.output_format = output_format;
+        self
+    }
 }
 
 #[derive(Clone, Debug, Default, Serialize)]
 #[serde(rename_all = "lowercase")]
-pub enum OutputFormat {
+pub enum DownloadOutputFormat {
     #[default]
     Mp3,
     Wav,
 }
 
-impl OutputFormat {
+impl DownloadOutputFormat {
     fn is_mp3(&self) -> bool {
         match self {
-            OutputFormat::Mp3 => true,
-            OutputFormat::Wav => false,
+            DownloadOutputFormat::Mp3 => true,
+            DownloadOutputFormat::Wav => false,
         }
     }
 }
 
+/// Get the audio file of a history item.
+///
+/// # Example
+/// ```no_run
+/// use elevenlabs_rs::*;
+/// use elevenlabs_rs::utils::play;
+///
+/// #[tokio::main]
+/// async fn main() -> Result<()> {
+///     let client = ElevenLabsClient::default()?;
+///     let query = HistoryQuery::default().with_page_size(1);
+///     let resp = client.hit(GetGeneratedItems::new(query))
+///         .await?;
+///     let item_id = resp
+///         .history()
+///         .first().unwrap()
+///         .history_item_id();
+///     let audio = client.hit(GetAudio::new(item_id)).await?;
+///     play(audio)?;
+///     Ok(())
+/// }
+/// ```
 #[derive(Clone, Debug)]
-pub struct GetAudio(pub HistoryItemID);
+pub struct GetAudio(HistoryItemID);
+
+impl GetAudio {
+    pub fn new<T: Into<String>>(history_item_id: T) -> Self {
+        Self(HistoryItemID(history_item_id.into()))
+    }
+}
+
 impl Endpoint for GetAudio {
     type ResponseBody = Bytes;
-    fn method(&self) -> reqwest::Method {
-        reqwest::Method::GET
+    fn method(&self) -> Method {
+        Method::GET
     }
-    async fn response_body(self, resp: reqwest::Response) -> Result<Self::ResponseBody> {
+    async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
         Ok(resp.bytes().await?)
     }
-    fn url(&self) -> reqwest::Url {
-        let mut url = BASE_URL.parse::<reqwest::Url>().unwrap();
+    fn url(&self) -> Url {
+        let mut url = BASE_URL.parse::<Url>().unwrap();
         url.set_path(&format!("{}/{}{}", HISTORY_PATH, self.0 .0, AUDIO_PATH));
         url
     }
 }
 
+/// Get the generated items endpoint.
+///
+/// # Example
+/// ```no_run
+/// use elevenlabs_rs::*;
+///
+/// #[tokio::main]
+/// async fn main() -> Result<()> {
+///     let c = ElevenLabsClient::default()?;
+///     let query = HistoryQuery::default()
+///         .with_page_size(10)
+///         .with_voice_id(PreMadeVoiceID::Alice);
+///     let endpoint = GetGeneratedItems::new(query);
+///     let resp = c.hit(endpoint).await?;
+///     println!("{:#?}", resp);
+///     Ok(())
+/// }
+/// ```
 #[derive(Clone, Debug)]
-pub struct GetGeneratedItems(pub HistoryQuery);
+pub struct GetGeneratedItems(HistoryQuery);
+
+impl GetGeneratedItems {
+    pub fn new(query: HistoryQuery) -> Self {
+        Self(query)
+    }
+}
+
 impl Endpoint for GetGeneratedItems {
     type ResponseBody = GeneratedItems;
-    fn method(&self) -> reqwest::Method {
-        reqwest::Method::GET
+    fn method(&self) -> Method {
+        Method::GET
     }
-    async fn response_body(self, resp: reqwest::Response) -> Result<Self::ResponseBody> {
+    async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
         Ok(resp.json().await?)
     }
-    fn url(&self) -> reqwest::Url {
+    fn url(&self) -> Url {
         let mut ego = self.clone();
-        let mut url = BASE_URL.parse::<reqwest::Url>().unwrap();
+        let mut url = BASE_URL.parse::<Url>().unwrap();
         url.set_path(HISTORY_PATH);
         url.set_query(ego.0.join().as_deref());
         url
@@ -141,28 +216,26 @@ impl Endpoint for GetGeneratedItems {
 }
 
 #[derive(Clone, Debug)]
-pub struct GetHistoryItem(pub HistoryItemID);
-impl Endpoint for GetHistoryItem {
-    type ResponseBody = HistoryItem;
-    fn method(&self) -> reqwest::Method {
-        reqwest::Method::GET
-    }
-    async fn response_body(self, resp: reqwest::Response) -> Result<Self::ResponseBody> {
-        Ok(resp.json().await?)
-    }
-    fn url(&self) -> reqwest::Url {
-        let mut url = BASE_URL.parse::<reqwest::Url>().unwrap();
-        url.set_path(&format!("{}/{}", HISTORY_PATH, self.0 .0));
-        url
+pub struct GetHistoryItem(HistoryItemID);
+
+impl GetHistoryItem {
+    pub fn new<T: Into<String>>(history_item_id: T) -> Self {
+        Self(HistoryItemID(history_item_id.into()))
     }
 }
 
-#[derive(Clone, Debug, Deserialize)]
-pub struct HistoryItemID(String);
-
-impl From<&str> for HistoryItemID {
-    fn from(s: &str) -> Self {
-        Self(s.to_string())
+impl Endpoint for GetHistoryItem {
+    type ResponseBody = HistoryItem;
+    fn method(&self) -> Method {
+        Method::GET
+    }
+    async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
+        Ok(resp.json().await?)
+    }
+    fn url(&self) -> Url {
+        let mut url = BASE_URL.parse::<Url>().unwrap();
+        url.set_path(&format!("{}/{}", HISTORY_PATH, self.0 .0));
+        url
     }
 }
 
@@ -178,20 +251,16 @@ impl HistoryQuery {
         self.page_size = Some(format!("{}={}", PAGE_SIZE_QUERY, page_size));
         self
     }
-    pub fn with_start_after_history_item_id(
-        mut self,
-        start_after_history_item_id: HistoryItemID,
-    ) -> Self {
+    pub fn with_start_after_history_item_id(mut self, start_after_history_item_id: &str) -> Self {
         self.start_after_history_item_id = Some(format!(
             "{}={}",
-            START_AFTER_HISTORY_ITEM_ID_QUERY,
-            start_after_history_item_id.0.as_str()
+            START_AFTER_HISTORY_ITEM_ID_QUERY, start_after_history_item_id
         ));
         self
     }
 
-    pub fn with_voice_id(mut self, voice_id: VoiceID) -> Self {
-        self.voice_id = Some(format!("{}={}", VOICE_ID_QUERY, voice_id.0));
+    pub fn with_voice_id<T: Into<String>>(mut self, voice_id: T) -> Self {
+        self.voice_id = Some(format!("{}={}", VOICE_ID_QUERY, voice_id.into()));
         self
     }
     pub fn join(&mut self) -> Option<String> {
