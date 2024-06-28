@@ -6,7 +6,7 @@ use axum::{
     Router,
 };
 use elevenlabs_rs::endpoints::tts::ws::{BOSMessage, WebSocketTTS, WebSocketTTSBody};
-use elevenlabs_rs::endpoints::tts::{OutputFormat, SpeechQuery};
+use elevenlabs_rs::endpoints::tts::SpeechQuery;
 use elevenlabs_rs::*;
 use futures_util::{pin_mut, StreamExt};
 use serde::{Deserialize, Serialize};
@@ -53,7 +53,7 @@ async fn handle_socket(mut ws_stream: WebSocket) {
     };
 
     let body = WebSocketTTSBody::new(BOSMessage::default(), text_stream);
-    let speech_query = SpeechQuery::default().with_output_format(DownloadOutputFormat::MuLaw8000Hz);
+    let speech_query = SpeechQuery::default().with_output_format(OutputFormat::MuLaw8000Hz);
     let endpoint = WebSocketTTS::new(voice_id, model_id, body).with_query(speech_query);
     let c = ElevenLabsClient::default().unwrap();
 

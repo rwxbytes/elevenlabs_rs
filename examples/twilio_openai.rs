@@ -16,7 +16,7 @@ use async_openai::types::{
     ChatCompletionRequestMessage, ChatCompletionRequestUserMessage, CreateChatCompletionRequestArgs,
 };
 use async_openai::Client;
-use elevenlabs_rs::endpoints::tts::{OutputFormat, SpeechQuery, TextToSpeech, TextToSpeechBody};
+use elevenlabs_rs::endpoints::tts::{SpeechQuery, TextToSpeech, TextToSpeechBody};
 use elevenlabs_rs::*;
 
 #[tokio::main]
@@ -78,7 +78,7 @@ async fn audio_handler(State(gather_state): State<GatherState>) -> impl IntoResp
     let tts_body = TextToSpeechBody::new(&chat_completion, model_id);
     let voice_id = PreMadeVoiceID::Adam;
     let tts = TextToSpeech::new(voice_id, tts_body)
-        .with_query(SpeechQuery::default().with_output_format(DownloadOutputFormat::MuLaw8000Hz));
+        .with_query(SpeechQuery::default().with_output_format(OutputFormat::MuLaw8000Hz));
     let bytes = elevenlabs_client.hit(tts).await.unwrap();
 
     Response::builder()
