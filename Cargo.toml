@@ -1,6 +1,6 @@
 [package]
 name = "elevenlabs_rs"
-version = "0.3.0"
+version = "0.3.1"
 description = "A lib crate for ElevenLabs"
 authors = ["rwxbytes <rwxbytes@proton.me>"]
 license = "MIT"

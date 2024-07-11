@@ -25,6 +25,7 @@ pub mod user;
 pub mod voice;
 pub mod voice_generation;
 pub mod voice_library;
+pub mod audio_isolation;
 
 #[allow(async_fn_in_trait)]
 pub trait Endpoint {

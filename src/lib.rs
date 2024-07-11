@@ -28,6 +28,7 @@
 //! ```
 
 pub use crate::client::{ElevenLabsClient, Result};
+pub use crate::endpoints::audio_isolation::*;
 pub use crate::endpoints::audio_native::*;
 pub use crate::endpoints::dubbing::*;
 pub use crate::endpoints::history::*;
