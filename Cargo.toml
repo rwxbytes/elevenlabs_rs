@@ -9,6 +9,14 @@ readme = "README.md"
 repository = "https://github.com/rwxbytes/elevenlabs_rs"
 keywords = ["elevenlabs", "tts", "text-to-speech", "voice-clone", "ai"]
 
+exclude = [
+    ".idea",
+
+    "/src/endpoints/conversational_ai.rs",
+    "/src/utils/audio_helpers.rs",
+    "/src/convai_client.rs",
+]
+
 
 [dependencies]
 async-stream = "0.3.5"
@@ -32,6 +40,10 @@ playback = ["dep:rodio"]
 twilio = "1.1.0"
 axum = { version = "0.7.5", features = ["ws"] }
 async-openai = "0.23.3"
+dasp = { version = "0.11.0", features = ["signal", "interpolate-linear", "interpolate", "slice"] }
+cpal = "0.15.3"
+tokio-stream = "0.1.16"
+bytemuck = "1.16.0"
 
 [profile.release]
 lto = true
@@ -53,3 +65,4 @@ path = "examples/pronunciation_dictionaries.rs"
 [[example]]
 name = "twilio_openai"
 path = "examples/twilio_openai.rs"
+
