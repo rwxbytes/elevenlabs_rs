@@ -3,6 +3,7 @@ pub(crate) use crate::shared::identifiers::*;
 pub(crate) use crate::shared::path_segments::*;
 pub use crate::shared::query_params::*;
 pub use crate::shared::response_bodies::*;
+pub use base64::prelude::{Engine, BASE64_STANDARD};
 pub use bytes::Bytes;
 pub use reqwest::{
     multipart::{Form, Part},
@@ -23,9 +24,13 @@ pub mod sts;
 pub mod tts;
 pub mod user;
 pub mod voice;
+#[deprecated(since = "0.3.2 ", note = "Use `voice_design` instead")]
 pub mod voice_generation;
 pub mod voice_library;
 pub mod audio_isolation;
+#[cfg(feature = "dev")]
+pub mod conversational_ai;
+pub mod voice_design;
 
 #[allow(async_fn_in_trait)]
 pub trait Endpoint {

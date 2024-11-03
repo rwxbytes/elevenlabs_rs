@@ -353,7 +353,7 @@ impl GetDubbingProjectMetadataResponse {
 /// }
 /// ```
 #[derive(Clone, Debug)]
-pub struct GetDubbedFile(GetDubbedFileParams);
+pub struct GetDubbedFile(pub GetDubbedFileParams);
 
 impl Endpoint for GetDubbedFile {
     type ResponseBody = Bytes;

@@ -28,6 +28,8 @@
 //! ```
 
 pub use crate::client::{ElevenLabsClient, Result};
+#[cfg(feature = "dev")]
+pub use crate::convai_client::ConvAIClient;
 pub use crate::endpoints::audio_isolation::*;
 pub use crate::endpoints::audio_native::*;
 pub use crate::endpoints::dubbing::*;
@@ -42,6 +44,7 @@ pub use crate::endpoints::tts::*;
 pub use crate::endpoints::tts::ws::*;
 pub use crate::endpoints::user::*;
 pub use crate::endpoints::voice::*;
+pub use crate::endpoints::voice_design::*;
 pub use crate::endpoints::voice_generation::*;
 pub use crate::endpoints::voice_library::*;
 pub use crate::shared::identifiers::{Model, PreMadeVoiceID};
@@ -54,3 +57,5 @@ pub mod endpoints;
 pub mod error;
 mod shared;
 pub mod utils;
+#[cfg(feature = "dev")]
+mod convai_client;

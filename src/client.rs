@@ -30,10 +30,10 @@ impl ElevenLabsClient {
             api_key: std::env::var("ELEVEN_API_KEY")?,
         })
     }
-    pub fn new(api_key: String) -> Self {
+    pub fn new<T: Into<String>>(api_key: T) -> Self {
         Self {
             inner: reqwest::Client::new(),
-            api_key,
+            api_key: api_key.into(),
         }
     }
 
@@ -43,31 +43,20 @@ impl ElevenLabsClient {
             .request(endpoint.method(), endpoint.url())
             .header(XI_API_KEY_HEADER, &self.api_key);
 
-        let resp: Response;
-
-        match endpoint.method() {
-            Method::GET | Method::DELETE => {
-                resp = init.send().await?;
-            }
+        let resp = match endpoint.method() {
+            Method::GET | Method::DELETE => init.send().await?,
             Method::POST => match endpoint.request_body()? {
                 RequestBody::Json(json) => {
-                    resp = init
-                        .header(CONTENT_TYPE, APPLICATION_JSON)
+                    init.header(CONTENT_TYPE, APPLICATION_JSON)
                         .json(&json)
                         .send()
-                        .await?;
+                        .await?
                 }
-                RequestBody::Multipart(form) => {
-                    resp = init.multipart(form).send().await?;
-                }
-                RequestBody::Empty => {
-                    panic!("a post request must have a json or multipart body for ElevenLabs API");
-                }
+                RequestBody::Multipart(form) => init.multipart(form).send().await?,
+                RequestBody::Empty => return Err("Post request must have a body".into()),
             },
-            _ => {
-                panic!("Unsupported method for ElevenLabs API");
-            }
-        }
+            _ => return Err("Unsupported method for ElevenLabs API".into()),
+        };
         endpoint.response_body(handle_http_error(resp).await?).await
     }
 
@@ -112,7 +101,6 @@ impl ElevenLabsClient {
             }
             Ok::<(), Box<dyn std::error::Error + Send + Sync>>(())
         });
-
 
         let api_key = self.api_key.clone();
         tokio::spawn(async move {

@@ -47,6 +47,7 @@ const TEXT_LENGTH_MAX: u64 = 1000;
 /// }
 /// ```
 #[derive(Clone, Debug)]
+#[deprecated]
 pub struct GenerateARandomVoice(GenerateVoiceBody);
 
 impl GenerateARandomVoice {
@@ -85,6 +86,7 @@ impl Endpoint for GenerateARandomVoice {
     }
 }
 
+#[deprecated]
 pub struct GenerateARandomVoiceResponse {
     generated_voice_id: String,
     sample: Bytes,
@@ -105,6 +107,7 @@ impl GenerateARandomVoiceResponse {
 ///
 /// See [ElevenLabs API documentation](https://elevenlabs.io/docs/api-reference/generate-voice) for more information
 #[derive(Clone, Debug, Serialize)]
+#[deprecated]
 pub struct GenerateVoiceBody {
     pub gender: GenderType,
     pub accent: Accent,
@@ -183,6 +186,7 @@ impl GenerateVoiceBody {
 
 /// Get possible parameters for voice generation endpoint [GenerateARandomVoice]
 #[derive(Clone, Debug)]
+#[deprecated]
 pub struct GetGenerationParams;
 
 impl Endpoint for GetGenerationParams {
@@ -202,6 +206,7 @@ impl Endpoint for GetGenerationParams {
 }
 
 #[derive(Clone, Debug, Deserialize)]
+#[deprecated]
 pub struct VoiceGenerationParamsResponse {
     genders: Vec<VoiceGenerationParams>,
     accents: Vec<VoiceGenerationParams>,
@@ -214,6 +219,7 @@ pub struct VoiceGenerationParamsResponse {
 
 #[allow(dead_code)]
 #[derive(Clone, Debug, Deserialize)]
+#[deprecated]
 pub struct VoiceGenerationParams {
     name: String,
     code: String,

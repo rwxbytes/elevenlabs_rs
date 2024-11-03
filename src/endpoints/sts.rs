@@ -25,7 +25,7 @@ const STS_PATH: &str = "/v1/speech-to-speech";
 ///    let body = SpeechToSpeechBody::new("some_audio.mp3").with_model_id(model);
 ///    let client = ElevenLabsClient::default()?;
 ///    let resp = client.hit(SpeechToSpeech::new("voice_id", body)).await?;
-///    play(resp).await?;
+///    play(resp)?;
 ///    Ok(())
 /// }
 ///  ```
