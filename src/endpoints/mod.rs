@@ -28,9 +28,9 @@ pub mod voice;
 pub mod voice_generation;
 pub mod voice_library;
 pub mod audio_isolation;
-#[cfg(feature = "dev")]
 pub mod conversational_ai;
 pub mod voice_design;
+pub mod convai;
 
 #[allow(async_fn_in_trait)]
 pub trait Endpoint {
