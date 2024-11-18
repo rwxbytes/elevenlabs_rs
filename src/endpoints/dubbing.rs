@@ -90,7 +90,7 @@ impl Endpoint for DubAVideoOrAnAudioFile {
     fn method(&self) -> Method {
         Method::POST
     }
-    fn request_body(&self) -> Result<RequestBody> {
+    async fn request_body(&self) -> Result<RequestBody> {
         Ok(RequestBody::Multipart(to_form(self.0.clone())?))
     }
     async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {

@@ -127,7 +127,7 @@ impl Endpoint for SpeechToSpeech {
     fn method(&self) -> Method {
         Method::POST
     }
-    fn request_body(&self) -> Result<RequestBody> {
+    async fn request_body(&self) -> Result<RequestBody> {
         Ok(RequestBody::Multipart(
             self.speech_to_speech_body.to_form()?,
         ))
@@ -200,7 +200,7 @@ impl Endpoint for SpeechToSpeechStream {
     fn method(&self) -> Method {
         Method::POST
     }
-    fn request_body(&self) -> Result<RequestBody> {
+    async fn request_body(&self) -> Result<RequestBody> {
         Ok(RequestBody::Multipart(
             self.speech_to_speech_body.to_form()?,
         ))

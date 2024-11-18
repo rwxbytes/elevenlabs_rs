@@ -53,7 +53,7 @@ impl Endpoint for AudioIsolation {
     fn method(&self) -> Method {
         Method::POST
     }
-    fn request_body(&self) -> Result<RequestBody> {
+    async fn request_body(&self) -> Result<RequestBody> {
         Ok(RequestBody::Multipart(to_form(&self.audio_file)?))
     }
     async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
@@ -103,7 +103,7 @@ impl Endpoint for AudioIsolationStream {
     fn method(&self) -> Method {
         Method::POST
     }
-    fn request_body(&self) -> Result<RequestBody> {
+    async fn request_body(&self) -> Result<RequestBody> {
         Ok(RequestBody::Multipart(to_form(&self.audio_file)?))
     }
     async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {

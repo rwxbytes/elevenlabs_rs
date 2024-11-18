@@ -11,6 +11,7 @@ pub use reqwest::{
 };
 pub use serde::{Deserialize, Serialize};
 pub use serde_json::Value;
+pub use validator::Validate;
 
 pub mod audio_native;
 pub mod dubbing;
@@ -37,10 +38,11 @@ pub trait Endpoint {
     type ResponseBody;
 
     fn method(&self) -> Method;
-    fn request_body(&self) -> Result<RequestBody> {
+    async fn request_body(&self) -> Result<RequestBody> {
         Ok(RequestBody::Empty)
     }
     async fn response_body(self, resp: Response) -> Result<Self::ResponseBody>;
+    // TODO: Make this return a Result<Url> so validations can be done
     fn url(&self) -> Url;
 }
 

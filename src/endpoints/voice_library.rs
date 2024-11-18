@@ -521,7 +521,7 @@ impl Endpoint for AddSharedVoice {
     fn method(&self) -> Method {
         Method::POST
     }
-    fn request_body(&self) -> Result<RequestBody> {
+    async fn request_body(&self) -> Result<RequestBody> {
         Ok(RequestBody::Json(serde_json::to_value(&self.body)?))
     }
     async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {

@@ -283,7 +283,7 @@ impl Endpoint for EditVoiceSettings {
     fn method(&self) -> Method {
         Method::POST
     }
-    fn request_body(&self) -> Result<RequestBody> {
+    async fn request_body(&self) -> Result<RequestBody> {
         Ok(RequestBody::Json(serde_json::to_value(&self.body)?))
     }
     async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
@@ -364,7 +364,7 @@ impl Endpoint for AddVoice {
         Method::POST
     }
 
-    fn request_body(&self) -> Result<RequestBody> {
+    async fn request_body(&self) -> Result<RequestBody> {
         Ok(RequestBody::Multipart(to_multipart(
             self.0.name.clone(),
             Some(self.0.files.clone()),
@@ -445,7 +445,7 @@ impl Endpoint for EditVoice {
     fn method(&self) -> Method {
         Method::POST
     }
-    fn request_body(&self) -> Result<RequestBody> {
+    async fn request_body(&self) -> Result<RequestBody> {
         Ok(RequestBody::Multipart(to_multipart(
             self.body.name.clone(),
             self.body.files.clone(),

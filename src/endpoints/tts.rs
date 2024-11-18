@@ -48,7 +48,7 @@ impl Endpoint for TextToSpeech {
     fn method(&self) -> Method {
         Method::POST
     }
-    fn request_body(&self) -> Result<RequestBody> {
+    async fn request_body(&self) -> Result<RequestBody> {
         Ok(RequestBody::Json(serde_json::to_value(
             &self.text_to_speech_body,
         )?))
@@ -277,7 +277,7 @@ impl Endpoint for TextToSpeechStream {
     fn method(&self) -> Method {
         Method::POST
     }
-    fn request_body(&self) -> Result<RequestBody> {
+    async fn request_body(&self) -> Result<RequestBody> {
         Ok(RequestBody::Json(serde_json::to_value(
             &self.text_to_speech_body,
         )?))
@@ -356,7 +356,7 @@ impl Endpoint for TextToSpeechWithTimestamps {
     fn method(&self) -> Method {
         Method::POST
     }
-    fn request_body(&self) -> Result<RequestBody> {
+    async fn request_body(&self) -> Result<RequestBody> {
         Ok(RequestBody::Json(serde_json::to_value(
             &self.text_to_speech_body,
         )?))
@@ -516,7 +516,7 @@ impl Endpoint for TextToSpeechStreamWithTimestamps {
     fn method(&self) -> Method {
         Method::POST
     }
-    fn request_body(&self) -> Result<RequestBody> {
+    async fn request_body(&self) -> Result<RequestBody> {
         Ok(RequestBody::Json(serde_json::to_value(
             &self.text_to_speech_body,
         )?))

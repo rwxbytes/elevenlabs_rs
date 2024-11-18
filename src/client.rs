@@ -45,7 +45,7 @@ impl ElevenLabsClient {
 
         let resp = match endpoint.method() {
             Method::GET | Method::DELETE => init.send().await?,
-            Method::POST => match endpoint.request_body()? {
+            Method::POST => match endpoint.request_body().await? {
                 RequestBody::Json(json) => {
                     init.header(CONTENT_TYPE, APPLICATION_JSON)
                         .json(&json)

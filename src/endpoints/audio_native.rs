@@ -127,7 +127,7 @@ impl Endpoint for AudioNative {
     fn method(&self) -> Method {
         Method::POST
     }
-    fn request_body(&self) -> Result<RequestBody> {
+    async fn request_body(&self) -> Result<RequestBody> {
         Ok(RequestBody::Multipart(self.0.clone().to_form()?))
     }
 
