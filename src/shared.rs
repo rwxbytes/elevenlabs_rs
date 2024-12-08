@@ -1,12 +1,9 @@
 pub mod identifiers {
-    use serde::Serialize;
     use crate::endpoints::Deserialize;
-
-
-
+    use serde::Serialize;
 
     #[derive(Clone, Debug, Deserialize)]
-    pub(crate) struct HistoryItemID(pub(crate)String);
+    pub(crate) struct HistoryItemID(pub(crate) String);
 
     impl From<String> for HistoryItemID {
         fn from(id: String) -> Self {
@@ -32,6 +29,7 @@ pub mod identifiers {
         ElevenEnglishV2,
         ElevenTurboV2,
         ElevenMultilingualV2STS,
+        ElevenTurboV2Dot5,
     }
 
     impl From<Model> for String {
@@ -43,11 +41,10 @@ pub mod identifiers {
                 Model::ElevenEnglishV2 => "eleven_english_sts_v2".to_string(),
                 Model::ElevenTurboV2 => "eleven_turbo_v2".to_string(),
                 Model::ElevenMultilingualV2STS => "eleven_multilingual_sts_v2".to_string(),
+                Model::ElevenTurboV2Dot5 => "eleven_turbo_v2_5".to_string(),
             }
         }
     }
-
-
 
     #[derive(Clone, Debug)]
     pub(crate) struct VoiceID(pub(crate) String);
