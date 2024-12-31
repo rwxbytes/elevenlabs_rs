@@ -27,7 +27,7 @@ impl ElevenLabsClient {
     pub fn default() -> Result<Self> {
         Ok(Self {
             inner: reqwest::Client::new(),
-            api_key: std::env::var("ELEVEN_API_KEY")?,
+            api_key: std::env::var("ELEVENLABS_API_KEY")?,
         })
     }
     pub fn new<T: Into<String>>(api_key: T) -> Self {
@@ -38,26 +38,22 @@ impl ElevenLabsClient {
     }
 
     pub async fn hit<T: Endpoint>(&self, endpoint: T) -> Result<T::ResponseBody> {
-        let init = self
+        let mut builder = self
             .inner
-            .request(endpoint.method(), endpoint.url())
+            .request(endpoint.method(), endpoint.url()?)
             .header(XI_API_KEY_HEADER, &self.api_key);
 
-        let resp = match endpoint.method() {
-            Method::GET | Method::DELETE => init.send().await?,
-            Method::POST => match endpoint.request_body().await? {
+        if T::METHOD == Method::POST || T::METHOD == Method::PATCH {
+            match endpoint.request_body().await? {
                 RequestBody::Json(json) => {
-                    init.header(CONTENT_TYPE, APPLICATION_JSON)
-                        .json(&json)
-                        .send()
-                        .await?
+                    builder = builder.header(CONTENT_TYPE, APPLICATION_JSON).json(&json)
                 }
-                RequestBody::Multipart(form) => init.multipart(form).send().await?,
-                RequestBody::Empty => return Err("Post request must have a body".into()),
-            },
-            _ => return Err("Unsupported method for ElevenLabs API".into()),
-        };
-        endpoint.response_body(handle_http_error(resp).await?).await
+                RequestBody::Multipart(form) => builder = builder.multipart(form),
+                RequestBody::Empty => return Err("post request must have a body".into()),
+            };
+            let resp = builder.send().await?;
+            endpoint.response_body(handle_http_error(resp).await?).await
+        }
     }
 
     pub async fn hit_ws<S>(
