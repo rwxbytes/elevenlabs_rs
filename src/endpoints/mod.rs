@@ -29,25 +29,57 @@ pub mod voice;
 pub mod voice_generation;
 pub mod voice_library;
 pub mod audio_isolation;
-pub mod conversational_ai;
 pub mod voice_design;
 pub mod convai;
 
 #[allow(async_fn_in_trait)]
 pub trait Endpoint {
+    const PATH: &'static str;
+    const METHOD: Method;
     type ResponseBody;
 
-    fn method(&self) -> Method;
     async fn request_body(&self) -> Result<RequestBody> {
         Ok(RequestBody::Empty)
     }
     async fn response_body(self, resp: Response) -> Result<Self::ResponseBody>;
-    // TODO: Make this return a Result<Url> so validations can be done
     fn url(&self) -> Url;
 }
 
+#[derive(Debug)]
 pub enum RequestBody {
     Json(Value),
     Multipart(Form),
     Empty,
+}
+
+trait PathAndQueryParams {
+    /// generate key:value pair for path replacements (e.g {user_id}) to `user_id_123`.
+    fn get_path_params(&self) -> Vec<(&'static str, String)>;
+
+    ///generate vector with queries params, in `?cursor=...&page_size` fashion
+    fn get_query_params(&self) -> Vec<(&'static str, String)> {
+        vec![]
+    }
+}
+
+fn build_url<T: PathAndQueryParams>(path: &str, params: T) -> Url {
+    let mut url = BASE_URL.parse::<Url>().unwrap();
+
+    let mut built_path = path.to_string();
+    for (k,v) in params.get_path_params(){
+        built_path = built_path.replace(k, &v);
+    }
+
+    url.set_path(&built_path);
+
+    let query_string = params.get_query_params()
+        .into_iter()
+        .map(|(k,v)| format!("{}={}", k,v) ).collect::<Vec<_>>()
+        .join("&");
+
+    if !query_string.is_empty() {
+        url.set_query(Some(query_string.as_str()))
+    }
+
+    url
 }
