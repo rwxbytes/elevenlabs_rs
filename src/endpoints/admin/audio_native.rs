@@ -2,16 +2,32 @@
 //! The audio native endpoint
 use super::*;
 
-const AUDIO_NATIVE_PATH: &str = "/v1/audio-native";
 
-/// Audio Native endpoint
+/// Creates AudioNative enabled project, optionally starts conversion and returns project id and embeddable html snippet.
 #[derive(Debug, Clone)]
-pub struct AudioNative(AudioNativeBody);
+pub struct AudioNative {
+    body: AudioNativeBody,
+}
 
 impl AudioNative {
     pub fn new(body: AudioNativeBody) -> Self {
-        AudioNative(body)
+        AudioNative { body }
     }
+}
+
+impl ElevenLabsEndpoint for AudioNative {
+    const PATH: &'static str = "/v1/audio-native";
+    const METHOD: Method = Method::POST;
+    type ResponseBody = AudioNativeResponseBody;
+
+    async fn request_body(&self) -> Result<RequestBody> {
+        Ok(RequestBody::Multipart(self.body.clone().to_form()?))
+    }
+
+    async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
+        Ok(resp.json().await?)
+    }
+
 }
 
 #[derive(Clone, Debug, Default)]
@@ -121,24 +137,7 @@ impl AudioNativeBody {
     }
 }
 
-impl Endpoint for AudioNative {
-    type ResponseBody = AudioNativeResponseBody;
 
-    const METHOD: Method = Method::POST;
-    async fn request_body(&self) -> Result<RequestBody> {
-        Ok(RequestBody::Multipart(self.0.clone().to_form()?))
-    }
-
-    async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
-        Ok(resp.json().await?)
-    }
-
-    fn url(&self) -> Result<Url> {
-        let mut url = BASE_URL.parse::<Url>().unwrap();
-        url.set_path(AUDIO_NATIVE_PATH);
-        Ok(url)
-    }
-}
 
 #[derive(Clone, Debug, Deserialize)]
 pub struct AudioNativeResponseBody {
