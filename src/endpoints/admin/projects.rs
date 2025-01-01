@@ -32,17 +32,15 @@ impl GetProjects {
 impl Endpoint for GetProjects {
     type ResponseBody = ProjectsResponse;
 
-    fn method(&self) -> Method {
-        Method::GET
-    }
+    const METHOD: Method = Method::GET;
 
     async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
         Ok(resp.json().await?)
     }
-    fn url(&self) -> Url {
+    fn url(&self) -> Result<Url> {
         let mut url = BASE_URL.parse::<Url>().unwrap();
         url.set_path(PROJECTS_PATH);
-        url
+        Ok(url)
     }
 }
 

@@ -109,17 +109,15 @@ impl GetSharedVoices {
 impl Endpoint for GetSharedVoices {
     type ResponseBody = SharedVoicesResponse;
 
-    fn method(&self) -> Method {
-        Method::GET
-    }
+    const METHOD: Method = Method::GET;
     async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
         Ok(resp.json().await?)
     }
-    fn url(&self) -> Url {
+    fn url(&self) -> Result<Url> {
         let mut url = BASE_URL.parse::<Url>().unwrap();
         url.set_path(SHARED_VOICES_PATH);
         url.set_query(Some(&self.0.to_string()));
-        url
+        Ok(url)
     }
 }
 
@@ -518,22 +516,20 @@ impl AddSharedVoice {
 impl Endpoint for AddSharedVoice {
     type ResponseBody = AddSharedVoiceResponse;
 
-    fn method(&self) -> Method {
-        Method::POST
-    }
+    const METHOD: Method = Method::POST;
     async fn request_body(&self) -> Result<RequestBody> {
         Ok(RequestBody::Json(serde_json::to_value(&self.body)?))
     }
     async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
         Ok(resp.json().await?)
     }
-    fn url(&self) -> Url {
+    fn url(&self) -> Result<Url> {
         let mut url = BASE_URL.parse::<Url>().unwrap();
         url.set_path(&format!(
             "{}{}/{}/{}",
             VOICES_PATH, ADD_VOICE_PATH, self.params.public_user_id.0, self.params.voice_id.0
         ));
-        url
+        Ok(url)
     }
 }
 

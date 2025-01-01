@@ -24,16 +24,14 @@ pub struct GetUserSubscriptionInfo;
 impl Endpoint for GetUserSubscriptionInfo {
     type ResponseBody = Subscription;
 
-    fn method(&self) -> Method {
-        Method::GET
-    }
+    const METHOD: Method = Method::GET;
     async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
         Ok(resp.json().await?)
     }
-    fn url(&self) -> Url {
+    fn url(&self) -> Result<Url> {
         let mut url = BASE_URL.parse::<Url>().unwrap();
         url.set_path(SUBSCRIPTION_PATH);
-        url
+        Ok(url)
     }
 }
 
@@ -85,16 +83,14 @@ pub struct GetUserInfo;
 impl Endpoint for GetUserInfo {
     type ResponseBody = UserInfo;
 
-    fn method(&self) -> Method {
-        Method::GET
-    }
+    const METHOD: Method = Method::GET;
     async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
         Ok(resp.json().await?)
     }
-    fn url(&self) -> Url {
+    fn url(&self) -> Result<Url> {
         let mut url = BASE_URL.parse::<Url>().unwrap();
         url.set_path(USER_PATH);
-        url
+        Ok(url)
     }
 }
 #[derive(Clone, Debug, Deserialize)]

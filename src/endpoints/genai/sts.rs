@@ -124,9 +124,7 @@ impl SpeechToSpeech {
 impl Endpoint for SpeechToSpeech {
     type ResponseBody = Bytes;
 
-    fn method(&self) -> Method {
-        Method::POST
-    }
+    const METHOD: Method = Method::POST;
     async fn request_body(&self) -> Result<RequestBody> {
         Ok(RequestBody::Multipart(
             self.speech_to_speech_body.to_form()?,
@@ -136,11 +134,11 @@ impl Endpoint for SpeechToSpeech {
     async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
         Ok(resp.bytes().await?)
     }
-    fn url(&self) -> Url {
+    fn url(&self) -> Result<Url> {
         let mut url = BASE_URL.parse::<Url>().unwrap();
         url.set_path(&format!("{}/{}", STS_PATH, self.voice_id.0));
         url.set_query(self.any_query().as_deref());
-        url
+        Ok(url)
     }
 }
 /// Speech-to-speech stream endpoint
@@ -197,9 +195,7 @@ impl SpeechToSpeechStream {
 
 impl Endpoint for SpeechToSpeechStream {
     type ResponseBody = Pin<Box<dyn Stream<Item = Result<Bytes>> + Send>>;
-    fn method(&self) -> Method {
-        Method::POST
-    }
+    const METHOD: Method = Method::POST;
     async fn request_body(&self) -> Result<RequestBody> {
         Ok(RequestBody::Multipart(
             self.speech_to_speech_body.to_form()?,
@@ -210,10 +206,10 @@ impl Endpoint for SpeechToSpeechStream {
         let stream = stream.map(|r| r.map_err(Into::into));
         Ok(Box::pin(stream))
     }
-    fn url(&self) -> Url {
+    fn url(&self) -> Result<Url> {
         let mut url = BASE_URL.parse::<Url>().unwrap();
         url.set_path(&format!("{}/{}{}", STS_PATH, self.voice_id.0, STREAM_PATH));
         url.set_query(self.any_query().as_deref());
-        url
+        Ok(url)
     }
 }

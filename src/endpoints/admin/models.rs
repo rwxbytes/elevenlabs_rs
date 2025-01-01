@@ -1,7 +1,7 @@
 //! The models endpoint
 #![allow(dead_code)]
 use crate::client::{Result, BASE_URL};
-use crate::endpoints::Endpoint;
+use crate::endpoints::{Endpoint, Url};
 use reqwest::Response;
 use serde::Deserialize;
 
@@ -19,10 +19,10 @@ impl Endpoint for GetModels {
     async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
         Ok(resp.json().await?)
     }
-    fn url(&self) -> reqwest::Url {
+    fn url(&self) -> Result<Url> {
         let mut url = BASE_URL.parse::<reqwest::Url>().unwrap();
         url.set_path(MODELS_PATH);
-        url
+        Ok(url)
     }
 }
 

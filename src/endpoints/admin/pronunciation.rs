@@ -93,9 +93,7 @@ impl AddFromFileBody {
 impl Endpoint for AddFromFile {
     type ResponseBody = AddFromFileResponse;
 
-    fn method(&self) -> Method {
-        Method::POST
-    }
+    const METHOD: Method = Method::POST;
 
     async fn request_body(&self) -> Result<RequestBody> {
         Ok(RequestBody::Multipart(self.0.to_form()?))
@@ -105,10 +103,10 @@ impl Endpoint for AddFromFile {
         Ok(resp.json().await?)
     }
 
-    fn url(&self) -> Url {
+    fn url(&self) -> Result<Url> {
         let mut url = BASE_URL.parse::<Url>().unwrap();
         url.set_path(&format!("{}{}", PRONUNCIATION_PATH, ADD_FROM_FILE_PATH));
-        url
+        Ok(url)
     }
 }
 
@@ -235,9 +233,7 @@ impl Rule {
 impl Endpoint for AddRules {
     type ResponseBody = RulesResponse;
 
-    fn method(&self) -> Method {
-        Method::POST
-    }
+    const METHOD: Method = Method::POST;
 
     async fn request_body(&self) -> Result<RequestBody> {
         Ok(RequestBody::Json(serde_json::to_value(&self.body)?))
@@ -247,13 +243,13 @@ impl Endpoint for AddRules {
         Ok(resp.json().await?)
     }
 
-    fn url(&self) -> Url {
+    fn url(&self) -> Result<Url> {
         let mut url = BASE_URL.parse::<Url>().unwrap();
         url.set_path(&format!(
             "{}/{}{}",
             PRONUNCIATION_PATH, self.param.0, ADD_RULES_PATH
         ));
-        url
+        Ok(url)
     }
 }
 
@@ -343,21 +339,19 @@ impl GetDictionariesQuery {
 impl Endpoint for GetDictionaries {
     type ResponseBody = GetDictionariesResponse;
 
-    fn method(&self) -> Method {
-        Method::GET
-    }
+    const METHOD: Method = Method::GET;
 
     async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
         Ok(resp.json().await?)
     }
 
-    fn url(&self) -> Url {
+    fn url(&self) -> Result<Url> {
         let mut url = BASE_URL.parse::<Url>().unwrap();
         url.set_path(PRONUNCIATION_PATH);
         if !self.0.to_string().is_empty() {
             url.set_query(Some(&self.0.to_string()));
         }
-        url
+        Ok(url)
     }
 }
 
@@ -457,18 +451,16 @@ impl From<String> for DictionaryID {
 impl Endpoint for GetDictionary {
     type ResponseBody = PronunciationDictionary;
 
-    fn method(&self) -> Method {
-        Method::GET
-    }
+    const METHOD: Method = Method::GET;
 
     async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
         Ok(resp.json().await?)
     }
 
-    fn url(&self) -> Url {
+    fn url(&self) -> Result<Url> {
         let mut url = BASE_URL.parse::<Url>().unwrap();
         url.set_path(&format!("{}/{}", PRONUNCIATION_PATH, self.0 .0));
-        url
+        Ok(url)
     }
 }
 
@@ -516,21 +508,19 @@ impl From<String> for VersionID {
 impl Endpoint for DownloadVersionByID {
     type ResponseBody = Bytes;
 
-    fn method(&self) -> Method {
-        Method::GET
-    }
+    const METHOD: Method = Method::GET;
 
     async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
         Ok(resp.bytes().await?)
     }
 
-    fn url(&self) -> Url {
+    fn url(&self) -> Result<Url> {
         let mut url = BASE_URL.parse::<Url>().unwrap();
         url.set_path(&format!(
             "{}/{}/{}{}",
             PRONUNCIATION_PATH, self.dictionary_id.0, self.version_id.0, DOWNLOAD_PATH
         ));
-        url
+        Ok(url)
     }
 }
 
@@ -584,9 +574,7 @@ impl RemoveRulesBody {
 impl Endpoint for RemoveRules {
     type ResponseBody = RulesResponse;
 
-    fn method(&self) -> Method {
-        Method::POST
-    }
+    const METHOD: Method = Method::POST;
 
     async fn request_body(&self) -> Result<RequestBody> {
         Ok(RequestBody::Json(serde_json::to_value(&self.body)?))
@@ -596,12 +584,12 @@ impl Endpoint for RemoveRules {
         Ok(resp.json().await?)
     }
 
-    fn url(&self) -> Url {
+    fn url(&self) -> Result<Url> {
         let mut url = BASE_URL.parse::<Url>().unwrap();
         url.set_path(&format!(
             "{}/{}{}",
             PRONUNCIATION_PATH, self.param.0, REMOVE_RULES_PATH
         ));
-        url
+        Ok(url)
     }
 }

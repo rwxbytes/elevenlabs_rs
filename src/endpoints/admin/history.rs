@@ -22,16 +22,14 @@ impl DeleteHistoryItem {
 
 impl Endpoint for DeleteHistoryItem {
     type ResponseBody = StatusResponseBody;
-    fn method(&self) -> Method {
-        Method::DELETE
-    }
+    const METHOD: Method = Method::DELETE;
     async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
         Ok(resp.json().await?)
     }
-    fn url(&self) -> Url {
+    fn url(&self) -> Result<Url> {
         let mut url = BASE_URL.parse::<Url>().unwrap();
         url.set_path(&format!("{}/{}", HISTORY_PATH, self.0 .0));
-        url
+        Ok(url)
     }
 }
 
@@ -71,9 +69,7 @@ impl DownloadHistoryItems {
 
 impl Endpoint for DownloadHistoryItems {
     type ResponseBody = Bytes;
-    fn method(&self) -> Method {
-        Method::POST
-    }
+    const METHOD: Method = Method::POST;
     async fn request_body(&self) -> Result<RequestBody> {
         Ok(RequestBody::Json(serde_json::to_value(&self.0)?))
     }
@@ -81,10 +77,10 @@ impl Endpoint for DownloadHistoryItems {
     async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
         Ok(resp.bytes().await?)
     }
-    fn url(&self) -> Url {
+    fn url(&self) -> Result<Url> {
         let mut url = BASE_URL.parse::<Url>().unwrap();
         url.set_path(&format!("{}{}", HISTORY_PATH, DOWNLOAD_PATH));
-        url
+        Ok(url)
     }
 }
 #[derive(Clone, Debug, Serialize)]
@@ -158,16 +154,14 @@ impl GetAudio {
 
 impl Endpoint for GetAudio {
     type ResponseBody = Bytes;
-    fn method(&self) -> Method {
-        Method::GET
-    }
+    const METHOD: Method = Method::GET;
     async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
         Ok(resp.bytes().await?)
     }
-    fn url(&self) -> Url {
+    fn url(&self) -> Result<Url> {
         let mut url = BASE_URL.parse::<Url>().unwrap();
         url.set_path(&format!("{}/{}{}", HISTORY_PATH, self.0 .0, AUDIO_PATH));
-        url
+        Ok(url)
     }
 }
 
@@ -182,7 +176,7 @@ impl Endpoint for GetAudio {
 ///     let c = ElevenLabsClient::default()?;
 ///     let query = HistoryQuery::default()
 ///         .with_page_size(10)
-///         .with_voice_id(PreMadeVoiceID::Alice);
+///         .with_voice_id(LegacyVoice::Alice);
 ///     let endpoint = GetGeneratedItems::new(query);
 ///     let resp = c.hit(endpoint).await?;
 ///     println!("{:#?}", resp);
@@ -200,18 +194,16 @@ impl GetGeneratedItems {
 
 impl Endpoint for GetGeneratedItems {
     type ResponseBody = GeneratedItems;
-    fn method(&self) -> Method {
-        Method::GET
-    }
+    const METHOD: Method = Method::GET;
     async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
         Ok(resp.json().await?)
     }
-    fn url(&self) -> Url {
+    fn url(&self) -> Result<Url> {
         let mut ego = self.clone();
         let mut url = BASE_URL.parse::<Url>().unwrap();
         url.set_path(HISTORY_PATH);
         url.set_query(ego.0.join().as_deref());
-        url
+        Ok(url)
     }
 }
 
@@ -226,16 +218,14 @@ impl GetHistoryItem {
 
 impl Endpoint for GetHistoryItem {
     type ResponseBody = HistoryItem;
-    fn method(&self) -> Method {
-        Method::GET
-    }
+    const METHOD: Method = Method::GET;
     async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
         Ok(resp.json().await?)
     }
-    fn url(&self) -> Url {
+    fn url(&self) -> Result<Url> {
         let mut url = BASE_URL.parse::<Url>().unwrap();
         url.set_path(&format!("{}/{}", HISTORY_PATH, self.0 .0));
-        url
+        Ok(url)
     }
 }
 

@@ -60,7 +60,7 @@
 //!
 //!     let voice_previews = c.hit(CreatePreviews::new(body)).await?;
 //!
-//!     for (i, preview) in voice_previews.enumerate() {
+//!     for (i, preview) in voice_previews.into_iter().enumerate() {
 //!         let id = preview.generated_voice_id();
 //!         let sample = preview.audio_sample()?;
 //!         save(&format!("fairy_sample_{}_{}.mp3", i, id), sample)?;
@@ -143,9 +143,7 @@ impl CreatePreviewsBody {
 impl Endpoint for CreatePreviews {
     type ResponseBody = CreatePreviewsResponse;
 
-    fn method(&self) -> Method {
-        Method::POST
-    }
+    const METHOD: Method = Method::POST;
 
     async fn request_body(&self) -> Result<RequestBody> {
         Ok(RequestBody::Json(serde_json::to_value(&self.0)?))
@@ -155,9 +153,9 @@ impl Endpoint for CreatePreviews {
         Ok(resp.json().await?)
     }
 
-    fn url(&self) -> Url {
+    fn url(&self) -> Result<Url> {
         let url = format!("{}{}", BASE_URL, CREATE_PREVIEW_PATH);
-        Url::parse(&url).unwrap()
+        Ok(Url::parse(&url).unwrap())
     }
 }
 
@@ -166,11 +164,12 @@ pub struct CreatePreviewsResponse {
     previews: Vec<VoicePreview>
 }
 
-impl Iterator for CreatePreviewsResponse {
+impl IntoIterator for CreatePreviewsResponse {
     type Item = VoicePreview;
+    type IntoIter = std::vec::IntoIter<Self::Item>;
 
-    fn next(&mut self) -> Option<Self::Item> {
-        self.previews.pop()
+    fn into_iter(self) -> Self::IntoIter {
+        self.previews.into_iter()
     }
 }
 
@@ -268,9 +267,7 @@ impl Endpoint for CreateVoiceFromPreview {
     //type ResponseBody = CreateVoiceFromPreviewResponse;
     type ResponseBody = Value;
 
-    fn method(&self) -> Method {
-        Method::POST
-    }
+    const METHOD: Method = Method::POST;
 
     async fn request_body(&self) -> Result<RequestBody> {
         Ok(RequestBody::Json(serde_json::to_value(&self.0)?))
@@ -280,12 +277,13 @@ impl Endpoint for CreateVoiceFromPreview {
         Ok(resp.json().await?)
     }
 
-    fn url(&self) -> Url {
+    fn url(&self) -> Result<Url> {
         let url = format!("{}{}", BASE_URL, CREATE_VOICE_FROM_PREVIEW_PATH);
-        Url::parse(&url).unwrap()
+        Ok(Url::parse(&url).unwrap())
     }
 }
 
+// TODO: Implement this response body
 //#[derive(Clone, Debug, Deserialize, Serialize)]
 //pub struct CreateVoiceFromPreviewResponse {
 //    voice_id: String,

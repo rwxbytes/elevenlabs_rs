@@ -124,9 +124,7 @@ impl AudioNativeBody {
 impl Endpoint for AudioNative {
     type ResponseBody = AudioNativeResponseBody;
 
-    fn method(&self) -> Method {
-        Method::POST
-    }
+    const METHOD: Method = Method::POST;
     async fn request_body(&self) -> Result<RequestBody> {
         Ok(RequestBody::Multipart(self.0.clone().to_form()?))
     }
@@ -135,10 +133,10 @@ impl Endpoint for AudioNative {
         Ok(resp.json().await?)
     }
 
-    fn url(&self) -> Url {
+    fn url(&self) -> Result<Url> {
         let mut url = BASE_URL.parse::<Url>().unwrap();
         url.set_path(AUDIO_NATIVE_PATH);
-        url
+        Ok(url)
     }
 }
 

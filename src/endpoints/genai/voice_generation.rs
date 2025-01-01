@@ -1,4 +1,5 @@
 #![allow(dead_code)]
+#![allow(deprecated)]
 //! The voice generation endpoints
 use super::*;
 use crate::client::{Result, BASE_URL};
@@ -21,6 +22,8 @@ const TEXT_LENGTH_MAX: u64 = 1000;
 /// # Example
 /// ```no_run
 /// use elevenlabs_rs::*;
+/// use elevenlabs_rs::endpoints::voice_generation::{
+/// GenerateARandomVoice, GenerateVoiceBody, GenderType, Accent, Age};
 /// use elevenlabs_rs::utils::save;
 ///
 /// #[tokio::main]
@@ -59,11 +62,9 @@ impl GenerateARandomVoice {
 impl Endpoint for GenerateARandomVoice {
     type ResponseBody = GenerateARandomVoiceResponse;
 
-    fn method(&self) -> Method {
-        Method::POST
-    }
+    const METHOD: Method = Method::POST;
 
-    fn request_body(&self) -> Result<RequestBody> {
+    async fn request_body(&self) -> Result<RequestBody> {
         Ok(RequestBody::Json(serde_json::to_value(&self.0)?))
     }
 
@@ -79,10 +80,10 @@ impl Endpoint for GenerateARandomVoice {
             sample: resp.bytes().await?,
         })
     }
-    fn url(&self) -> Url {
+    fn url(&self) -> Result<Url> {
         let mut url = BASE_URL.parse::<Url>().unwrap();
         url.set_path(VOICE_GENERATION_PATH);
-        url
+        Ok(url)
     }
 }
 
@@ -192,16 +193,14 @@ pub struct GetGenerationParams;
 impl Endpoint for GetGenerationParams {
     type ResponseBody = VoiceGenerationParamsResponse;
 
-    fn method(&self) -> Method {
-        Method::GET
-    }
+    const METHOD: Method = Method::GET;
     async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
         Ok(resp.json().await?)
     }
-    fn url(&self) -> Url {
+    fn url(&self) -> Result<Url> {
         let mut url = BASE_URL.parse::<Url>().unwrap();
         url.set_path(&format!("{}{}", VOICE_GENERATION_PATH, PARAMETERS_PATH));
-        url
+        Ok(url)
     }
 }
 

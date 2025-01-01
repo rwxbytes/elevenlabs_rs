@@ -42,19 +42,17 @@ impl DeleteSample {
 impl Endpoint for DeleteSample {
     type ResponseBody = StatusResponseBody;
 
-    fn method(&self) -> Method {
-        Method::DELETE
-    }
+    const METHOD: Method = Method::DELETE;
     async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
         Ok(resp.json().await?)
     }
-    fn url(&self) -> Url {
+    fn url(&self) -> Result<Url> {
         let mut url = BASE_URL.parse::<Url>().unwrap();
         url.set_path(&format!(
             "{}/{}{}/{}",
             VOICES_PATH, self.0.voice_id.0, SAMPLES_PATH, self.0.sample_id
         ));
-        url
+        Ok(url)
     }
 }
 
@@ -108,18 +106,16 @@ impl GetAudioFromSample {
 impl Endpoint for GetAudioFromSample {
     type ResponseBody = Bytes;
 
-    fn method(&self) -> Method {
-        Method::GET
-    }
+    const METHOD: Method = Method::GET;
     async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
         Ok(resp.bytes().await?)
     }
-    fn url(&self) -> Url {
+    fn url(&self) -> Result<Url> {
         let mut url = BASE_URL.parse::<Url>().unwrap();
         url.set_path(&format!(
             "{}/{}{}/{}{}",
             VOICES_PATH, self.0.voice_id.0, SAMPLES_PATH, self.0.sample_id, AUDIO_PATH
         ));
-        url
+        Ok(url)
     }
 }

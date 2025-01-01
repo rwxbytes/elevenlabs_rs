@@ -66,9 +66,7 @@ impl GenerationSettings {
 impl Endpoint for SoundGeneration {
     type ResponseBody = Bytes;
 
-    fn method(&self) -> Method {
-        Method::POST
-    }
+    const METHOD: Method = Method::POST;
 
     async fn request_body(&self) -> Result<RequestBody> {
         Ok(RequestBody::Json(serde_json::to_value(&self.0)?))
@@ -78,9 +76,9 @@ impl Endpoint for SoundGeneration {
         Ok(resp.bytes().await?)
     }
 
-    fn url(&self) -> Url {
+    fn url(&self) -> Result<Url> {
         let mut url = BASE_URL.parse::<Url>().unwrap();
         url.set_path(SOUND_GENERATION_PATH);
-        url
+        Ok(url)
     }
 }

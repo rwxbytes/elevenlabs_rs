@@ -1,6 +1,5 @@
 pub use crate::client::{Result, BASE_URL};
 pub(crate) use crate::shared::identifiers::*;
-pub(crate) use crate::shared::path_segments::*;
 pub use crate::shared::query_params::*;
 pub use crate::shared::response_bodies::*;
 pub use base64::prelude::{Engine, BASE64_STANDARD};
@@ -11,39 +10,15 @@ pub use reqwest::{
 };
 pub use serde::{Deserialize, Serialize};
 pub use serde_json::Value;
-pub use validator::Validate;
 
-pub mod audio_native;
-pub mod dubbing;
-pub mod history;
-pub mod models;
-pub mod projects;
-pub mod pronunciation;
-pub mod samples;
-pub mod sound_generation;
-pub mod sts;
-pub mod tts;
-pub mod user;
-pub mod voice;
-#[deprecated(since = "0.3.2 ", note = "Use `voice_design` instead")]
-pub mod voice_generation;
-pub mod voice_library;
-pub mod audio_isolation;
-pub mod voice_design;
+#[cfg(feature = "admin")]
+pub mod admin;
+#[cfg(feature = "convai")]
 pub mod convai;
+#[cfg(feature = "genai")]
+pub mod genai;
 
-#[allow(async_fn_in_trait)]
-pub trait Endpoint {
-    const PATH: &'static str;
-    const METHOD: Method;
-    type ResponseBody;
-
-    async fn request_body(&self) -> Result<RequestBody> {
-        Ok(RequestBody::Empty)
-    }
-    async fn response_body(self, resp: Response) -> Result<Self::ResponseBody>;
-    fn url(&self) -> Url;
-}
+type QueryValues = Vec<(&'static str, String)>;
 
 #[derive(Debug)]
 pub enum RequestBody {
@@ -52,34 +27,47 @@ pub enum RequestBody {
     Empty,
 }
 
-trait PathAndQueryParams {
-    /// generate key:value pair for path replacements (e.g {user_id}) to `user_id_123`.
-    fn get_path_params(&self) -> Vec<(&'static str, String)>;
+#[allow(async_fn_in_trait)]
+pub trait ElevenLabsEndpoint {
+    const BASE_URL: &'static str = "https://api.elevenlabs.io";
+    const PATH: &'static str;
+    const METHOD: Method;
+    type ResponseBody;
 
-    ///generate vector with queries params, in `?cursor=...&page_size` fashion
-    fn get_query_params(&self) -> Vec<(&'static str, String)> {
+    fn query_params(&self) -> Option<QueryValues> {
+        None
+    }
+
+    fn path_params(&self) -> Vec<(&'static str, &str)> {
         vec![]
     }
-}
 
-fn build_url<T: PathAndQueryParams>(path: &str, params: T) -> Url {
-    let mut url = BASE_URL.parse::<Url>().unwrap();
-
-    let mut built_path = path.to_string();
-    for (k,v) in params.get_path_params(){
-        built_path = built_path.replace(k, &v);
+    async fn request_body(&self) -> Result<RequestBody> {
+        Ok(RequestBody::Empty)
     }
+    async fn response_body(self, resp: Response) -> Result<Self::ResponseBody>;
 
-    url.set_path(&built_path);
+    fn url(&self) -> Url {
+        let mut url = Self::BASE_URL.parse::<Url>().unwrap();
 
-    let query_string = params.get_query_params()
-        .into_iter()
-        .map(|(k,v)| format!("{}={}", k,v) ).collect::<Vec<_>>()
-        .join("&");
+        let mut path = Self::PATH.to_string();
 
-    if !query_string.is_empty() {
-        url.set_query(Some(query_string.as_str()))
+        for (placeholder, id) in self.path_params() {
+            path = path.replace(placeholder, id);
+        }
+
+        url.set_path(&path);
+
+        if let Some(query_params) = self.query_params() {
+            let query_string = query_params
+                .into_iter()
+                .map(|(k, v)| format!("{}={}", k, v))
+                .collect::<Vec<_>>()
+                .join("&");
+
+            url.set_query(Some(&query_string))
+        }
+
+        url
     }
-
-    url
 }
