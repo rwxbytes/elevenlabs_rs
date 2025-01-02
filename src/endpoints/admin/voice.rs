@@ -1,6 +1,7 @@
 #![allow(dead_code)]
 //! The voice endpoints
 use super::*;
+use crate::shared::{VoiceCategory, VoiceSettings};
 use std::collections::HashMap;
 use std::path::Path;
 
@@ -13,7 +14,7 @@ use std::path::Path;
 ///
 /// #[tokio::main]
 /// async fn main() -> Result<()> {
-///    let c = ElevenLabsClient::default()?;
+///    let c = ElevenLabsClient::from_env()?;
 ///    let query = GetVoicesQuery::default().show_legacy(true);
 ///    let endpoint = GetVoices::with_query(query);
 ///    let voices = c.hit(endpoint).await?;
@@ -52,7 +53,9 @@ impl GetVoicesQuery {
 }
 
 impl ElevenLabsEndpoint for GetVoices {
+
     const PATH: &'static str = "/v1/voices";
+
     const METHOD: Method = Method::GET;
 
     type ResponseBody = GetVoicesResponse;
@@ -74,7 +77,7 @@ impl ElevenLabsEndpoint for GetVoices {
 ///
 /// #[tokio::main]
 /// async fn main() -> Result<()> {
-///   let c = ElevenLabsClient::default()?;
+///   let c = ElevenLabsClient::from_env()?;
 ///   // Or for a premade voice: GetVoiceSettings::new(DefaultVoice::Brian)
 ///   let voice_settings = c.hit(GetVoiceSettings::new("some_voice_id")).await?;
 ///   println!("{:#?}", voice_settings);
@@ -96,7 +99,9 @@ impl GetVoiceSettings {
 }
 
 impl ElevenLabsEndpoint for GetVoiceSettings {
+
     const PATH: &'static str = "/v1/voices/:voice_id/settings";
+
     const METHOD: Method = Method::GET;
 
     type ResponseBody = VoiceSettings;
@@ -118,7 +123,7 @@ impl ElevenLabsEndpoint for GetVoiceSettings {
 ///
 /// #[tokio::main]
 /// async fn main() -> Result<()> {
-///    let c = ElevenLabsClient::default()?;
+///    let c = ElevenLabsClient::from_env()?;
 ///    // Or for IVC's & PVC's: GetVoice::new("some_voice_id")
 ///    let resp = c.hit(GetVoice::new(DefaultVoice::Brian)).await?;
 ///    println!("{:#?}", resp);
@@ -168,8 +173,11 @@ impl GetVoiceQuery {
 }
 
 impl ElevenLabsEndpoint for GetVoice {
+
     const PATH: &'static str = "/v1/voices/:voice_id";
+
     const METHOD: Method = Method::GET;
+
     type ResponseBody = GetVoiceResponse;
 
     fn query_params(&self) -> Option<QueryValues> {
@@ -193,7 +201,7 @@ impl ElevenLabsEndpoint for GetVoice {
 ///
 /// #[tokio::main]
 /// async fn main() -> Result<()> {
-///   let c = ElevenLabsClient::default()?;
+///   let c = ElevenLabsClient::from_env()?;
 ///   let endpoint = DeleteVoice::new("some_voice_id");
 ///   let resp = c.hit(endpoint).await?;
 ///   println!("{:#?}", resp);
@@ -215,7 +223,9 @@ impl DeleteVoice {
 }
 
 impl ElevenLabsEndpoint for DeleteVoice {
+
     const PATH: &'static str = "/v1/voices/:voice_id";
+
     const METHOD: Method = Method::DELETE;
 
     type ResponseBody = StatusResponseBody;
@@ -237,7 +247,7 @@ impl ElevenLabsEndpoint for DeleteVoice {
 ///
 /// #[tokio::main]
 /// async fn main() -> Result<()> {
-///   let c = ElevenLabsClient::default()?;
+///   let c = ElevenLabsClient::from_env()?;
 ///   let body = EditVoiceSettingsBody::new(1.0, 0.85)
 ///        .with_style(0.25)
 ///        .with_use_speaker_boost(true);
@@ -264,8 +274,11 @@ impl EditVoiceSettings {
 }
 
 impl ElevenLabsEndpoint for EditVoiceSettings {
+
     const PATH: &'static str = "/v1/voices/:voice_id/settings/edit";
+
     const METHOD: Method = Method::POST;
+
     type ResponseBody = StatusResponseBody;
 
     fn path_params(&self) -> Vec<(&'static str, &str)> {
@@ -311,7 +324,7 @@ impl EditVoiceSettingsBody {
 ///
 /// #[tokio::main]
 /// async fn main() -> Result<()> {
-///     let c = ElevenLabsClient::default()?;
+///     let c = ElevenLabsClient::from_env()?;
 ///     let samples = vec!["some_file_path.mp3".to_string(), "another.mp3".into(),];
 ///     let labels = vec![("age".to_string(), "old".into()), ("gender".into(), "male".into())];
 ///     let body = VoiceBody::add("John Doe", samples)
@@ -337,6 +350,7 @@ impl AddVoice {
 }
 
 impl ElevenLabsEndpoint for AddVoice {
+
     const PATH: &'static str = "/v1/voices/add";
 
     const METHOD: Method = Method::POST;
@@ -443,18 +457,8 @@ impl TryFrom<VoiceBody> for Form {
 /// Add voice response
 #[derive(Clone, Debug, Deserialize)]
 pub struct AddVoiceResponse {
-    voice_id: String,
-    requires_verification: bool,
-}
-
-impl AddVoiceResponse {
-    pub fn get_voice_id(&self) -> &String {
-        &self.voice_id
-    }
-
-    pub fn requires_verification(&self) -> bool {
-        self.requires_verification
-    }
+    pub voice_id: String,
+    pub requires_verification: bool,
 }
 
 /// Edit a voice created by you.
@@ -465,7 +469,7 @@ impl AddVoiceResponse {
 /// #[tokio::main]
 ///
 /// async fn main() -> Result<()> {
-///    let client = ElevenLabsClient::default()?;
+///    let client = ElevenLabsClient::from_env()?;
 ///
 ///    let samples = vec!["sample.mp3".to_string(), "sample_2.mp3".into()];
 ///    let labels = vec![
@@ -499,6 +503,7 @@ impl EditVoice {
 }
 
 impl ElevenLabsEndpoint for EditVoice {
+
     const PATH: &'static str = "/v1/voices/:voice_id/edit";
 
     const METHOD: Method = Method::POST;
@@ -522,218 +527,36 @@ impl ElevenLabsEndpoint for EditVoice {
 /// Get all voices response body
 #[derive(Clone, Debug, Deserialize)]
 pub struct GetVoicesResponse {
-    voices: Vec<GetVoiceResponse>,
-}
-
-impl GetVoicesResponse {
-    pub fn get_voices(&self) -> &Vec<GetVoiceResponse> {
-        &self.voices
-    }
+    pub voices: Vec<GetVoiceResponse>,
 }
 
 /// Voice response body
 #[derive(Debug, Deserialize, PartialEq, Clone)]
 pub struct GetVoiceResponse {
-    voice_id: String,
-    name: Option<String>,
-    samples: Option<Vec<VoiceSample>>,
+    pub voice_id: String,
+    pub name: Option<String>,
+    pub samples: Option<Vec<VoiceSample>>,
     //TODO: implement type
-    fine_tuning: Option<Value>,
-    category: Option<VoiceCategory>,
-    labels: Option<HashMap<String, String>>,
-    description: Option<String>,
-    preview_url: Option<String>,
-    available_for_tiers: Option<Vec<String>>,
-    settings: Option<VoiceSettings>,
+    pub fine_tuning: Option<Value>,
+    pub category: Option<VoiceCategory>,
+    pub labels: Option<HashMap<String, String>>,
+    pub description: Option<String>,
+    pub preview_url: Option<String>,
+    pub available_for_tiers: Option<Vec<String>>,
+    pub settings: Option<VoiceSettings>,
     //TODO: implement type
-    sharing: Option<Value>,
-    high_quality_base_model_ids: Option<Vec<String>>,
-    safety_control: Option<SafetyControl>,
+    pub sharing: Option<Value>,
+    pub high_quality_base_model_ids: Option<Vec<String>>,
+    pub safety_control: Option<SafetyControl>,
     // TODO: implement type
-    voice_verification: Option<Value>,
-    permission_on_resource: Option<String>,
-    is_owner: Option<bool>,
-    is_legacy: Option<bool>,
-    is_mixed: Option<bool>,
-    created_at_unix: Option<u64>,
-}
-/// Voice sample
-#[derive(Deserialize, Debug, Clone, PartialEq)]
-pub struct VoiceSample {
-    sample_id: String,
-    file_name: String,
-    mime_type: String,
-    size_bytes: Option<u64>,
-    hash: String,
+    pub voice_verification: Option<Value>,
+    pub permission_on_resource: Option<String>,
+    pub is_owner: Option<bool>,
+    pub is_legacy: Option<bool>,
+    pub is_mixed: Option<bool>,
+    pub created_at_unix: Option<u64>,
 }
 
-impl VoiceSample {
-    pub fn get_sample_id(&self) -> &String {
-        &self.sample_id
-    }
-    pub fn get_file_name(&self) -> &String {
-        &self.file_name
-    }
-    pub fn get_mime_type(&self) -> &String {
-        &self.mime_type
-    }
-    pub fn get_size_bytes(&self) -> Option<u64> {
-        self.size_bytes
-    }
-    pub fn get_hash(&self) -> &String {
-        &self.hash
-    }
-}
-
-/// Voice category
-#[derive(Debug, Deserialize, Serialize, PartialEq, Clone)]
-#[serde(rename_all = "snake_case")]
-pub enum VoiceCategory {
-    Generated,
-    Cloned,
-    Premade,
-    Professional,
-    Famous,
-    HighQuality,
-}
-
-/// Voice settings
-#[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
-pub struct VoiceSettings {
-    similarity_boost: f32,
-    stability: f32,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    style: Option<f32>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    use_speaker_boost: Option<bool>,
-}
-
-impl VoiceSettings {
-    pub fn new(stability: f32, similarity: f32) -> Self {
-        VoiceSettings {
-            similarity_boost: similarity,
-            stability,
-            style: None,
-            use_speaker_boost: None,
-        }
-    }
-    pub fn with_similarity_boost(mut self, similarity_boost: f32) -> Self {
-        self.similarity_boost = similarity_boost;
-        self
-    }
-    pub fn with_stability(mut self, stability: f32) -> Self {
-        self.stability = stability;
-        self
-    }
-    pub fn with_style(mut self, style: f32) -> Self {
-        self.style = Some(style);
-        self
-    }
-    pub fn with_use_speaker_boost(mut self, use_speaker_boost: bool) -> Self {
-        self.use_speaker_boost = Some(use_speaker_boost);
-        self
-    }
-
-    pub fn get_similarity_boost(&self) -> f32 {
-        self.similarity_boost
-    }
-
-    pub fn get_stability(&self) -> f32 {
-        self.stability
-    }
-
-    pub fn get_style(&self) -> Option<f32> {
-        self.style
-    }
-
-    pub fn get_use_speaker_boost(&self) -> Option<bool> {
-        self.use_speaker_boost
-    }
-}
-
-impl Default for VoiceSettings {
-    fn default() -> Self {
-        VoiceSettings {
-            similarity_boost: 0.75,
-            stability: 0.5,
-            style: Some(0.5),
-            use_speaker_boost: Some(true),
-        }
-    }
-}
-
-/// Safety control
-#[derive(Debug, Deserialize, Serialize, PartialEq, Clone)]
-#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
-pub enum SafetyControl {
-    None,
-    Ban,
-    Captcha,
-    CaptchaAndModeration,
-    EnterpriseBan,
-    EnterpriseCaptcha,
-}
-
-impl GetVoiceResponse {
-    pub fn get_voice_id(&self) -> &String {
-        &self.voice_id
-    }
-    pub fn get_name(&self) -> Option<&String> {
-        self.name.as_ref()
-    }
-    pub fn get_samples(&self) -> Option<&Vec<VoiceSample>> {
-        self.samples.as_ref()
-    }
-    pub fn get_category(&self) -> Option<&VoiceCategory> {
-        self.category.as_ref()
-    }
-    pub fn get_labels(&self) -> Option<&HashMap<String, String>> {
-        self.labels.as_ref()
-    }
-    pub fn get_description(&self) -> Option<&String> {
-        self.description.as_ref()
-    }
-    pub fn get_preview_url(&self) -> Option<&String> {
-        self.preview_url.as_ref()
-    }
-    pub fn get_settings(&self) -> Option<&VoiceSettings> {
-        self.settings.as_ref()
-    }
-    pub fn get_safety_control(&self) -> Option<&SafetyControl> {
-        self.safety_control.as_ref()
-    }
-    pub fn get_created_at_unix(&self) -> Option<u64> {
-        self.created_at_unix
-    }
-
-    pub fn is_owner(&self) -> Option<bool> {
-        self.is_owner
-    }
-    pub fn is_legacy(&self) -> Option<bool> {
-        self.is_legacy
-    }
-    pub fn is_mixed(&self) -> Option<bool> {
-        self.is_mixed
-    }
-    pub fn get_available_for_tiers(&self) -> Option<&Vec<String>> {
-        self.available_for_tiers.as_ref()
-    }
-    pub fn get_high_quality_base_model_ids(&self) -> Option<&Vec<String>> {
-        self.high_quality_base_model_ids.as_ref()
-    }
-    pub fn get_voice_verification(&self) -> Option<&Value> {
-        self.voice_verification.as_ref()
-    }
-    pub fn get_permission_on_resource(&self) -> Option<&String> {
-        self.permission_on_resource.as_ref()
-    }
-    pub fn get_sharing(&self) -> Option<&Value> {
-        self.sharing.as_ref()
-    }
-    pub fn get_fine_tuning(&self) -> Option<&Value> {
-        self.fine_tuning.as_ref()
-    }
-}
 impl<'a> IntoIterator for &'a GetVoicesResponse {
     type Item = &'a GetVoiceResponse;
     type IntoIter = std::slice::Iter<'a, GetVoiceResponse>;
@@ -760,7 +583,7 @@ impl IntoIterator for GetVoicesResponse {
 ///
 /// #[tokio::main]
 /// async fn main() -> Result<()> {
-///    let c = ElevenLabsClient::default()?;
+///    let c = ElevenLabsClient::from_env()?;
 ///    let body = ListSimilarVoicesBody::new("audio_sample.mp3")
 ///     .with_similarity_threshold(1.75)
 ///     .with_top_k(5);
@@ -783,7 +606,9 @@ impl ListSimilarVoices {
 }
 
 impl ElevenLabsEndpoint for ListSimilarVoices {
+
     const PATH: &'static str = "/v1/similar-voices";
+
     const METHOD: Method = Method::POST;
 
     type ResponseBody = ListSimilarVoicesResponse;
@@ -869,5 +694,28 @@ impl TryFrom<ListSimilarVoicesBody> for Form {
 #[derive(Clone, Debug, Deserialize)]
 pub struct ListSimilarVoicesResponse {
     // TODO: implement type
-    voices: Vec<Value>,
+    pub voices: Vec<Value>,
+}
+
+
+/// Voice sample
+#[derive(Deserialize, Debug, Clone, PartialEq)]
+pub struct VoiceSample {
+    pub sample_id: String,
+    pub file_name: String,
+    pub mime_type: String,
+    pub size_bytes: Option<u64>,
+    pub hash: String,
+}
+
+/// Safety control
+#[derive(Debug, Deserialize, Serialize, PartialEq, Clone)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum SafetyControl {
+    None,
+    Ban,
+    Captcha,
+    CaptchaAndModeration,
+    EnterpriseBan,
+    EnterpriseCaptcha,
 }
