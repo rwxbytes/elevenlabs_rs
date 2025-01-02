@@ -1,54 +1,73 @@
 //! The models endpoint
-#![allow(dead_code)]
-use crate::client::{Result, BASE_URL};
-use crate::endpoints::{Endpoint, Url};
-use reqwest::Response;
-use serde::Deserialize;
 
-const MODELS_PATH: &str = "v1/models";
+use super::*;
 
+/// Gets a list of available models.
+///
+/// # Example
+/// ```no_run
+/// use elevenlabs_rs::{ElevenLabsClient, Result};
+/// use elevenlabs_rs::endpoints::admin::models::GetModels;
+///
+/// #[tokio::main]
+/// async fn main() -> Result<()> {
+///   let client = ElevenLabsClient::default()?;
+///   let models = client.hit(GetModels).await?;
+///   println!("{:#?}", models);
+///   Ok(())
+/// }
+/// ```
+/// See the [Get Models API reference](https://elevenlabs.io/docs/api-reference/models/get-all)
 #[derive(Clone, Debug)]
 pub struct GetModels;
 
-impl Endpoint for GetModels {
-    type ResponseBody = ModelResponse;
+impl ElevenLabsEndpoint for GetModels {
+    const PATH: &'static str = "v1/models";
+    const METHOD: Method = Method::GET;
+    type ResponseBody = GetModelsResponse;
 
-    fn method(&self) -> reqwest::Method {
-        reqwest::Method::GET
-    }
     async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
         Ok(resp.json().await?)
     }
-    fn url(&self) -> Result<Url> {
-        let mut url = BASE_URL.parse::<reqwest::Url>().unwrap();
-        url.set_path(MODELS_PATH);
-        Ok(url)
-    }
 }
 
-type ModelResponse = Vec<Model>;
+type GetModelsResponse = Vec<Model>;
 
 #[derive(Clone, Debug, Deserialize)]
 pub struct Model {
-    model_id: String,
-    name: String,
-    can_be_finetuned: bool,
-    can_do_text_to_speech: bool,
-    can_do_voice_conversion: bool,
-    can_use_style: bool,
-    can_use_speaker_boost: bool,
-    serves_pro_voices: bool,
-    token_cost_factor: f32,
-    description: String,
-    requires_alpha_access: bool,
-    max_characters_request_free_user: f32,
-    max_characters_request_subscribed_user: f32,
-    maximum_text_length_per_request: f32,
-    languages: Vec<Language>,
+    pub model_id: String,
+    pub name: String,
+    pub can_be_finetuned: bool,
+    pub can_do_text_to_speech: bool,
+    pub can_do_voice_conversion: bool,
+    pub can_use_style: bool,
+    pub can_use_speaker_boost: bool,
+    pub serves_pro_voices: bool,
+    pub token_cost_factor: f32,
+    pub description: String,
+    pub requires_alpha_access: bool,
+    pub max_characters_request_free_user: f32,
+    pub max_characters_request_subscribed_user: f32,
+    pub maximum_text_length_per_request: f32,
+    pub languages: Vec<Language>,
+    pub model_rates: ModelRates,
+    pub concurrency_group: ConcurrencyGroup,
 }
 
 #[derive(Clone, Debug, Deserialize)]
-struct Language {
-    language_id: String,
-    name: String,
+pub struct Language {
+    pub language_id: String,
+    pub name: String,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+pub struct ModelRates {
+    pub character_cost_multiplier: f32,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum ConcurrencyGroup {
+    Standard,
+    Turbo,
 }
