@@ -1,4 +1,3 @@
-#![allow(dead_code)]
 //! The audio native endpoint
 use super::*;
 
@@ -16,8 +15,11 @@ impl AudioNative {
 }
 
 impl ElevenLabsEndpoint for AudioNative {
+
     const PATH: &'static str = "/v1/audio-native";
+
     const METHOD: Method = Method::POST;
+
     type ResponseBody = AudioNativeResponseBody;
 
     async fn request_body(&self) -> Result<RequestBody> {
@@ -142,7 +144,7 @@ impl From<AudioNativeBody> for Form {
 
 #[derive(Clone, Debug, Deserialize)]
 pub struct AudioNativeResponseBody {
-    project_id: String,
-    converting: bool,
-    html_snippet: String,
+    pub project_id: String,
+    pub converting: bool,
+    pub html_snippet: String,
 }
