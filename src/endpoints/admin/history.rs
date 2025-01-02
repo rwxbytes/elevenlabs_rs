@@ -1,8 +1,7 @@
 //! The history endpoints
 
 use super::*;
-use crate::components::admin::history::*;
-use crate::components::common::{VoiceCategory, VoiceSettings};
+use crate::shared::{VoiceCategory, VoiceSettings};
 
 /// Returns metadata about all your generated audio.
 ///
@@ -13,7 +12,7 @@ use crate::components::common::{VoiceCategory, VoiceSettings};
 ///
 /// #[tokio::main]
 /// async fn main() -> Result<()> {
-///    let c = ElevenLabsClient::default()?;
+///    let c = ElevenLabsClient::from_env()?;
 ///    let query = HistoryQuery::default()
 ///         .with_page_size(10)
 ///         .with_voice_id(DefaultVoice::Brian);
@@ -60,13 +59,17 @@ impl HistoryQuery {
 }
 
 impl ElevenLabsEndpoint for GetGeneratedItems {
+
     const PATH: &'static str = "/v1/history";
+
     const METHOD: Method = Method::GET;
+
     type ResponseBody = GetGeneratedItemsResponse;
 
     fn query_params(&self) -> Option<QueryValues> {
         self.query.as_ref().map(|q| q.params.clone())
     }
+
     async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
         Ok(resp.json().await?)
     }
@@ -74,21 +77,9 @@ impl ElevenLabsEndpoint for GetGeneratedItems {
 
 #[derive(Clone, Debug, Deserialize)]
 pub struct GetGeneratedItemsResponse {
-    history: Vec<GetHistoryItemResponse>,
-    last_history_item_id: String,
-    has_more: bool,
-}
-
-impl GetGeneratedItemsResponse {
-    pub fn history(&self) -> &[GetHistoryItemResponse] {
-        &self.history
-    }
-    pub fn last_history_item_id(&self) -> &str {
-        &self.last_history_item_id
-    }
-    pub fn has_more(&self) -> bool {
-        self.has_more
-    }
+    pub history: Vec<GetHistoryItemResponse>,
+    pub last_history_item_id: String,
+    pub has_more: bool,
 }
 
 /// Returns information about a history item by its ID.
@@ -100,7 +91,7 @@ impl GetGeneratedItemsResponse {
 ///
 /// #[tokio::main]
 /// async fn main() -> Result<()> {
-///    let client = ElevenLabsClient::default()?;
+///    let client = ElevenLabsClient::from_env()?;
 ///    let history_item_id = "some_history_item_id";
 ///    let resp = client.hit(GetHistoryItem::new(history_item_id)).await?;
 ///    println!("{:#?}", resp);
@@ -122,13 +113,17 @@ impl GetHistoryItem {
 }
 
 impl ElevenLabsEndpoint for GetHistoryItem {
+
     const PATH: &'static str = "/v1/history/:history_item_id";
+
     const METHOD: Method = Method::GET;
+
     type ResponseBody = GetHistoryItemResponse;
 
     fn path_params(&self) -> Vec<(&'static str, &str)> {
         vec![self.history_item_id.as_path_param()]
     }
+
     async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
         Ok(resp.json().await?)
     }
@@ -136,77 +131,23 @@ impl ElevenLabsEndpoint for GetHistoryItem {
 
 #[derive(Clone, Debug, Deserialize)]
 pub struct GetHistoryItemResponse {
-    history_item_id: String,
-    request_id: String,
-    voice_id: String,
-    voice_name: String,
-    voice_category: Option<VoiceCategory>,
-    model_id: Option<String>,
-    text: String,
-    date_unix: u64,
-    character_count_change_from: u64,
-    character_count_change_to: u64,
-    content_type: String,
-    state: String,
-    settings: VoiceSettings,
-    feedback: Option<Feedback>,
-    share_link_id: Option<String>,
-    source: Option<Source>,
-    // TODO: impl type
-    alignments: Option<Value>,
-}
-impl GetHistoryItemResponse {
-    pub fn history_item_id(&self) -> &str {
-        &self.history_item_id
-    }
-    pub fn request_id(&self) -> &str {
-        &self.request_id
-    }
-    pub fn voice_id(&self) -> &str {
-        &self.voice_id
-    }
-    pub fn voice_name(&self) -> &str {
-        &self.voice_name
-    }
-    pub fn voice_category(&self) -> Option<&VoiceCategory> {
-        self.voice_category.as_ref()
-    }
-    pub fn model_id(&self) -> Option<&str> {
-        self.model_id.as_deref()
-    }
-    pub fn text(&self) -> &str {
-        &self.text
-    }
-    pub fn date_unix(&self) -> u64 {
-        self.date_unix
-    }
-    pub fn character_count_change_from(&self) -> u64 {
-        self.character_count_change_from
-    }
-    pub fn character_count_change_to(&self) -> u64 {
-        self.character_count_change_to
-    }
-    pub fn content_type(&self) -> &str {
-        &self.content_type
-    }
-    pub fn state(&self) -> &str {
-        &self.state
-    }
-    pub fn settings(&self) -> &VoiceSettings {
-        &self.settings
-    }
-    pub fn feedback(&self) -> Option<&Feedback> {
-        self.feedback.as_ref()
-    }
-    pub fn share_link_id(&self) -> Option<&str> {
-        self.share_link_id.as_deref()
-    }
-    pub fn source(&self) -> Option<&Source> {
-        self.source.as_ref()
-    }
-    pub fn alignments(&self) -> Option<&Value> {
-        self.alignments.as_ref()
-    }
+    pub history_item_id: String,
+    pub request_id: String,
+    pub voice_id: String,
+    pub voice_name: String,
+    pub voice_category: Option<VoiceCategory>,
+    pub model_id: Option<String>,
+    pub text: String,
+    pub date_unix: u64,
+    pub character_count_change_from: u64,
+    pub character_count_change_to: u64,
+    pub content_type: String,
+    pub state: String,
+    pub settings: VoiceSettings,
+    pub feedback: Option<Feedback>,
+    pub share_link_id: Option<String>,
+    pub source: Option<Source>,
+    pub alignments: Option<Value>,
 }
 
 /// Delete a history item by its ID.
@@ -226,6 +167,7 @@ impl DeleteHistoryItem {
 }
 
 impl ElevenLabsEndpoint for DeleteHistoryItem {
+
     const PATH: &'static str = "/v1/history/:history_item_id";
 
     const METHOD: Method = Method::DELETE;
@@ -235,6 +177,7 @@ impl ElevenLabsEndpoint for DeleteHistoryItem {
     fn path_params(&self) -> Vec<(&'static str, &str)> {
         vec![self.history_item_id.as_path_param()]
     }
+
     async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
         Ok(resp.json().await?)
     }
@@ -253,11 +196,11 @@ impl ElevenLabsEndpoint for DeleteHistoryItem {
 ///
 /// #[tokio::main]
 /// async fn main() -> Result<()> {
-///     let client = ElevenLabsClient::default()?;
+///     let client = ElevenLabsClient::from_env()?;
 ///     let history_item_ids = client
 ///         .hit(GetGeneratedItems::with_query(HistoryQuery::default()))
 ///         .await?
-///         .history()
+///         .history
 ///         .iter()
 ///         .map(|i| i.history_item_id().to_string())
 ///         .collect::<Vec<String>>();
@@ -280,6 +223,7 @@ impl DownloadHistoryItems {
 }
 
 impl ElevenLabsEndpoint for DownloadHistoryItems {
+
     const PATH: &'static str = "/v1/history/download";
 
     const METHOD: Method = Method::POST;
@@ -326,10 +270,10 @@ impl DownloadBody {
 ///
 /// #[tokio::main]
 /// async fn main() -> Result<()> {
-///     let client = ElevenLabsClient::default()?;
+///     let client = ElevenLabsClient::from_env()?;
 ///     let query = HistoryQuery::default().with_page_size(1);
 ///     let resp = client.hit(GetGeneratedItems::with_query(query)).await?;
-///     let item_id = resp.into_iter().next().unwrap().history_item_id();
+///     let item_id = resp.into_iter().next().unwrap().history_item_id;
 ///     let audio = client.hit(GetAudio::new(item_id)).await?;
 ///     play(audio)?;
 ///     Ok(())
@@ -349,6 +293,7 @@ impl GetAudio {
 }
 
 impl ElevenLabsEndpoint for GetAudio {
+
     const PATH: &'static str = "/v1/history/:history_item_id/audio";
 
     const METHOD: Method = Method::GET;
@@ -361,6 +306,42 @@ impl ElevenLabsEndpoint for GetAudio {
 
     async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
         Ok(resp.bytes().await?)
+    }
+}
+
+#[derive(Clone, Debug, Deserialize)]
+pub struct Feedback {
+    pub thumbs_up: bool,
+    pub feedback: String,
+    pub emotions: bool,
+    pub inaccurate_clone: bool,
+    pub glitches: bool,
+    pub audio_quality: bool,
+    pub review_status: String,
+    pub other: bool,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+#[serde(rename_all = "UPPERCASE")]
+pub enum Source {
+    Tts,
+    Sts,
+}
+
+#[derive(Clone, Debug, Default, Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum DownloadOutputFormat {
+    #[default]
+    Mp3,
+    Wav,
+}
+
+impl DownloadOutputFormat {
+    pub(crate) fn is_mp3(&self) -> bool {
+        match self {
+            DownloadOutputFormat::Mp3 => true,
+            DownloadOutputFormat::Wav => false,
+        }
     }
 }
 
