@@ -2,20 +2,18 @@
 #![allow(dead_code)]
 use super::*;
 
-const PROJECTS_PATH: &str = "/v1/projects";
-
-/// Projects endpoint
+/// Returns a list of your projects together and its metadata.
 ///
 /// # Example
 ///
 /// ```no_run
-/// use elevenlabs_rs::*;
-/// use elevenlabs_rs::endpoints::projects::*;
+/// use elevenlabs_rs::{ElevenLabsClient, Result};
+/// use elevenlabs_rs::endpoints::admin::projects::GetProjects;
 ///
 /// #[tokio::main]
 /// async fn main() -> Result<()> {
 ///    let c = ElevenLabsClient::default()?;
-///    let resp = c.hit(GetProjects::new()).await?;
+///    let resp = c.hit(GetProjects).await?;
 ///    println!("{:?}", resp);
 ///    Ok(())
 /// }
@@ -23,25 +21,17 @@ const PROJECTS_PATH: &str = "/v1/projects";
 #[derive(Debug, Clone)]
 pub struct GetProjects;
 
-impl GetProjects {
-    pub fn new() -> Self {
-        GetProjects
-    }
-}
 
-impl Endpoint for GetProjects {
-    type ResponseBody = ProjectsResponse;
+impl ElevenLabsEndpoint for GetProjects {
+    const PATH: &'static str = "/v1/projects";
 
     const METHOD: Method = Method::GET;
+    type ResponseBody = ProjectsResponse;
 
     async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
         Ok(resp.json().await?)
     }
-    fn url(&self) -> Result<Url> {
-        let mut url = BASE_URL.parse::<Url>().unwrap();
-        url.set_path(PROJECTS_PATH);
-        Ok(url)
-    }
+
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -51,17 +41,17 @@ pub struct ProjectsResponse {
 
 #[derive(Clone, Debug, Deserialize)]
 pub struct Project {
-    project_id: String,
-    name: String,
-    create_date_unix: u64,
-    default_title_voice_id: String,
-    default_paragraph_voice_id: String,
-    default_model_id: String,
-    last_conversion_date_unix: u64,
-    can_be_downloaded: bool,
-    title: String,
-    author: String,
-    isbn_number: String,
-    volume_normalization: bool,
-    state: String,
+    pub project_id: String,
+    pub name: String,
+    pub create_date_unix: u64,
+    pub default_title_voice_id: String,
+    pub default_paragraph_voice_id: String,
+    pub default_model_id: String,
+    pub last_conversion_date_unix: u64,
+    pub can_be_downloaded: bool,
+    pub title: String,
+    pub author: String,
+    pub isbn_number: String,
+    pub volume_normalization: bool,
+    pub state: String,
 }
