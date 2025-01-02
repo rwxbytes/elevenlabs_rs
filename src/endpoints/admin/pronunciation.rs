@@ -1,61 +1,72 @@
 //! The pronunciation dictionaries endpoints.
 //!
-//! See examples [here](https://www.github.com/rwxbytes/elevenlabs_rs/tree/main/examples/pronunciation_dictionaries).
-#[allow(dead_code)]
+//! See an extensive example [here](https://www.github.com/rwxbytes/elevenlabs_rs/blob/master/examples/pronunciation_dictionaries.rs).
 use super::*;
-
-const PRONUNCIATION_PATH: &str = "/v1/pronunciation-dictionaries";
-const ADD_FROM_FILE_PATH: &str = "/add-from-file";
-const ADD_RULES_PATH: &str = "/add-rules";
-const REMOVE_RULES_PATH: &str = "/remove-rules";
-
-const CURSOR_QUERY: &str = "cursor";
-const PAGE_SIZE_QUERY: &str = "page_size";
 
 /// Creates a new pronunciation dictionary from a lexicon .PLS file
 ///
 /// # Example
 /// ```no_run
-/// use elevenlabs_rs::*;
-/// use elevenlabs_rs::endpoints::pronunciation::*;
+/// use elevenlabs_rs::{ElevenLabsClient, Result};
+/// use elevenlabs_rs::endpoints::admin::pronunciation::{CreateDictionary, CreateDictionaryBody};
 ///
 /// #[tokio::main]
 /// async fn main() -> Result<()> {
-///    let c = ElevenLabsClient::default()?;
-///    let body = AddFromFileBody::new("acronyms.pls", "acronyms");
-///    let resp = c.hit(AddFromFile::new(body)).await?;
+///    let c = ElevenLabsClient::from_env()?;
+///    let body = CreateDictionaryBody::new("acronyms.pls", "acronyms");
+///    let resp = c.hit(CreateDictionary::new(body)).await?;
 ///    println!("{:?}", resp);
 ///   Ok(())
 /// }
 /// ```
+/// See the [Create A Pronunciation Dictionary API reference](https://elevenlabs.io/docs/api-reference/pronunciation-dictionary/add-from-file)
 #[derive(Clone, Debug)]
-pub struct AddFromFile(AddFromFileBody);
+pub struct CreateDictionary {
+    body: CreateDictionaryBody,
+}
 
-impl AddFromFile {
-    pub fn new(body: AddFromFileBody) -> Self {
-        Self(body)
+impl CreateDictionary {
+    pub fn new(body: CreateDictionaryBody) -> Self {
+        Self { body }
     }
 }
 
-/// Add from file body
-///
+impl ElevenLabsEndpoint for CreateDictionary {
+
+    const PATH: &'static str = "/v1/pronunciation-dictionaries/add-from-file";
+
+    const METHOD: Method = Method::POST;
+
+    type ResponseBody = CreateDictionaryResponse;
+
+    async fn request_body(&self) -> Result<RequestBody> {
+        let form = Form::try_from(self.body.clone())?;
+        Ok(RequestBody::Multipart(form))
+    }
+
+    async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
+        Ok(resp.json().await?)
+    }
+}
+
+/// Create dictionary body
 /// # Example
 /// ```no_run
-/// use elevenlabs_rs::endpoints::pronunciation::*;
+/// use elevenlabs_rs::endpoints::admin::pronunciation::CreateDictionaryBody;
 ///
-/// let mut body = AddFromFileBody::new("acronyms.pls", "acronyms")
+/// let mut body = CreateDictionaryBody::new("acronyms.pls", "acronyms")
 ///     .with_description("A list of acronyms")
 ///     .with_workspace_access("editor");
 /// ```
 #[derive(Clone, Debug)]
-pub struct AddFromFileBody {
+pub struct CreateDictionaryBody {
     file: String,
     name: String,
     description: Option<String>,
     workspace_access: Option<String>,
 }
 
-impl AddFromFileBody {
+impl CreateDictionaryBody {
     pub fn new(file: &str, name: &str) -> Self {
         Self {
             file: file.to_string(),
@@ -74,123 +85,106 @@ impl AddFromFileBody {
         self.workspace_access = Some(workspace_access.to_string());
         self
     }
+}
 
-    fn to_form(&self) -> Result<Form> {
+impl TryFrom<CreateDictionaryBody> for Form {
+    type Error = Box<dyn std::error::Error + Send + Sync>;
+
+    fn try_from(body: CreateDictionaryBody) -> Result<Self> {
         let mut form = Form::new();
-        let file = std::fs::read(self.file.clone())?;
+        let file = std::fs::read(body.file.clone())?;
         form = form.part("file", Part::bytes(file).file_name("file"));
-        form = form.text("name", self.name.clone());
-        if let Some(description) = &self.description {
-            form = form.text("description", description.clone());
+        form = form.text("name", body.name.clone());
+        if let Some(description) = body.description {
+            form = form.text("description", description);
         }
-        if let Some(workspace_access) = &self.workspace_access {
-            form = form.text("workspace_access", workspace_access.clone());
+        if let Some(workspace_access) = body.workspace_access {
+            form = form.text("workspace_access", workspace_access);
         }
         Ok(form)
     }
 }
 
-impl Endpoint for AddFromFile {
-    type ResponseBody = AddFromFileResponse;
+/// Create dictionary response
+#[derive(Clone, Debug, Deserialize)]
+pub struct CreateDictionaryResponse {
+    pub id: String,
+    pub name: String,
+    pub created_by: String,
+    pub creation_time_unix: i64,
+    pub version_id: String,
+    pub description: Option<String>,
+}
+
+/// Add rules to the pronunciation dictionary
+///
+/// # Example
+/// ```no_run
+/// use elevenlabs_rs::{ElevenLabsClient, Result};
+/// use elevenlabs_rs::endpoints::admin::pronunciation::{AddRules, AddRulesBody, Rule};
+///
+/// #[tokio::main]
+/// async fn main() -> Result<()> {
+///   let c = ElevenLabsClient::from_env()?;
+///
+///   let rules = vec![
+///      Rule::new_alias("TTS", "text to speech"),
+///      Rule::new_alias("API", "application programming interface"),
+///   ];
+///
+///   let body = AddRulesBody::new(rules);
+///
+///   let resp = c.hit(AddRules::new("dictionary_id", body)).await?;
+///
+///   println!("{:?}", resp);
+///   Ok(())
+/// }
+/// ```
+/// See the [Add Rules API reference](https://elevenlabs.io/docs/api-reference/pronunciation-dictionary/add-rules)
+#[derive(Clone, Debug)]
+pub struct AddRules {
+    dictionary_id: DictionaryID,
+    body: AddRulesBody,
+}
+
+impl AddRules {
+    pub fn new(dictionary_id: impl Into<DictionaryID>, body: AddRulesBody) -> Self {
+        Self {
+            dictionary_id: dictionary_id.into(),
+            body,
+        }
+    }
+}
+impl ElevenLabsEndpoint for AddRules {
+
+    const PATH: &'static str =
+        "/v1/pronunciation-dictionaries/:pronunciation_dictionary_id/add-rules";
 
     const METHOD: Method = Method::POST;
 
+    type ResponseBody = RulesResponse;
+
+    fn path_params(&self) -> Vec<(&'static str, &str)> {
+        vec![self.dictionary_id.as_path_param()]
+    }
+
     async fn request_body(&self) -> Result<RequestBody> {
-        Ok(RequestBody::Multipart(self.0.to_form()?))
+        Ok(RequestBody::Json(serde_json::to_value(&self.body)?))
     }
 
     async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
         Ok(resp.json().await?)
     }
-
-    fn url(&self) -> Result<Url> {
-        let mut url = BASE_URL.parse::<Url>().unwrap();
-        url.set_path(&format!("{}{}", PRONUNCIATION_PATH, ADD_FROM_FILE_PATH));
-        Ok(url)
-    }
 }
 
-/// Add from file response
-#[derive(Clone, Debug, Deserialize)]
-pub struct AddFromFileResponse {
-    id: String,
-    name: String,
-    created_by: String,
-    creation_time_unix: i64,
-    version_id: String,
-    description: Option<String>,
-}
-
-impl AddFromFileResponse {
-    pub fn id(&self) -> &str {
-        &self.id
-    }
-
-    pub fn name(&self) -> &str {
-        &self.name
-    }
-
-    pub fn created_by(&self) -> &str {
-        &self.created_by
-    }
-
-    pub fn creation_time_unix(&self) -> i64 {
-        self.creation_time_unix
-    }
-
-    pub fn version_id(&self) -> &str {
-        &self.version_id
-    }
-
-    pub fn description(&self) -> Option<&str> {
-        self.description.as_deref()
-    }
-}
-
-/// Add pronunciation rules to a pronunciation dictionary
-///
-/// # Example
-/// ```no_run
-/// use elevenlabs_rs::*;
-/// use elevenlabs_rs::endpoints::pronunciation::*;
-///
-/// #[tokio::main]
-/// async fn main() -> Result<()> {
-///   let c = ElevenLabsClient::default()?;
-///   let rules = vec![
-///      Rule::new_alias("TTS", "text to speech"),
-///      Rule::new_alias("API", "application programming interface"),
-///
-///   ];
-///   let resp = c.hit(AddRules::new("dictionary_id", rules)).await?;
-///   println!("{:?}", resp);
-///   Ok(())
-/// }
-/// ```
-#[derive(Clone, Debug)]
-pub struct AddRules {
-    param: DictionaryID,
-    body: AddRulesBody,
-}
-
-impl AddRules {
-    pub fn new(dictionary_id: &str, rules: Vec<Rule>) -> Self {
-        let body = AddRulesBody::new(rules);
-        Self {
-            param: DictionaryID(dictionary_id.to_string()),
-            body,
-        }
-    }
-}
-
-/// This struct is used to build the request body for the AddRules endpoint.
+/// Add rules body
 #[derive(Clone, Debug, Serialize)]
-struct AddRulesBody {
+pub struct AddRulesBody {
     rules: Vec<Rule>,
 }
 
 impl AddRulesBody {
-    fn new(rules: Vec<Rule>) -> Self {
+    pub fn new(rules: Vec<Rule>) -> Self {
         Self { rules }
     }
 }
@@ -230,10 +224,75 @@ impl Rule {
     }
 }
 
-impl Endpoint for AddRules {
-    type ResponseBody = RulesResponse;
+/// Add rules response
+#[derive(Clone, Debug, Deserialize)]
+pub struct RulesResponse {
+    pub id: String,
+    pub version_id: String,
+}
+
+///  Remove rules from the pronunciation dictionary
+///
+/// # Example
+/// ```no_run
+/// use elevenlabs_rs::{ElevenLabsClient, Result};
+/// use elevenlabs_rs::endpoints::admin::pronunciation::{RemoveRules, RemoveRulesBody};
+///
+/// #[tokio::main]
+/// async fn main() -> Result<()> {
+///    let c = ElevenLabsClient::from_env()?;
+///    let rules = vec!["rule_string_1", "rule_string_2"];
+///    let body = RemoveRulesBody::new(rules);
+///    let resp = c.hit(RemoveRules::new("dictionary_id", body)).await?;
+///    println!("{:?}", resp);
+///    Ok(())
+/// }
+/// ```
+/// See the [Remove Rules API reference](https://elevenlabs.io/docs/api-reference/pronunciation-dictionary/remove-rules)
+#[derive(Clone, Debug)]
+pub struct RemoveRules {
+    dictionary_id: DictionaryID,
+    body: RemoveRulesBody,
+}
+
+impl RemoveRules {
+    pub fn new(dictionary_id: impl Into<DictionaryID>, body: RemoveRulesBody) -> Self {
+        Self {
+            dictionary_id: dictionary_id.into(),
+            body,
+        }
+    }
+}
+
+/// The rules are removed from the latest version of the pronunciation dictionary.
+#[derive(Clone, Debug, Serialize)]
+pub struct RemoveRulesBody {
+    rule_strings: Vec<String>,
+}
+
+impl RemoveRulesBody {
+    pub fn new<'a, I>(rules: I) -> Self
+    where
+        I: IntoIterator<Item=&'a str>,
+    {
+        Self {
+            rule_strings: rules.into_iter().map(|s| s.to_string()).collect(),
+        }
+    }
+}
+
+impl ElevenLabsEndpoint for RemoveRules {
+
+    const PATH: &'static str =
+        "/v1/pronunciation-dictionaries/:pronunciation_dictionary_id/remove-rules";
 
     const METHOD: Method = Method::POST;
+
+    type ResponseBody = RulesResponse;
+
+    fn path_params(&self) -> Vec<(&'static str, &str)> {
+        vec![self.dictionary_id.as_path_param()]
+    }
 
     async fn request_body(&self) -> Result<RequestBody> {
         Ok(RequestBody::Json(serde_json::to_value(&self.body)?))
@@ -242,354 +301,212 @@ impl Endpoint for AddRules {
     async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
         Ok(resp.json().await?)
     }
-
-    fn url(&self) -> Result<Url> {
-        let mut url = BASE_URL.parse::<Url>().unwrap();
-        url.set_path(&format!(
-            "{}/{}{}",
-            PRONUNCIATION_PATH, self.param.0, ADD_RULES_PATH
-        ));
-        Ok(url)
-    }
 }
 
-/// Add rules response
-#[derive(Clone, Debug, Deserialize)]
-pub struct RulesResponse {
-    id: String,
-    version_id: String,
-}
-
-impl RulesResponse {
-    pub fn id(&self) -> &str {
-        &self.id
-    }
-
-    pub fn version_id(&self) -> &str {
-        &self.version_id
-    }
-}
-
-/// Get the list of pronunciation dictionaries
-///
-/// This endpoint returns the list of pronunciation dictionaries.
+/// Get PLS file with a pronunciation dictionary version rules
 ///
 /// # Example
 /// ```no_run
-/// use elevenlabs_rs::*;
-/// use elevenlabs_rs::endpoints::pronunciation::*;
+/// use elevenlabs_rs::{ElevenLabsClient, Result};
+/// use elevenlabs_rs::endpoints::admin::pronunciation::{GetPLSFile, GetDictionaries};
 ///
 /// #[tokio::main]
 /// async fn main() -> Result<()> {
-///    let c = ElevenLabsClient::default()?;
-///    let resp = c.hit(GetDictionaries::new()).await?;
-///    println!("{:?}", resp);
+///    let c = ElevenLabsClient::from_env()?;
+///    let dictionaries = c.hit(GetDictionaries::default()).await?;
+///
+///     for dict in dictionaries {
+///         let id = dict.id.as_str();
+///         let version_id = dict.latest_version_id.as_str();
+///
+///         let bytes = c.hit(GetPLSFile::new(id, version_id)).await?;
+///         println!("{}", std::str::from_utf8(&bytes)?);
+///         println!("\n---\n");
+///     }
 ///   Ok(())
 /// }
 /// ```
+/// See the [Get PLS File API reference](https://elevenlabs.io/docs/api-reference/pronunciation-dictionary/download)
 #[derive(Clone, Debug)]
-pub struct GetDictionaries(pub GetDictionariesQuery);
-
-impl GetDictionaries {
-    pub fn new() -> Self {
-        Self(GetDictionariesQuery::default())
-    }
-
-    pub fn with_query(query: GetDictionariesQuery) -> Self {
-        Self(query)
-    }
+pub struct GetPLSFile {
+    dictionary_id: DictionaryID,
+    version_id: VersionID,
 }
 
-/// Get dictionaries query
-///
-/// This struct is used to build the query parameters for the GetDictionaries endpoint.
-#[derive(Clone, Debug, Default)]
-pub struct GetDictionariesQuery {
-    pub page_size: Option<String>,
-    pub cursor: Option<String>,
-}
-
-impl GetDictionariesQuery {
-    pub fn with_page_size(mut self, page_size: i32) -> Self {
-        self.page_size = Some(format!("{}={}", PAGE_SIZE_QUERY, page_size));
-        self
-    }
-
-    pub fn with_cursor(mut self, cursor: &str) -> Self {
-        self.cursor = Some(format!("{}={}", CURSOR_QUERY, cursor));
-        self
-    }
-
-    fn to_string(&self) -> String {
-        let mut query = String::new();
-
-        if let Some(page_size) = &self.page_size {
-            query.push_str(page_size);
+impl GetPLSFile {
+    pub fn new(dictionary_id: impl Into<DictionaryID>, version_id: impl Into<VersionID>) -> Self {
+        Self {
+            dictionary_id: dictionary_id.into(),
+            version_id: version_id.into(),
         }
-        if let Some(cursor) = &self.cursor {
-            if !query.is_empty() {
-                query.push('&');
-            }
-            query.push_str(cursor);
-        }
-        query
     }
 }
 
-impl Endpoint for GetDictionaries {
-    type ResponseBody = GetDictionariesResponse;
+impl ElevenLabsEndpoint for GetPLSFile {
+
+    const PATH: &'static str = "/v1/pronunciation-dictionaries/:dictionary_id/:version_id/download";
 
     const METHOD: Method = Method::GET;
+
+    type ResponseBody = Bytes;
+
+    fn path_params(&self) -> Vec<(&'static str, &str)> {
+        vec![
+            (":dictionary_id", self.dictionary_id.get_value()),
+            self.version_id.as_path_param(),
+        ]
+    }
+
+    async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
+        Ok(resp.bytes().await?)
+    }
+}
+
+/// Get metadata for a pronunciation dictionary
+///
+/// # Example
+/// ```no_run
+/// use elevenlabs_rs::{ElevenLabsClient, Result};
+/// use elevenlabs_rs::endpoints::admin::pronunciation::GetDictionaryMetaData;
+///
+/// #[tokio::main]
+/// async fn main() -> Result<()> {
+///     let c = ElevenLabsClient::from_env()?;
+///     let resp = c.hit(GetDictionaryMetaData::new("dictionary_id")).await?;
+///     println!("{:?}", resp);
+///     Ok(())
+/// }
+/// ```
+/// See the [Get Dictionary Metadata API reference](https://elevenlabs.io/docs/api-reference/pronunciation-dictionary/get)
+#[derive(Clone, Debug)]
+pub struct GetDictionaryMetaData {
+    dictionary_id: DictionaryID,
+}
+
+impl GetDictionaryMetaData {
+    pub fn new(dictionary_id: impl Into<DictionaryID>) -> Self {
+        Self { dictionary_id: dictionary_id.into() }
+    }
+}
+
+impl ElevenLabsEndpoint for GetDictionaryMetaData {
+
+    const PATH: &'static str = "/v1/pronunciation-dictionaries/:pronunciation_dictionary_id";
+
+    const METHOD: Method = Method::GET;
+
+    type ResponseBody = DictionaryMetadataResponse;
+
+    fn path_params(&self) -> Vec<(&'static str, &str)> {
+        vec![self.dictionary_id.as_path_param()]
+    }
 
     async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
         Ok(resp.json().await?)
     }
+}
 
-    fn url(&self) -> Result<Url> {
-        let mut url = BASE_URL.parse::<Url>().unwrap();
-        url.set_path(PRONUNCIATION_PATH);
-        if !self.0.to_string().is_empty() {
-            url.set_query(Some(&self.0.to_string()));
-        }
-        Ok(url)
+/// Get a list of the pronunciation dictionaries you have access to and their metadata
+///
+/// # Example
+/// ```no_run
+/// use elevenlabs_rs::{ElevenLabsClient, Result};
+/// use elevenlabs_rs::endpoints::admin::pronunciation::{GetDictionaries, GetDictionariesQuery};
+///
+/// #[tokio::main]
+/// async fn main() -> Result<()> {
+///    let c = ElevenLabsClient::from_env()?;
+///    let resp = c.hit(GetDictionaries::default()).await?;
+///    println!("{:?}", resp);
+///   Ok(())
+/// }
+/// ```
+/// See the [Get Dictionaries API reference](https://elevenlabs.io/docs/api-reference/pronunciation-dictionary/get-all)
+#[derive(Clone, Debug, Default)]
+pub struct GetDictionaries {
+    query: Option<GetDictionariesQuery>,
+}
+
+impl GetDictionaries {
+    pub fn with_query(query: GetDictionariesQuery) -> Self {
+        Self { query: Some(query) }
+    }
+}
+
+/// # Query Parameters
+///
+/// - `cursor`: Used for fetching next page. Cursor is returned in the response.
+///
+///
+/// - `page_size`: How many pronunciation dictionaries to return at maximum. Can not exceed 100, defaults to 30.
+#[derive(Clone, Debug, Default)]
+pub struct GetDictionariesQuery {
+    params: QueryValues,
+}
+
+impl GetDictionariesQuery {
+    pub fn with_page_size(mut self, page_size: i32) -> Self {
+        self.params.push(("page_size", page_size.to_string()));
+        self
+    }
+
+    pub fn with_cursor(mut self, cursor: &str) -> Self {
+        self.params.push(("cursor", cursor.to_string()));
+        self
+    }
+
+}
+
+impl ElevenLabsEndpoint for GetDictionaries {
+
+    const PATH: &'static str = "/v1/pronunciation-dictionaries";
+
+    const METHOD: Method = Method::GET;
+
+    type ResponseBody = GetDictionariesResponse;
+
+    fn query_params(&self) -> Option<QueryValues> {
+        self.query.as_ref().map(|q| q.params.clone())
+    }
+
+    async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
+        Ok(resp.json().await?)
     }
 }
 
 /// Get dictionaries response
 #[derive(Clone, Debug, Deserialize)]
 pub struct GetDictionariesResponse {
-    pronunciation_dictionaries: Vec<PronunciationDictionary>,
-    next_cursor: Option<String>,
-    has_more: bool,
+    pub pronunciation_dictionaries: Vec<DictionaryMetadataResponse>,
+    pub next_cursor: Option<String>,
+    pub has_more: bool,
 }
 
-impl GetDictionariesResponse {
-    pub fn pronunciation_dictionaries(&self) -> &Vec<PronunciationDictionary> {
-        &self.pronunciation_dictionaries
-    }
-
-    pub fn next_cursor(&self) -> Option<&str> {
-        self.next_cursor.as_deref()
-    }
-
-    pub fn has_more(&self) -> bool {
-        self.has_more
-    }
-}
-
-/// Pronunciation dictionary
+/// Pronunciation dictionary metadata
 #[derive(Clone, Debug, Deserialize)]
-pub struct PronunciationDictionary {
-    id: String,
-    latest_version_id: String,
-    name: String,
-    created_by: String,
-    creation_time_unix: i64,
-    description: Option<String>,
+pub struct DictionaryMetadataResponse {
+    pub id: String,
+    pub latest_version_id: String,
+    pub name: String,
+    pub created_by: String,
+    pub creation_time_unix: i64,
+    pub description: Option<String>,
 }
 
-impl PronunciationDictionary {
-    pub fn id(&self) -> &str {
-        &self.id
-    }
+impl IntoIterator for GetDictionariesResponse {
+    type Item = DictionaryMetadataResponse;
+    type IntoIter = std::vec::IntoIter<Self::Item>;
 
-    pub fn latest_version_id(&self) -> &str {
-        &self.latest_version_id
-    }
-
-    pub fn name(&self) -> &str {
-        &self.name
-    }
-
-    pub fn created_by(&self) -> &str {
-        &self.created_by
-    }
-
-    pub fn creation_time_unix(&self) -> i64 {
-        self.creation_time_unix
-    }
-
-    pub fn description(&self) -> Option<&str> {
-        self.description.as_deref()
+    fn into_iter(self) -> Self::IntoIter {
+        self.pronunciation_dictionaries.into_iter()
     }
 }
 
-/// This endpoint returns the pronunciation dictionary with the specified ID.
-///
-/// # Example
-/// ```no_run
-/// use elevenlabs_rs::*;
-/// use elevenlabs_rs::endpoints::pronunciation::*;
-///
-/// #[tokio::main]
-/// async fn main() -> Result<()> {
-///   let c = ElevenLabsClient::default()?;
-///   let resp = c.hit(GetDictionary::new("dictionary_id")).await?;
-///   println!("{:?}", resp);
-///  Ok(())
-/// }
-/// ```
-#[derive(Clone, Debug)]
-pub struct GetDictionary(DictionaryID);
+impl<'a> IntoIterator for &'a GetDictionariesResponse {
+    type Item = &'a DictionaryMetadataResponse;
+    type IntoIter = std::slice::Iter<'a, DictionaryMetadataResponse>;
 
-impl GetDictionary {
-    pub fn new(id: &str) -> Self {
-        Self(DictionaryID::from(id.to_string()))
-    }
-}
-
-#[derive(Clone, Debug)]
-struct DictionaryID(String);
-
-impl From<String> for DictionaryID {
-    fn from(id: String) -> Self {
-        Self(id)
-    }
-
-}
-
-impl Endpoint for GetDictionary {
-    type ResponseBody = PronunciationDictionary;
-
-    const METHOD: Method = Method::GET;
-
-    async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
-        Ok(resp.json().await?)
-    }
-
-    fn url(&self) -> Result<Url> {
-        let mut url = BASE_URL.parse::<Url>().unwrap();
-        url.set_path(&format!("{}/{}", PRONUNCIATION_PATH, self.0 .0));
-        Ok(url)
-    }
-}
-
-/// This endpoint returns the PLS file with the pronunciation dictionary version rules.
-///
-/// # Example
-/// ```no_run
-/// use elevenlabs_rs::*;
-/// use elevenlabs_rs::endpoints::pronunciation::*;
-/// use elevenlabs_rs::utils::save;
-///
-/// #[tokio::main]
-/// async fn main() -> Result<()> {
-///   let c = ElevenLabsClient::default()?;
-///   let resp_bytes = c.hit(DownloadVersionByID::new("dictionary_id", "version_id")).await?;
-///   save("dictionary_rules.pls", resp_bytes)?;
-///   Ok(())
-/// }
-/// ```
-#[derive(Clone, Debug)]
-pub struct DownloadVersionByID {
-    dictionary_id: DictionaryID,
-    version_id: VersionID,
-}
-
-impl DownloadVersionByID {
-    pub fn new(dictionary_id: &str, version_id: &str) -> Self {
-        Self {
-            dictionary_id: DictionaryID::from(dictionary_id.to_string()),
-            version_id: VersionID::from(version_id.to_string()),
-        }
-    }
-}
-
-/// This struct represents the version ID of a pronunciation dictionary.
-#[derive(Clone, Debug)]
-struct VersionID(String);
-
-impl From<String> for VersionID {
-    fn from(id: String) -> Self {
-        Self(id)
-    }
-}
-
-impl Endpoint for DownloadVersionByID {
-    type ResponseBody = Bytes;
-
-    const METHOD: Method = Method::GET;
-
-    async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
-        Ok(resp.bytes().await?)
-    }
-
-    fn url(&self) -> Result<Url> {
-        let mut url = BASE_URL.parse::<Url>().unwrap();
-        url.set_path(&format!(
-            "{}/{}/{}{}",
-            PRONUNCIATION_PATH, self.dictionary_id.0, self.version_id.0, DOWNLOAD_PATH
-        ));
-        Ok(url)
-    }
-}
-
-/// This endpoint removes the specified rules from the pronunciation dictionary.
-///
-/// # Example
-/// ```no_run
-/// use elevenlabs_rs::*;
-/// use elevenlabs_rs::endpoints::pronunciation::*;
-///
-/// #[tokio::main]
-/// async fn main() -> Result<()> {
-///    let c = ElevenLabsClient::default()?;
-///    let remove_rules = vec!["rule_string_1", "rule_string_2"];
-///    let resp = c.hit(RemoveRules::new("dictionary_id", remove_rules)).await?;
-///    println!("{:?}", resp);
-///    Ok(())
-/// }
-/// ```
-#[derive(Clone, Debug)]
-pub struct RemoveRules {
-    param: DictionaryID,
-    body: RemoveRulesBody,
-}
-
-impl RemoveRules {
-    pub fn new(dictionary_id: &str, rules: Vec<&str>) -> Self {
-        let body = RemoveRulesBody::new(rules);
-        Self {
-            param: DictionaryID::from(dictionary_id.to_string()),
-            body,
-        }
-    }
-}
-
-/// This struct is used to build the request body for the RemoveRules endpoint.
-/// The rules are removed from the latest version of the pronunciation dictionary.
-#[derive(Clone, Debug, Serialize)]
-struct RemoveRulesBody {
-    rule_strings: Vec<String>,
-}
-
-impl RemoveRulesBody {
-    fn new(rules: Vec<&str>) -> Self {
-        Self {
-            rule_strings: rules.iter().map(|r| r.to_string()).collect(),
-        }
-    }
-}
-
-impl Endpoint for RemoveRules {
-    type ResponseBody = RulesResponse;
-
-    const METHOD: Method = Method::POST;
-
-    async fn request_body(&self) -> Result<RequestBody> {
-        Ok(RequestBody::Json(serde_json::to_value(&self.body)?))
-    }
-
-    async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
-        Ok(resp.json().await?)
-    }
-
-    fn url(&self) -> Result<Url> {
-        let mut url = BASE_URL.parse::<Url>().unwrap();
-        url.set_path(&format!(
-            "{}/{}{}",
-            PRONUNCIATION_PATH, self.param.0, REMOVE_RULES_PATH
-        ));
-        Ok(url)
+    fn into_iter(self) -> Self::IntoIter {
+        self.pronunciation_dictionaries.iter()
     }
 }
