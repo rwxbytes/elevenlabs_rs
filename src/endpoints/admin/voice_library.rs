@@ -1,4 +1,3 @@
-#![allow(dead_code)]
 //! The voice library endpoints
 //!
 //! This module contains endpoints related to the voice library.
@@ -23,27 +22,29 @@
 //!
 //! # Example
 //! ```no_run
-//! use elevenlabs_rs::*;
+//! use elevenlabs_rs::{ElevenLabsClient, Result};
+//! use elevenlabs_rs::endpoints::admin::voice_library::*;
 //!
 //! #[tokio::main]
 //! async fn main() -> Result<()> {
-//!     let c = ElevenLabsClient::default()?;
+//!     let c = ElevenLabsClient::from_env()?;
 //!
 //!     let mut query = SharedVoicesQuery::default();
+//!
 //!     query = query
 //!         .with_page_size(1)
-//!         .with_category(Category::HighQuality)
+//!         .with_category(SharedVoiceCategory::HighQuality)
 //!         .with_gender(Gender::Female)
 //!         .with_age(Age::Young)
-//!         .with_language("en")
+//!         .with_language(Language::English)
 //!         .with_accent("indian")
-//!         .with_use_cases(vec!["social_media".to_string()]);
+//!         .with_use_cases("social_media");
 //!
-//!     let resp = c.hit(GetSharedVoices::new(query)).await?;
+//!     let resp = c.hit(GetSharedVoices::with_query(query)).await?;
 //!
-//!     if let Some(shared_voice) = resp.voices().first() {
-//!         let public_user_id = shared_voice.public_owner_id();
-//!         let voice_id = shared_voice.voice_id();
+//!     if let Some(shared_voice) = resp.voices.first() {
+//!         let public_user_id = &shared_voice.public_owner_id;
+//!         let voice_id = &shared_voice.voice_id;
 //!         let add_shared_voice = AddSharedVoice::new(public_user_id, voice_id, "Maya");
 //!         let resp = c.hit(add_shared_voice).await?;
 //!         println!("{:#?}", resp);
@@ -53,189 +54,101 @@
 //!     Ok(())
 //! }
 //! ```
-use super::*;
-pub use crate::endpoints::voice_generation::Age;
-const SHARED_VOICES_PATH: &str = "/v1/shared-voices";
-const PAGE_SIZE_QUERY: &str = "page_size";
-const CATEGORY_QUERY: &str = "category";
-const GENDER_QUERY: &str = "gender";
-const AGE_QUERY: &str = "age";
-const ACCENT_QUERY: &str = "accent";
-const LANGUAGE_QUERY: &str = "language";
-const SEARCH_QUERY: &str = "search";
-const USE_CASES_QUERY: &str = "use_cases";
-const DESCRIPTIVES_QUERY: &str = "descriptives";
-const FEATURED_QUERY: &str = "featured";
-const RENDERED_APP_ENABLED_QUERY: &str = "rendered_app_enabled";
-const OWNER_ID_QUERY: &str = "owner_id";
-const SORT_QUERY: &str = "sort";
-const PAGE_QUERY: &str = "page";
 
-/// Get shared voices
+use super::*;
+pub use crate::shared::{Age, Language};
+
+/// Gets a list of shared voices.
 ///
 /// # Example
 /// ```no_run
-/// use elevenlabs_rs::*;
-/// use elevenlabs_rs::endpoints::voice_library::*;
+/// use elevenlabs_rs::{ElevenLabsClient, Result};
+/// use elevenlabs_rs::endpoints::admin::voice_library::*;
 ///
 /// #[tokio::main]
 /// async fn main() -> Result<()> {
-///     let c = ElevenLabsClient::default()?;
+///     let c = ElevenLabsClient::from_env()?;
 ///     let mut query = SharedVoicesQuery::default();
 ///     query = query
 ///         .with_page_size(1)
-///         .with_category(Category::Professional)
+///         .with_category(SharedVoiceCategory::Professional)
 ///         .with_gender(Gender::Male)
 ///         .with_age(Age::MiddleAged)
 ///         .with_accent("irish")
-///         .with_language("en")
-///         .with_use_cases(vec!["narrative_story".to_string()])
-///         .with_descriptives(vec!["confident".to_string()]);
-///     let resp = c.hit(GetSharedVoices::new(query)).await?;
+///         .with_language(Language::English)
+///         .with_use_cases("narrative_story")
+///         .with_descriptives("confident");
+///     let resp = c.hit(GetSharedVoices::with_query(query)).await?;
 ///     println!("{:#?}", resp);
 ///     Ok(())
 /// }
 /// ```
-/// See [ElevenLabs API documentation](https://elevenlabs.io/docs/api-reference/query-library) for more information
-#[derive(Clone, Debug)]
-pub struct GetSharedVoices(SharedVoicesQuery);
+/// See [Get Shared Voices API reference](https://elevenlabs.io/docs/api-reference/voice-library/get-shared)
+#[derive(Clone, Debug, Default)]
+pub struct GetSharedVoices {
+    query: Option<SharedVoicesQuery>,
+}
 
 impl GetSharedVoices {
-    pub fn new(query: SharedVoicesQuery) -> Self {
-        GetSharedVoices(query)
+    pub fn with_query(query: SharedVoicesQuery) -> Self {
+        GetSharedVoices { query: Some(query) }
     }
 }
 
-impl Endpoint for GetSharedVoices {
-    type ResponseBody = SharedVoicesResponse;
+impl ElevenLabsEndpoint for GetSharedVoices {
+    const PATH: &'static str = "/v1/shared-voices";
 
     const METHOD: Method = Method::GET;
+
+    type ResponseBody = GetSharedVoicesResponse;
+
+    fn query_params(&self) -> Option<QueryValues> {
+        self.query.as_ref().map(|q| q.params.clone())
+    }
+
     async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
         Ok(resp.json().await?)
-    }
-    fn url(&self) -> Result<Url> {
-        let mut url = BASE_URL.parse::<Url>().unwrap();
-        url.set_path(SHARED_VOICES_PATH);
-        url.set_query(Some(&self.0.to_string()));
-        Ok(url)
     }
 }
 
 /// Shared voices response
 #[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct SharedVoicesResponse {
-    voices: Vec<SharedVoice>,
-    has_more: bool,
-    last_sort_id: Option<String>,
-}
-
-impl SharedVoicesResponse {
-    pub fn voices(&self) -> &Vec<SharedVoice> {
-        &self.voices
-    }
-    pub fn has_more(&self) -> bool {
-        self.has_more
-    }
-    pub fn last_sort_id(&self) -> Option<&str> {
-        self.last_sort_id.as_deref()
-    }
+pub struct GetSharedVoicesResponse {
+    pub voices: Vec<SharedVoice>,
+    pub has_more: bool,
+    pub last_sort_id: Option<String>,
 }
 
 /// Shared voice
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct SharedVoice {
-    public_owner_id: String,
-    voice_id: String,
-    date_unix: f32,
-    name: String,
-    accent: String,
-    gender: String,
-    age: String,
-    descriptive: String,
-    use_case: String,
-    category: String,
-    language: String,
-    description: String,
-    preview_url: String,
-    usage_character_count_1y: f32,
-    usage_character_count_7d: f32,
-    play_api_usage_character_count_1y: f32,
-    cloned_by_count: f32,
-    rate: f32,
-    free_users_allowed: bool,
-    live_moderation_enabled: bool,
-    featured: bool,
-    notice_period: Option<f32>,
-    instagram_username: Option<String>,
-    twitter_username: Option<String>,
-    youtube_username: Option<String>,
-    tiktok_username: Option<String>,
-}
-
-impl SharedVoice {
-    pub fn public_owner_id(&self) -> &str {
-        &self.public_owner_id
-    }
-    pub fn voice_id(&self) -> &str {
-        &self.voice_id
-    }
-    pub fn date_unix(&self) -> f32 {
-        self.date_unix
-    }
-    pub fn name(&self) -> &str {
-        &self.name
-    }
-    pub fn accent(&self) -> &str {
-        &self.accent
-    }
-    pub fn language(&self) -> &str {
-        &self.language
-    }
-    pub fn description(&self) -> &str {
-        &self.description
-    }
-    pub fn preview_url(&self) -> &str {
-        &self.preview_url
-    }
-    pub fn usage_character_count_1y(&self) -> f32 {
-        self.usage_character_count_1y
-    }
-    pub fn usage_character_count_7d(&self) -> f32 {
-        self.usage_character_count_7d
-    }
-    pub fn play_api_usage_character_count_1y(&self) -> f32 {
-        self.play_api_usage_character_count_1y
-    }
-    pub fn cloned_by_count(&self) -> f32 {
-        self.cloned_by_count
-    }
-    pub fn rate(&self) -> f32 {
-        self.rate
-    }
-    pub fn free_users_allowed(&self) -> bool {
-        self.free_users_allowed
-    }
-    pub fn live_moderation_enabled(&self) -> bool {
-        self.live_moderation_enabled
-    }
-    pub fn featured(&self) -> bool {
-        self.featured
-    }
-    pub fn notice_period(&self) -> Option<f32> {
-        self.notice_period
-    }
-    pub fn instagram_username(&self) -> Option<&str> {
-        self.instagram_username.as_deref()
-    }
-    pub fn twitter_username(&self) -> Option<&str> {
-        self.twitter_username.as_deref()
-    }
-    pub fn youtube_username(&self) -> Option<&str> {
-        self.youtube_username.as_deref()
-    }
-    pub fn tiktok_username(&self) -> Option<&str> {
-        self.tiktok_username.as_deref()
-    }
+    pub public_owner_id: String,
+    pub voice_id: String,
+    pub date_unix: f32,
+    pub name: String,
+    pub accent: String,
+    pub gender: Gender,
+    pub age: Age,
+    pub descriptive: String,
+    pub use_case: String,
+    pub category: SharedVoiceCategory,
+    #[serde(deserialize_with = "Language::from_code")]
+    pub language: Language,
+    pub description: String,
+    pub preview_url: String,
+    pub usage_character_count_1y: f32,
+    pub usage_character_count_7d: f32,
+    pub play_api_usage_character_count_1y: f32,
+    pub cloned_by_count: f32,
+    pub rate: f32,
+    pub free_users_allowed: bool,
+    pub live_moderation_enabled: bool,
+    pub featured: bool,
+    pub notice_period: Option<f32>,
+    pub instagram_username: Option<String>,
+    pub twitter_username: Option<String>,
+    pub youtube_username: Option<String>,
+    pub tiktok_username: Option<String>,
 }
 
 /// Shared voices query
@@ -243,212 +156,86 @@ impl SharedVoice {
 /// See [ElevenLabs API documentation](https://elevenlabs.io/docs/api-reference/query-library) for more information
 #[derive(Clone, Debug, Default)]
 pub struct SharedVoicesQuery {
-    pub page_size: Option<String>,
-    pub category: Option<String>,
-    pub gender: Option<String>,
-    pub age: Option<String>,
-    pub accent: Option<String>,
-    pub language: Option<String>,
-    pub search: Option<String>,
-    pub use_cases: Option<String>,
-    pub descriptives: Option<String>,
-    pub featured: Option<String>,
-    pub rendered_app_enabled: Option<String>,
-    pub owner_id: Option<String>,
-    pub sort: Option<String>,
-    pub page: Option<String>,
+    params: QueryValues,
 }
 
 impl SharedVoicesQuery {
     pub fn with_page_size(mut self, page_size: u16) -> Self {
-        self.page_size = Some(format!("{}={}", PAGE_SIZE_QUERY, page_size));
+        self.params.push(("page_size", page_size.to_string()));
         self
     }
-    pub fn with_category(mut self, category: Category) -> Self {
-        self.category = Some(format!("{}={}", CATEGORY_QUERY, category.as_str()));
+    pub fn with_category(mut self, category: SharedVoiceCategory) -> Self {
+        self.params.push(("category", category.to_string()));
         self
     }
     pub fn with_gender(mut self, gender: Gender) -> Self {
-        self.gender = Some(format!("{}={}", GENDER_QUERY, gender.as_str()));
+        self.params.push(("gender", gender.to_string()));
         self
     }
     pub fn with_age(mut self, age: Age) -> Self {
-        self.age = Some(format!("{}={}", AGE_QUERY, age.as_str()));
+        self.params.push(("age", age.as_str().to_string()));
         self
     }
     pub fn with_accent(mut self, accent: &str) -> Self {
-        self.accent = Some(format!("{}={}", ACCENT_QUERY, accent));
+        self.params.push(("accent", accent.to_string()));
         self
     }
-    pub fn with_language(mut self, language: &str) -> Self {
-        self.language = Some(format!("{}={}", LANGUAGE_QUERY, language));
+    pub fn with_language(mut self, language: Language) -> Self {
+        let language = serde_json::to_string(&language).unwrap();
+        self.params.push(("language", language));
         self
     }
     pub fn with_search(mut self, search: &str) -> Self {
-        self.search = Some(format!("{}={}", SEARCH_QUERY, search));
+        self.params.push(("search", search.to_string()));
         self
     }
-    pub fn with_use_cases(mut self, use_cases: Vec<String>) -> Self {
-        let use_cases_formatted = use_cases
-            .iter()
-            .map(|use_case| format!("{}={}", USE_CASES_QUERY, use_case))
-            .collect::<Vec<String>>()
-            .join("&");
-        self.use_cases = Some(use_cases_formatted);
+    pub fn with_use_cases(mut self, use_cases: &str) -> Self {
+        self.params.push(("use_cases", use_cases.to_string()));
         self
     }
-    pub fn with_descriptives(mut self, descriptives: Vec<String>) -> Self {
-        let descriptives_formatted = descriptives
-            .iter()
-            .map(|descriptive| format!("{}={}", DESCRIPTIVES_QUERY, descriptive))
-            .collect::<Vec<String>>()
-            .join("&");
-        self.descriptives = Some(descriptives_formatted);
+    pub fn with_descriptives(mut self, descriptives: &str) -> Self {
+        self.params.push(("descriptives", descriptives.to_string()));
         self
     }
     pub fn with_featured(mut self, featured: bool) -> Self {
-        self.featured = Some(format!("{}={}", FEATURED_QUERY, featured));
+        self.params.push(("featured", featured.to_string()));
         self
     }
     pub fn with_rendered_app_enabled(mut self, rendered_app_enabled: bool) -> Self {
-        self.rendered_app_enabled = Some(format!(
-            "{}={}",
-            RENDERED_APP_ENABLED_QUERY, rendered_app_enabled
-        ));
+        self.params
+            .push(("rendered_app_enabled", rendered_app_enabled.to_string()));
         self
     }
     pub fn with_owner_id(mut self, owner_id: &str) -> Self {
-        self.owner_id = Some(format!("{}={}", OWNER_ID_QUERY, owner_id));
+        self.params.push(("owner_id", owner_id.to_string()));
         self
     }
     pub fn with_sort(mut self, sort: &str) -> Self {
-        self.sort = Some(format!("{}={}", SORT_QUERY, sort));
+        self.params.push(("sort", sort.to_string()));
         self
     }
     pub fn with_page(mut self, page: u16) -> Self {
-        self.page = Some(format!("{}={}", PAGE_QUERY, page));
+        self.params.push(("page", page.to_string()));
         self
-    }
-
-    fn to_string(&self) -> String {
-        let mut result = String::new();
-
-        if let Some(value) = self.page_size.as_ref() {
-            result.push_str(&value);
-        }
-        if let Some(value) = self.category.as_ref() {
-            if !result.is_empty() {
-                result.push('&');
-            }
-            result.push_str(&value);
-        }
-        if let Some(value) = self.gender.as_ref() {
-            if !result.is_empty() {
-                result.push('&');
-            }
-            result.push_str(&value);
-        }
-        if let Some(value) = self.age.as_ref() {
-            if !result.is_empty() {
-                result.push('&');
-            }
-            result.push_str(&value);
-        }
-        if let Some(value) = self.accent.as_ref() {
-            if !result.is_empty() {
-                result.push('&');
-            }
-            result.push_str(&value);
-        }
-        if let Some(value) = self.language.as_ref() {
-            if !result.is_empty() {
-                result.push('&');
-            }
-            result.push_str(&value);
-        }
-        if let Some(value) = self.search.as_ref() {
-            if !result.is_empty() {
-                result.push('&');
-            }
-            result.push_str(&value);
-        }
-        if let Some(value) = self.use_cases.as_ref() {
-            if !result.is_empty() {
-                result.push('&');
-            }
-            result.push_str(&value);
-        }
-        if let Some(value) = self.descriptives.as_ref() {
-            if !result.is_empty() {
-                result.push('&');
-            }
-            result.push_str(&value);
-        }
-        if let Some(value) = self.featured.as_ref() {
-            if !result.is_empty() {
-                result.push('&');
-            }
-            result.push_str(&value);
-        }
-        if let Some(value) = self.rendered_app_enabled.as_ref() {
-            if !result.is_empty() {
-                result.push('&');
-            }
-            result.push_str(&value);
-        }
-        if let Some(value) = self.owner_id.as_ref() {
-            if !result.is_empty() {
-                result.push('&');
-            }
-            result.push_str(&value);
-        }
-        if let Some(value) = self.sort.as_ref() {
-            if !result.is_empty() {
-                result.push('&');
-            }
-            result.push_str(&value);
-        }
-        if let Some(value) = self.page.as_ref() {
-            if !result.is_empty() {
-                result.push('&');
-            }
-            result.push_str(&value);
-        }
-        result
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
 pub enum Gender {
     Female,
     Male,
     Neutral,
 }
 
-impl Gender {
-    pub fn as_str(&self) -> &str {
-        match self {
+impl std::fmt::Display for Gender {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let value = match self {
             Gender::Female => "female",
             Gender::Male => "male",
             Gender::Neutral => "neutral",
-        }
-    }
-}
-
-#[derive(Clone, Debug)]
-pub enum Category {
-    Generated,
-    HighQuality,
-    Professional,
-}
-
-impl Category {
-    pub fn as_str(&self) -> &str {
-        match self {
-            Category::Generated => "generated",
-            Category::HighQuality => "high_quality",
-            Category::Professional => "professional",
-        }
+        };
+        write!(f, "{}", value)
     }
 }
 
@@ -456,11 +243,12 @@ impl Category {
 ///
 /// # Example
 /// ```no_run
-/// use elevenlabs_rs::*;
+/// use elevenlabs_rs::{ElevenLabsClient, Result};
+/// use elevenlabs_rs::endpoints::admin::voice_library::AddSharedVoice;
 ///
 /// #[tokio::main]
 /// async fn main() -> Result<()> {
-///     let c = ElevenLabsClient::default()?;
+///     let c = ElevenLabsClient::from_env()?;
 ///     let public_user_id = "some_public_user_id";
 ///     let voice_id = "some_voice_id";
 ///     let name = "new_voice_name";
@@ -470,100 +258,56 @@ impl Category {
 ///     Ok(())
 /// }
 /// ```
-/// See [ElevenLabs API documentation](https://elevenlabs.io/docs/api-reference/add-shared-voice) for more information
+/// See [Add Sharing Voice API reference](https://elevenlabs.io/docs/api-reference/voice-library/add-sharing-voice)
 #[derive(Clone, Debug)]
 pub struct AddSharedVoice {
-    pub params: AddSharedVoiceParams,
-    pub body: AddSharedVoiceBody,
+    public_user_id: PublicUserID,
+    voice_id: VoiceID,
+    body: AddSharedVoiceBody,
 }
 
 impl AddSharedVoice {
-    pub fn new(public_user_id: &str, voice_id: &str, new_name: &str) -> Self {
-        let params = AddSharedVoiceParams::new(public_user_id, voice_id);
+    pub fn new(
+        public_user_id: impl Into<PublicUserID>,
+        voice_id: impl Into<VoiceID>,
+        new_name: &str,
+    ) -> Self {
         let body = AddSharedVoiceBody::new(new_name);
-        AddSharedVoice { params, body }
-    }
-    /// If you don't care about changing the name of the voice, use `from_shared_voice`
-    ///
-    /// # Example
-    /// ```no_run
-    /// use elevenlabs_rs::*;
-    ///
-    /// #[tokio::main]
-    /// async fn main() -> Result<()> {
-    ///     let c = ElevenLabsClient::default()?;
-    ///     let mut query = SharedVoicesQuery::default();
-    ///     query = query
-    ///         .with_page_size(1)
-    ///         .with_use_cases(vec!["characters_animation".to_string()])
-    ///         .with_descriptives(vec!["deep".to_string()]);
-    ///     let resp = c.hit(GetSharedVoices::new(query)).await?;
-    ///     println!("{:#?}", resp);
-    ///     if let Some(shared_voice) = resp.voices().first() {
-    ///         let resp = c.hit(AddSharedVoice::from_shared_voice(shared_voice)).await?;
-    ///         println!("{:#?}", resp);
-    ///     } else {
-    ///         println!("no shared voices found with query")
-    ///     }
-    ///     Ok(())
-    /// }
-    /// ```
-    pub fn from_shared_voice(v: &SharedVoice) -> Self {
-        AddSharedVoice::new(v.public_owner_id(), v.voice_id(), v.name())
+        AddSharedVoice {
+            public_user_id: public_user_id.into(),
+            voice_id: voice_id.into(),
+            body,
+        }
     }
 }
 
-impl Endpoint for AddSharedVoice {
-    type ResponseBody = AddSharedVoiceResponse;
+impl ElevenLabsEndpoint for AddSharedVoice {
+    const PATH: &'static str = "/v1/voices/add/:public_user_id/:voice_id";
 
     const METHOD: Method = Method::POST;
+
+    type ResponseBody = AddSharedVoiceResponse;
+
+    fn path_params(&self) -> Vec<(&'static str, &str)> {
+        vec![
+            self.public_user_id.as_path_param(),
+            self.voice_id.as_path_param(),
+        ]
+    }
+
     async fn request_body(&self) -> Result<RequestBody> {
         Ok(RequestBody::Json(serde_json::to_value(&self.body)?))
     }
+
     async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
         Ok(resp.json().await?)
-    }
-    fn url(&self) -> Result<Url> {
-        let mut url = BASE_URL.parse::<Url>().unwrap();
-        url.set_path(&format!(
-            "{}{}/{}/{}",
-            VOICES_PATH, ADD_VOICE_PATH, self.params.public_user_id.0, self.params.voice_id.0
-        ));
-        Ok(url)
     }
 }
 
 /// Response for adding a shared voice
 #[derive(Clone, Debug, Deserialize)]
 pub struct AddSharedVoiceResponse {
-    voice_id: String,
-}
-
-/// Parameters for adding a shared voice
-#[derive(Clone, Debug)]
-pub struct AddSharedVoiceParams {
-    public_user_id: PublicUserID,
-    voice_id: VoiceID,
-}
-
-impl AddSharedVoiceParams {
-    pub fn new(public_user_id: &str, voice_id: &str) -> Self {
-        let public_user_id = PublicUserID::from(public_user_id);
-        let voice_id = VoiceID::from(voice_id.to_string());
-        AddSharedVoiceParams {
-            public_user_id,
-            voice_id,
-        }
-    }
-}
-
-#[derive(Clone, Debug)]
-pub(crate) struct PublicUserID(pub(crate) String);
-
-impl From<&str> for PublicUserID {
-    fn from(id: &str) -> Self {
-        PublicUserID(id.to_string())
-    }
+    pub voice_id: String,
 }
 
 /// The name that identifies this voice. This will be displayed in the dropdown of the website.
@@ -577,5 +321,26 @@ impl AddSharedVoiceBody {
         AddSharedVoiceBody {
             new_name: new_name.to_string(),
         }
+    }
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum SharedVoiceCategory {
+    Generated,
+    HighQuality,
+    Professional,
+    Famous,
+}
+
+impl std::fmt::Display for SharedVoiceCategory {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let value = match self {
+            SharedVoiceCategory::Generated => "generated",
+            SharedVoiceCategory::HighQuality => "high_quality",
+            SharedVoiceCategory::Professional => "professional",
+            SharedVoiceCategory::Famous => "famous",
+        };
+        write!(f, "{}", value)
     }
 }
