@@ -34,7 +34,7 @@ impl DubAVideoOrAnAudioFile {
     ///
     /// #[tokio::main]
     /// async fn main() -> Result<()> {
-    ///    let c = ElevenLabsClient::default()?;
+    ///    let c = ElevenLabsClient::from_env()?;
     ///    let file = "some_video_file.mp4";
     ///    let endpoint = DubAVideoOrAnAudioFile::from_file(file, "ja", "en");
     ///    let resp = c.hit(endpoint).await?;
@@ -63,7 +63,7 @@ impl DubAVideoOrAnAudioFile {
     ///
     /// #[tokio::main]
     /// async fn main() -> Result<()> {
-    ///    let c = ElevenLabsClient::default()?;
+    ///    let c = ElevenLabsClient::from_env()?;
     ///    let url = "some_url";
     ///    let endpoint = DubAVideoOrAnAudioFile::from_url(url, "en", "fr");
     ///    let resp = c.hit(endpoint).await?;
@@ -87,19 +87,17 @@ impl DubAVideoOrAnAudioFile {
 impl Endpoint for DubAVideoOrAnAudioFile {
     type ResponseBody = DubAVideoOrAnAudioFileResponse;
 
-    fn method(&self) -> Method {
-        Method::POST
-    }
+    const METHOD: Method = Method::POST;
     async fn request_body(&self) -> Result<RequestBody> {
         Ok(RequestBody::Multipart(to_form(self.0.clone())?))
     }
     async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
         Ok(resp.json().await?)
     }
-    fn url(&self) -> Url {
+    fn url(&self) -> Result<Url> {
         let mut url = BASE_URL.parse::<Url>().unwrap();
         url.set_path(DUBBING_PATH);
-        url
+        Ok(url)
     }
 }
 
@@ -291,16 +289,14 @@ impl GetDubbingProjectMetadata {
 impl Endpoint for GetDubbingProjectMetadata {
     type ResponseBody = GetDubbingProjectMetadataResponse;
 
-    fn method(&self) -> Method {
-        Method::GET
-    }
+    const METHOD: Method = Method::GET;
     async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
         Ok(resp.json().await?)
     }
-    fn url(&self) -> Url {
+    fn url(&self) -> Result<Url> {
         let mut url = BASE_URL.parse::<Url>().unwrap();
         url.set_path(&format!("{}/{}", DUBBING_PATH, self.0 .0));
-        url
+        Ok(url)
     }
 }
 
@@ -345,7 +341,7 @@ impl GetDubbingProjectMetadataResponse {
 ///
 /// #[tokio::main]
 /// async fn main() -> Result<()> {
-///     let c = ElevenLabsClient::default()?;
+///     let c = ElevenLabsClient::from_env()?;
 ///     let dub_params = GetDubbedFileParams::new("some dubbing id", "en");
 ///     let resp = c.hit(GetDubbedFile(dub_params)).await?;
 ///     save("dubbed_vid.mp4", resp)?;
@@ -358,19 +354,17 @@ pub struct GetDubbedFile(pub GetDubbedFileParams);
 impl Endpoint for GetDubbedFile {
     type ResponseBody = Bytes;
 
-    fn method(&self) -> Method {
-        Method::GET
-    }
+    const METHOD: Method = Method::GET;
     async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
         Ok(resp.bytes().await?)
     }
-    fn url(&self) -> Url {
+    fn url(&self) -> Result<Url> {
         let mut url = BASE_URL.parse::<Url>().unwrap();
         url.set_path(&format!(
             "{}/{}{}/{}",
             DUBBING_PATH, self.0.dubbing_id.0, AUDIO_PATH, self.0.language_code
         ));
-        url
+        Ok(url)
     }
 }
 
@@ -401,18 +395,16 @@ impl DeleteDubbingProject {
 impl Endpoint for DeleteDubbingProject {
     type ResponseBody = StatusResponseBody;
 
-    fn method(&self) -> Method {
-        Method::DELETE
-    }
+    const METHOD: Method = Method::DELETE;
 
     async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
         Ok(resp.json().await?)
     }
 
-    fn url(&self) -> Url {
+    fn url(&self) -> Result<Url> {
         let mut url = BASE_URL.parse::<Url>().unwrap();
         url.set_path(&format!("{}/{}", DUBBING_PATH, self.0 .0));
-        url
+        Ok(url)
     }
 }
 fn to_form(body: DubbingBody) -> Result<Form> {
