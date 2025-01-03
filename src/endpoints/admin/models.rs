@@ -11,7 +11,7 @@ use super::*;
 ///
 /// #[tokio::main]
 /// async fn main() -> Result<()> {
-///   let client = ElevenLabsClient::default()?;
+///   let client = ElevenLabsClient::from_env()?;
 ///   let models = client.hit(GetModels).await?;
 ///   println!("{:#?}", models);
 ///   Ok(())

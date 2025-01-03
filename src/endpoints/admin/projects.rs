@@ -12,7 +12,7 @@ use super::*;
 ///
 /// #[tokio::main]
 /// async fn main() -> Result<()> {
-///    let c = ElevenLabsClient::default()?;
+///    let c = ElevenLabsClient::from_env()?;
 ///    let resp = c.hit(GetProjects).await?;
 ///    println!("{:?}", resp);
 ///    Ok(())
