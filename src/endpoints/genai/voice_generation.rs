@@ -28,7 +28,7 @@ const TEXT_LENGTH_MAX: u64 = 1000;
 ///
 /// #[tokio::main]
 /// async fn main() -> Result<()> {
-///     let c = ElevenLabsClient::default()?;
+///     let c = ElevenLabsClient::from_env()?;
 ///
 ///     let body = GenerateVoiceBody::new(
 ///         GenderType::Female,
@@ -151,24 +151,6 @@ impl Accent {
             Accent::Australian => "australian",
             Accent::British => "british",
             Accent::Indian => "indian",
-        }
-    }
-}
-
-#[derive(Clone, Debug, Serialize)]
-#[serde(rename_all = "snake_case")]
-pub enum Age {
-    Young,
-    MiddleAged,
-    Old,
-}
-
-impl Age {
-    pub fn as_str(&self) -> &str {
-        match self {
-            Age::Young => "young",
-            Age::MiddleAged => "middle_aged",
-            Age::Old => "old",
         }
     }
 }

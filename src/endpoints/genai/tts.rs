@@ -578,7 +578,7 @@ pub mod ws {
     ///
     ///     let body = WebSocketTTSBody::new(BOSMessage::default(), text_stream);
     ///     let endpoint = WebSocketTTS::new(LegacyVoice::Alice, Model::ElevenTurboV2, body);
-    ///     let client = ElevenLabsClient::default()?;
+    ///     let client = ElevenLabsClient::from_env()?;
     ///     let stream = client.hit_ws(endpoint).await?;
     ///
     ///     stream_audio(stream.map(|r| r?.audio_as_bytes())).await?;
@@ -633,7 +633,7 @@ pub mod ws {
     ///         ]);
     ///     let endpoint = WebSocketTTS::new(LegacyVoice::Liam, Model::ElevenTurboV2, body);
     ///
-    ///     let client = ElevenLabsClient::default()?;
+    ///     let client = ElevenLabsClient::from_env()?;
     ///     let stream = client.hit_ws(endpoint).await?;
     ///
     ///     stream_audio(stream.map(|r| r?.audio_as_bytes())).await?;

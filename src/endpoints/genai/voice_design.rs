@@ -44,7 +44,7 @@
 //!
 //! #[tokio::main]
 //! async fn main() -> Result<()> {
-//!     let c = ElevenLabsClient::default()?;
+//!     let c = ElevenLabsClient::from_env()?;
 //!
 //!     // Create a new voice preview for a whimsical, mischievous fairy character
 //!     let body = CreatePreviewsBody::new(
@@ -94,7 +94,7 @@ const CREATE_VOICE_FROM_PREVIEW_PATH: &str = "/v1/text-to-voice/create-voice-fro
 ///
 /// #[tokio::main]
 /// async fn main() -> Result<()> {
-///     let c = ElevenLabsClient::default()?;
+///     let c = ElevenLabsClient::from_env()?;
 ///     let body = CreatePreviewsBody::new(
 ///      "The chief orc of a fearsome army",
 ///
@@ -215,7 +215,7 @@ impl VoicePreview {
 ///
 /// #[tokio::main]
 /// async fn main() -> Result<()> {
-///    let c = ElevenLabsClient::default()?;
+///    let c = ElevenLabsClient::from_env()?;
 ///    let name = "Anubis";
 ///    let voice_description = "The chief orc of a fearsome army";
 ///    let some_id = "generated_voice_id";

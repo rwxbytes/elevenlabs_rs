@@ -23,7 +23,7 @@ const STS_PATH: &str = "/v1/speech-to-speech";
 /// async fn main() -> Result<()> {
 ///    let model = Model::ElevenMultilingualV2STS;
 ///    let body = SpeechToSpeechBody::new("some_audio.mp3").with_model_id(model);
-///    let client = ElevenLabsClient::default()?;
+///    let client = ElevenLabsClient::from_env()?;
 ///    let resp = client.hit(SpeechToSpeech::new("voice_id", body)).await?;
 ///    play(resp)?;
 ///    Ok(())
@@ -155,7 +155,7 @@ impl Endpoint for SpeechToSpeech {
 ///    let model = Model::ElevenMultilingualV2STS;
 ///    let body = SpeechToSpeechBody::new("some_audio.mp3")
 ///        .with_model_id(model);
-///    let client = ElevenLabsClient::default()?;
+///    let client = ElevenLabsClient::from_env()?;
 ///    let resp_stream = client
 ///        .hit(SpeechToSpeechStream::new("voice_id", body))
 ///        .await?;

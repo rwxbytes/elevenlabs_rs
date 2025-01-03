@@ -16,7 +16,7 @@ const SOUND_GENERATION_PATH: &str = "/v1/sound-generation";
 ///
 /// #[tokio::main]
 /// async fn main() -> Result<()> {
-///    let c = ElevenLabsClient::default()?;
+///    let c = ElevenLabsClient::from_env()?;
 ///    let text = "Retro video game power-up";
 ///    let settings = GenerationSettings::new(true, 0.5, 1.0 );
 ///    let endpoint = SoundGeneration::new(text, settings);
