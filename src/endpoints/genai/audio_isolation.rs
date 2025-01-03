@@ -27,7 +27,7 @@ const AUDIO_ISOLATION_PATH: &str = "v1/audio-isolation";
 ///
 /// #[tokio::main]
 /// async fn main() -> Result<()> {
-///     let client = ElevenLabsClient::default()?;
+///     let client = ElevenLabsClient::from_env()?;
 ///     let endpoint = AudioIsolation::new("some_audio_file.mp3");
 ///     let resp = client.hit(endpoint).await?;
 ///     save("audio_file_isolated.mp3", resp.clone())?;
@@ -78,7 +78,7 @@ impl Endpoint for AudioIsolation {
 ///
 /// #[tokio::main]
 /// async fn main() -> Result<()> {
-///     let client = ElevenLabsClient::default()?;
+///     let client = ElevenLabsClient::from_env()?;
 ///     let endpoint = AudioIsolationStream::new("some_audio_file.mp3");
 ///     let resp = client.hit(endpoint).await?;
 ///     stream_audio(resp).await?;
