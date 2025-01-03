@@ -1,15 +1,15 @@
-pub use crate::client::{Result, BASE_URL};
+pub(crate) use crate::client::Result;
 pub(crate) use crate::shared::identifiers::*;
-pub use crate::shared::query_params::*;
-pub use crate::shared::response_bodies::*;
-pub use base64::prelude::{Engine, BASE64_STANDARD};
-pub use bytes::Bytes;
-pub use reqwest::{
+pub(crate) use crate::shared::query_params::*;
+pub(crate) use crate::shared::response_bodies::*;
+pub(crate) use base64::prelude::{Engine, BASE64_STANDARD};
+pub(crate) use bytes::Bytes;
+pub(crate) use reqwest::{
     multipart::{Form, Part},
     Method, Response, Url,
 };
-pub use serde::{Deserialize, Serialize};
-pub use serde_json::Value;
+pub(crate) use serde::{Deserialize, Serialize};
+pub(crate) use serde_json::Value;
 
 #[cfg(feature = "admin")]
 pub mod admin;
@@ -29,9 +29,13 @@ pub enum RequestBody {
 
 #[allow(async_fn_in_trait)]
 pub trait ElevenLabsEndpoint {
+
     const BASE_URL: &'static str = "https://api.elevenlabs.io";
+
     const PATH: &'static str;
+
     const METHOD: Method;
+
     type ResponseBody;
 
     fn query_params(&self) -> Option<QueryValues> {
@@ -45,6 +49,7 @@ pub trait ElevenLabsEndpoint {
     async fn request_body(&self) -> Result<RequestBody> {
         Ok(RequestBody::Empty)
     }
+
     async fn response_body(self, resp: Response) -> Result<Self::ResponseBody>;
 
     fn url(&self) -> Url {
