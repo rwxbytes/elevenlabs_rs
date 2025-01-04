@@ -259,6 +259,14 @@ impl From<Model> for String {
     }
 }
 
+impl From<Model> for ModelID {
+    fn from(model: Model) -> ModelID {
+        ModelID {
+            _inner: String::from(model),
+        }
+    }
+}
+
 #[derive(Clone, Debug, Default)]
 pub enum DefaultVoice {
     Aria,

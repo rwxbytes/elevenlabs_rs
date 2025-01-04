@@ -1,9 +1,8 @@
 //use crate::endpoints::tts::ws::{EOSMessage, Flush, TextChunk, WebSocketTTS, WebSocketTTSResponse};
 use crate::endpoints::{ElevenLabsEndpoint, RequestBody};
 use crate::error::Error::HttpError;
-use crate::error::{ElevenLabsClientError, ElevenLabsServerError, WebSocketError};
 //use futures_util::{pin_mut, SinkExt, Stream, StreamExt};
-use reqwest::{Method, Response, header::CONTENT_TYPE};
+use reqwest::{header::CONTENT_TYPE, Method, Response};
 //use tokio_tungstenite::tungstenite::protocol::frame::coding::CloseCode;
 //use tokio_tungstenite::{connect_async, tungstenite::protocol::Message};
 
@@ -52,8 +51,12 @@ impl ElevenLabsClient {
         }
 
         let resp = builder.send().await?;
-        let handled_resp = handle_http_error(resp).await?;
-        endpoint.response_body(handled_resp).await
+
+        if !resp.status().is_success() {
+            return Err(Box::new(HttpError(resp.json().await?)));
+        }
+
+        endpoint.response_body(resp).await
     }
 
     //pub async fn hit_ws<S>(
@@ -147,22 +150,6 @@ impl ElevenLabsClient {
     //    });
     //    Ok(rx)
     //}
-}
-
-async fn handle_http_error(resp: Response) -> Result<Response> {
-    if resp.status().is_server_error() {
-        let server_error = resp.json::<ElevenLabsServerError>().await?;
-        return Err(Box::new(server_error));
-    }
-    if resp.status().is_client_error() {
-        let client_error = resp.json::<ElevenLabsClientError>().await?;
-        return Err(Box::new(client_error));
-    }
-    // TODO: improve this error handling
-    if !resp.status().is_success() {
-        return Err(Box::new(HttpError(resp.json().await?)));
-    }
-    Ok(resp)
 }
 
 impl From<(reqwest::Client, String)> for ElevenLabsClient {

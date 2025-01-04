@@ -7,13 +7,10 @@ license = "MIT"
 edition = "2021"
 readme = "README.md"
 repository = "https://github.com/rwxbytes/elevenlabs_rs"
-keywords = ["elevenlabs", "tts", "text-to-speech", "voice-clone", "ai"]
+keywords = ["elevenlabs", "genai", "convai", "ai", "ai-agent"]
 
 exclude = [
     ".idea",
-    "/src/endpoints/conversational_ai.rs",
-    "/src/utils/audio_helpers.rs",
-    "/src/convai_client.rs",
 ]
 
 
@@ -27,14 +24,25 @@ reqwest = { version = "0.12.5", features = ["stream", "json", "multipart"] }
 rodio = { version = "0.17.1", optional = true }
 serde = { version = "1.0.173", features = ["derive"] }
 serde_json = "1.0.103"
+strum = { version = "0.26.3", features = ["derive"] }
 thiserror = "1.0.43"
 tokio = { version = "1.29.1", features = ["full"] }
 tokio-tungstenite = { version = "0.23.0", features = ["native-tls"] }
 
 [features]
-default = ["playback"]
+default = ["admin","playback"]
 playback = ["dep:rodio"]
-
+admin = []
+convai = []
+genai = []
+audio_isolation = []
+dubbing = []
+sound_generation = []
+sts = []
+tts = []
+voice_design = []
+voice_generation = []
+ws = []
 [dev-dependencies]
 twilio = "1.1.0"
 axum = { version = "0.7.5", features = ["ws"] }

@@ -1,4 +1,9 @@
+#![allow(deprecated)]
+#![allow(unused_imports)]
 use serde::{Deserialize, Serialize, Serializer};
+use std::string::ToString;
+use strum::Display;
+
 pub mod identifiers;
 pub mod response_bodies {
     use serde::Deserialize;
@@ -10,50 +15,54 @@ pub mod response_bodies {
 
 #[allow(dead_code)]
 pub mod query_params {
-    #[derive(Clone, Debug)]
+    use super::*;
+
+    #[deprecated(since = "0.3.2")]
+    #[derive(Clone, Debug, Display)]
     pub enum Latency {
         /// Default latency
+        #[strum(to_string = "0")]
         None = 0,
         ///  normal latency optimizations (about 50% of possible latency improvement of option 3)
+        #[strum(to_string = "1")]
         Normal = 1,
         /// strong latency optimizations (about 75% of possible latency improvement of option 3)
+        #[strum(to_string = "2")]
         Strong = 2,
         /// max latency optimizations
+        #[strum(to_string = "3")]
         Max = 3,
         /// max latency optimizations, but also with text normalizer turned off for even more latency
         /// savings (the best latency, but can mispronounce e.g. numbers and dates)
+        #[strum(to_string = "4")]
         MaxBest = 4,
     }
 
     /// See Elevenlabs documentation on [supported output formats](https://help.elevenlabs.io/hc/en-us/articles/15754340124305-What-audio-formats-do-you-support).
-    #[derive(Clone, Debug)]
+    #[derive(Clone, Debug, Display)]
     pub enum OutputFormat {
+        #[strum(to_string = "mp3_22050_32")]
         Mp3_22050Hz32kbps,
+        #[strum(to_string = "mp3_44100_32")]
         Mp3_44100Hz32kbps,
+        #[strum(to_string = "mp3_44100_64")]
         Mp3_44100Hz64kbps,
+        #[strum(to_string = "mp3_44100_96")]
         Mp3_44100Hz96kbps,
+        #[strum(to_string = "mp3_44100_128")]
+        Mp3_44100Hz128kbps,
+        #[strum(to_string = "mp3_44100_192")]
         Mp3_44100Hz192kbps,
+        #[strum(to_string = "pcm_16000")]
         Pcm16000Hz,
+        #[strum(to_string = "pcm_22050")]
         Pcm22050Hz,
+        #[strum(to_string = "pcm_24000")]
         Pcm24000Hz,
+        #[strum(to_string = "pcm_44100")]
         Pcm44100Hz,
+        #[strum(to_string = "ulaw_8000")]
         MuLaw8000Hz,
-    }
-    impl OutputFormat {
-        pub(crate) fn to_query(&self) -> &str {
-            match self {
-                OutputFormat::Pcm16000Hz => "pcm_16000",
-                OutputFormat::Pcm22050Hz => "pcm_22050",
-                OutputFormat::Pcm24000Hz => "pcm_24000",
-                OutputFormat::Pcm44100Hz => "pcm_44100",
-                OutputFormat::Mp3_22050Hz32kbps => "mp3_22050_32",
-                OutputFormat::Mp3_44100Hz32kbps => "mp3_44100_32",
-                OutputFormat::Mp3_44100Hz64kbps => "mp3_44100_64",
-                OutputFormat::Mp3_44100Hz96kbps => "mp3_44100_96",
-                OutputFormat::Mp3_44100Hz192kbps => "mp3_44100_192",
-                OutputFormat::MuLaw8000Hz => "ulaw_8000",
-            }
-        }
     }
 }
 
@@ -254,9 +263,3 @@ impl Language {
         }
     }
 }
-
-//impl std::fmt::Display for Language {
-//    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-//        match self {
-//            Language::Arabic => write!(f, "Arabic"),
-//        }
