@@ -1,10 +1,13 @@
-//use crate::endpoints::tts::ws::{EOSMessage, Flush, TextChunk, WebSocketTTS, WebSocketTTSResponse};
 use crate::endpoints::{ElevenLabsEndpoint, RequestBody};
 use crate::error::Error::HttpError;
-//use futures_util::{pin_mut, SinkExt, Stream, StreamExt};
+use crate::error::WebSocketError;
+//use crate::ws::{EOSMessage, Flush, TextChunk, WebSocketTTS, WebSocketTTSResponse};
+use crate::endpoints::genai::tts::ws::*;
+use futures_util::{pin_mut, SinkExt, Stream, StreamExt};
 use reqwest::{header::CONTENT_TYPE, Method, Response};
-//use tokio_tungstenite::tungstenite::protocol::frame::coding::CloseCode;
-//use tokio_tungstenite::{connect_async, tungstenite::protocol::Message};
+use tokio::task::JoinHandle;
+use tokio_tungstenite::tungstenite::protocol::frame::coding::CloseCode;
+use tokio_tungstenite::{connect_async, tungstenite::protocol::Message};
 
 pub type Result<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync>>;
 
@@ -26,7 +29,7 @@ impl ElevenLabsClient {
                 .map_err(|_| "ELEVENLABS_API_KEY not set")?,
         })
     }
-    pub fn new<T: Into<String>>(api_key: T) -> Self {
+    pub fn new(api_key: impl Into<String>) -> Self {
         Self {
             inner: reqwest::Client::new(),
             api_key: api_key.into(),
@@ -59,97 +62,85 @@ impl ElevenLabsClient {
         endpoint.response_body(resp).await
     }
 
-    //pub async fn hit_ws<S>(
-    //    &self,
-    //    mut endpoint: WebSocketTTS<S>,
-    //) -> Result<impl Stream<Item = Result<WebSocketTTSResponse>>>
-    //where
-    //    S: Stream<Item = String> + Send + 'static,
-    //{
-    //    let (ws_stream, _) = connect_async(endpoint.url()).await?;
-    //    let (mut ws_writer, mut ws_reader) = ws_stream.split();
-    //    let (tx, rx) = futures_channel::mpsc::unbounded::<Result<WebSocketTTSResponse>>();
+    #[cfg(feature = "ws")]
+    const FLUSH_JSON: &'static str = r#"{"text":" ","flush":true}"#;
+    #[cfg(feature = "ws")]
+    const EOS_JSON: &'static str = r#"{"text":""}"#;
 
-    //    tokio::spawn(async move {
-    //        while let Some(msg_result) = ws_reader.next().await {
-    //            let msg = msg_result?;
-    //            match msg {
-    //                Message::Text(text) => {
-    //                    let response: WebSocketTTSResponse = serde_json::from_str(&text)?;
-    //                    tx.unbounded_send(Ok(response))?;
-    //                }
-    //                Message::Close(msg) => {
-    //                    if let Some(close_frame) = msg {
-    //                        if close_frame.code == CloseCode::Normal {
-    //                            continue;
-    //                        } else {
-    //                            tx.unbounded_send(Err(Box::new(
-    //                                WebSocketError::NonNormalCloseCode(
-    //                                    close_frame.reason.to_string(),
-    //                                ),
-    //                            )))?;
-    //                        }
-    //                    } else {
-    //                        tx.unbounded_send(Err(Box::new(
-    //                            WebSocketError::ClosedWithoutCloseFrame,
-    //                        )))?;
-    //                    }
-    //                }
-    //                _ => tx.unbounded_send(Err(Box::new(WebSocketError::UnexpectedMessageType)))?,
-    //            }
-    //        }
-    //        Ok::<(), Box<dyn std::error::Error + Send + Sync>>(())
-    //    });
+    #[cfg(feature = "ws")]
+    pub async fn hit_ws<S>(
+        &self,
+        mut endpoint: WebSocketTTS<S>,
+    ) -> Result<impl Stream<Item = Result<WebSocketTTSResponse>>>
+    where
+        S: Stream<Item = String> + Send + 'static,
+    {
+        let (ws_stream, _) = connect_async(endpoint.url()).await?;
+        let (mut writer, mut reader) = ws_stream.split();
+        let (tx_to_caller, rx_for_caller) =
+            futures_channel::mpsc::unbounded::<Result<WebSocketTTSResponse>>();
 
-    //    let api_key = self.api_key.clone();
-    //    tokio::spawn(async move {
-    //        let mut bos_message = endpoint.bos_message().clone();
-    //        bos_message = bos_message.with_api_key(&api_key);
-    //        let bos_message = serde_json::to_string(&bos_message)?;
-    //        ws_writer.send(Message::text(bos_message)).await?;
+        // Perhaps remove api key setter from bos_message
+        // as it is already set in the client ?
+        if endpoint.body.bos_message.authorization.is_none() {
+            endpoint.body.bos_message.xi_api_key = Some(self.api_key.clone());
+        }
 
-    //        let generation_triggers = endpoint.try_trigger_generation().unwrap_or_default();
-    //        let flush_streams = endpoint.streams_after_flush();
-    //        let text_stream = endpoint.text_stream();
-    //        let stream = text_stream.enumerate();
-    //        pin_mut!(stream);
+        let _reader_t: JoinHandle<Result<()>> = tokio::spawn(async move {
+            while let Some(msg_result) = reader.next().await {
+                let msg = msg_result?;
+                match msg {
+                    Message::Text(text) => {
+                        dbg!(&text);
+                        let response: WebSocketTTSResponse = serde_json::from_str(&text)?;
+                        tx_to_caller.unbounded_send(Ok(response))?;
+                    }
+                    Message::Close(msg) => {
+                        if let Some(close_frame) = msg {
+                            if close_frame.code == CloseCode::Normal {
+                                continue;
+                            } else {
+                                tx_to_caller.unbounded_send(Err(Box::new(
+                                    WebSocketError::NonNormalCloseCode(
+                                        close_frame.reason.to_string(),
+                                    ),
+                                )))?;
+                            }
+                        } else {
+                            tx_to_caller.unbounded_send(Err(Box::new(
+                                WebSocketError::ClosedWithoutCloseFrame,
+                            )))?;
+                        }
+                    }
+                    _ => tx_to_caller
+                        .unbounded_send(Err(Box::new(WebSocketError::UnexpectedMessageType)))?,
+                }
+            }
+            Ok(())
+        });
 
-    //        // TODO: add try_trigger_always?
-    //        while let Some((i, chunk)) = stream.next().await {
-    //            let trigger_index = i + 1;
-    //            let trigger = generation_triggers.contains(&trigger_index);
+        let _thread: JoinHandle<Result<()>> = tokio::spawn(async move {
+            let bos_message = endpoint.body.bos_message;
+            writer.send(bos_message.to_message()?).await?;
 
-    //            ws_writer
-    //                .send(Message::text(TextChunk::new(chunk, trigger).json()?))
-    //                .await?;
-    //        }
-    //        match flush_streams {
-    //            Some(streams) => {
-    //                ws_writer.send(Message::text(Flush::new().json()?)).await?;
+            let text_stream = endpoint.body.text_stream;
+            pin_mut!(text_stream);
 
-    //                // TODO: add generation_triggers for flush streams?
-    //                for stream in streams {
-    //                    pin_mut!(stream);
-    //                    while let Some(item) = stream.next().await {
-    //                        ws_writer
-    //                            .send(Message::text(TextChunk::new(item, true).json()?))
-    //                            .await?;
-    //                    }
-    //                }
-    //                ws_writer
-    //                    .send(Message::text(EOSMessage::default().json()?))
-    //                    .await?;
-    //            }
-    //            None => {
-    //                ws_writer
-    //                    .send(Message::text(EOSMessage::default().json()?))
-    //                    .await?;
-    //            }
-    //        };
-    //        Ok::<(), Box<dyn std::error::Error + Send + Sync>>(())
-    //    });
-    //    Ok(rx)
-    //}
+            while let Some(chunk) = text_stream.next().await {
+                writer.send(chunk.to_message()?).await?;
+            }
+
+            if endpoint.body.flush {
+                writer.send(Message::from(Self::FLUSH_JSON)).await?;
+            }
+
+
+            writer.send(Message::from(Self::EOS_JSON)).await?;
+
+            Ok(())
+        });
+        Ok(rx_for_caller)
+    }
 }
 
 impl From<(reqwest::Client, String)> for ElevenLabsClient {

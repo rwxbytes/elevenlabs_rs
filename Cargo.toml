@@ -37,14 +37,13 @@ convai = []
 genai = []
 audio_isolation = []
 dubbing = []
-sound_generation = []
 sts = []
-tts = []
 voice_design = []
 voice_generation = []
 ws = []
+incomplete = []
+
 [dev-dependencies]
-twilio = "1.1.0"
 axum = { version = "0.7.5", features = ["ws"] }
 async-openai = "0.23.3"
 dasp = { version = "0.11.0", features = ["signal", "interpolate-linear", "interpolate", "slice"] }

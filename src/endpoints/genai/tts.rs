@@ -561,7 +561,6 @@ pub mod ws {
 
     const WS_BASE_URL: &str = "wss://api.elevenlabs.io";
     const WS_PATH: &str = "/v1/text-to-speech/:voice_id/stream-input";
-    const MODEL_ID_QUERY: &str = "model_id";
 
     /// This API provides real-time text-to-speech conversion using WebSockets.
     /// This allows you to send a text message and receive audio data back in real-time.
@@ -599,6 +598,7 @@ pub mod ws {
     ///     Ok(())
     /// }
     /// ```
+    /// See [Text To Speech Stream API reference](https://elevenlabs.io/docs/api-reference/text-to-speech/websockets)
     pub struct WebSocketTTS<S>
     where
         S: Stream<Item = String> + Send + 'static,

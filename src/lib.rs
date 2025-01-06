@@ -42,5 +42,3 @@ pub mod endpoints;
 pub mod error;
 mod shared;
 pub mod utils;
-#[cfg(feature = "dev")]
-mod convai_client;
