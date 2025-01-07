@@ -8,6 +8,5 @@ pub mod sound_effects;
 #[cfg(feature = "sts")]
 pub mod sts;
 pub mod tts;
-#[cfg(feature = "voice_design")]
-pub mod voice_design;
+pub mod text_to_voice;
 

@@ -1,4 +1,3 @@
-#![allow(dead_code)]
 //! Voice design endpoints
 //!
 //! # Voice Design Guide From Official Documentation
@@ -39,29 +38,28 @@
 //!
 //! ## Example
 //! ```no_run
-//! use elevenlabs_rs::*;
+//! use elevenlabs_rs::{ElevenLabsClient, Result};
+//! use elevenlabs_rs::endpoints::genai::text_to_voice::*;
 //! use elevenlabs_rs::utils::save;
 //!
 //! #[tokio::main]
 //! async fn main() -> Result<()> {
 //!     let c = ElevenLabsClient::from_env()?;
 //!
-//!     // Create a new voice preview for a whimsical, mischievous fairy character
-//!     let body = CreatePreviewsBody::new(
-//!         "A mischievous fairy with a playful and curious voice",
-//!
-//!         "Hee-hee! I bet you can't catch me! Oh, look at all the sparkles and glowing lights! /
+//!     let text = " Hee-hee! I bet you can't catch me! Oh, look at all the sparkles and glowing lights! /
 //!         I fly faster than the wind, always tricking and teasing. /
 //!         Come play with me in the forest! But beware, I love a good prank or two! /
 //!         I might sprinkle pixie dust in your hair, or hide your shoes, just for fun! /
 //!         What a delightful day to play tricks and spread a little mischief! /
-//!         No one will ever see me coming, hee-hee!",
-//!     );
+//!         No one will ever see me coming, hee-hee!";
 //!
-//!     let voice_previews = c.hit(CreatePreviews::new(body)).await?;
+//!     let body = TextToVoiceBody::new("a mischievous fairy with a playful and curious voice")
+//!         .with_text(text);
+//!
+//!     let voice_previews = c.hit(TextToVoice::new(body)).await?;
 //!
 //!     for (i, preview) in voice_previews.into_iter().enumerate() {
-//!         let id = preview.generated_voice_id();
+//!         let id = &preview.generated_voice_id;
 //!         let sample = preview.audio_sample()?;
 //!         save(&format!("fairy_sample_{}_{}.mp3", i, id), sample)?;
 //!     }
@@ -70,101 +68,137 @@
 //! }
 //! ```
 
-use std::collections::HashMap;
 use super::*;
+use std::collections::HashMap;
 
-const CREATE_PREVIEW_PATH: &str = "/v1/text-to-voice/create-previews";
-const CREATE_VOICE_FROM_PREVIEW_PATH: &str = "/v1/text-to-voice/create-voice-from-preview";
-
-
-/// Create previews of voices from a text
-///
-///
-/// ## Official Documentation
-/// "Generate custom voice previews based on provided voice description.
-/// The response includes a list of voice previews, each containing an
-/// id and a sample of the voice audio."
-///
-/// For further reading, check the official [create previews API reference](https://elevenlabs.io/docs/api-reference/ttv-create-previews)
+/// Generate voices from a single text prompt.
 ///
 /// ## Example
 /// ```no_run
-/// use elevenlabs_rs::*;
+/// use elevenlabs_rs::{ElevenLabsClient, Result};
+/// use elevenlabs_rs::endpoints::genai::text_to_voice::*;
 /// use elevenlabs_rs::utils::save;
 ///
 /// #[tokio::main]
 /// async fn main() -> Result<()> {
 ///     let c = ElevenLabsClient::from_env()?;
-///     let body = CreatePreviewsBody::new(
-///      "The chief orc of a fearsome army",
 ///
-///      "Mwahahaha, marvel at my magic ye mortals! /
-///       My incantation masters sound everywhere I go!
-///       Mwahahaha, Mwahahaha",
-///     );
+///     let text = "Mwahahaha, marvel at my magic ye mortals! /
+///         My incantation masters sound everywhere I go! /
+///         Mwahahaha, Mwahahaha";
 ///
-///     let voice_previews = c.hit(CreatePreviews::new(body)).await?;
+///     let body = TextToVoiceBody::new("The chief orc of a fearsome army").with_text(text);
 ///
-///     for (i, preview) in voice_previews.enumerate() {
-///        let id = preview.generated_voice_id();
+///     let voice_previews = c.hit(TextToVoice::new(body)).await?;
+///
+///     for (i, preview) in voice_previews.into_iter().enumerate() {
+///        let id = &preview.generated_voice_id;
 ///        let sample = preview.audio_sample()?;
 ///        save(&format!("sample_{}_{}.mp3", i, id), sample)?;
 ///     }
 ///     Ok(())
 /// }
 /// ```
-///
 /// # Note
 /// The text must be at least 100 characters long and at most 1000 characters long.
+///
+/// See [Text To Voice API reference](https://elevenlabs.io/docs/api-reference/text-to-voice/create-previews)
 #[derive(Clone, Debug)]
-pub struct CreatePreviews(CreatePreviewsBody);
+pub struct TextToVoice {
+    body: TextToVoiceBody,
+    query: Option<TextToVoiceQuery>,
+}
 
-impl CreatePreviews {
-    pub fn new(body: CreatePreviewsBody) -> Self {
-        Self(body)
+impl TextToVoice {
+    pub fn new(body: TextToVoiceBody) -> Self {
+        Self { body, query: None }
+    }
+
+    pub fn with_query(mut self, query: TextToVoiceQuery) -> Self {
+        self.query = Some(query);
+        self
     }
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
-pub struct CreatePreviewsBody {
-    text: String,
+pub struct TextToVoiceBody {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    text: Option<String>,
     voice_description: String,
+    auto_generate_text: bool,
 }
 
-impl CreatePreviewsBody {
-    pub fn new<T: Into<String>>(voice_description: T, text: T) -> Self {
+impl TextToVoiceBody {
+    pub fn new(voice_description: impl Into<String>) -> Self {
         Self {
-            text: text.into(),
-            voice_description: voice_description.into()
+            text: None,
+            voice_description: voice_description.into(),
+            auto_generate_text: false,
         }
+    }
+
+    pub fn with_auto_generated_text(mut self) -> Self {
+        self.auto_generate_text = true;
+        self
+    }
+
+    pub fn with_text(mut self, text: impl Into<String>) -> Self {
+        self.text = Some(text.into());
+        self
     }
 }
 
-impl Endpoint for CreatePreviews {
-    type ResponseBody = CreatePreviewsResponse;
+#[derive(Clone, Debug)]
+pub struct TextToVoiceQuery {
+    params: QueryValues,
+}
+
+impl TextToVoiceQuery {
+    pub fn with_output_format(mut self, output_format: OutputFormat) -> Self {
+        self.params
+            .push(("output_format".into(), output_format.to_string()));
+        self
+    }
+}
+
+impl ElevenLabsEndpoint for TextToVoice {
+    const PATH: &'static str = "/v1/text-to-voice/create-previews";
 
     const METHOD: Method = Method::POST;
 
+    type ResponseBody = TextToVoiceResponse;
+
     async fn request_body(&self) -> Result<RequestBody> {
-        Ok(RequestBody::Json(serde_json::to_value(&self.0)?))
+        Ok(RequestBody::Json(serde_json::to_value(&self.body)?))
     }
 
     async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
         Ok(resp.json().await?)
     }
-
-    fn url(&self) -> Result<Url> {
-        let url = format!("{}{}", BASE_URL, CREATE_PREVIEW_PATH);
-        Ok(Url::parse(&url).unwrap())
-    }
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
-pub struct CreatePreviewsResponse {
-    previews: Vec<VoicePreview>
+pub struct TextToVoiceResponse {
+    pub previews: Vec<VoicePreview>,
+    pub text: String,
 }
 
-impl IntoIterator for CreatePreviewsResponse {
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct VoicePreview {
+    pub audio_base_64: String,
+    pub generated_voice_id: String,
+    pub media_type: String,
+    pub duration_secs: f32,
+}
+
+impl VoicePreview {
+    pub fn audio_sample(&self) -> Result<Bytes> {
+        let bytes = BASE64_STANDARD.decode(&self.audio_base_64)?;
+        Ok(Bytes::from(bytes))
+    }
+}
+
+impl IntoIterator for TextToVoiceResponse {
     type Item = VoicePreview;
     type IntoIter = std::vec::IntoIter<Self::Item>;
 
@@ -173,44 +207,12 @@ impl IntoIterator for CreatePreviewsResponse {
     }
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
-pub struct VoicePreview {
-    audio_base_64: String,
-    generated_voice_id: String,
-    media_type: String,
-}
-
-impl VoicePreview {
-    pub fn audio_base_64(&self) -> &str {
-        &self.audio_base_64
-    }
-
-    pub fn audio_sample(&self) -> Result<Bytes> {
-        let bytes = BASE64_STANDARD.decode(&self.audio_base_64)?;
-        Ok(Bytes::from(bytes))
-    }
-
-    pub fn generated_voice_id(&self) -> &str {
-        &self.generated_voice_id
-    }
-
-    pub fn media_type(&self) -> &str {
-        &self.media_type
-    }
-}
-
-/// Create a voice from a preview
-///
-/// ## Official Documentation
-///
-/// "Create a new voice from previously generated voice preview.
-/// This endpoint should be called after you fetched a generated_voice_id using /v1/text-to-voice/create-previews.". i.e. `CreatePreviews`
-///
-/// For further reading, check the official [create voice from preview API reference](https://elevenlabs.io/docs/api-reference/ttv-create-voice-from-preview)
+/// Add a generated voice to the voice library.
 ///
 /// ## Example
 /// ```no_run
-/// use elevenlabs_rs::*;
+/// use elevenlabs_rs::{ElevenLabsClient, Result};
+/// use elevenlabs_rs::endpoints::genai::text_to_voice::*;
 /// use std::collections::HashMap;
 ///
 /// #[tokio::main]
@@ -219,42 +221,47 @@ impl VoicePreview {
 ///    let name = "Anubis";
 ///    let voice_description = "The chief orc of a fearsome army";
 ///    let some_id = "generated_voice_id";
-///    let mut body = CreateVoiceFromPreviewBody::new(name, voice_description, some_id);
+///    let mut body = SaveVoiceFromPreviewBody::new(name, voice_description, some_id);
 ///    let mut labels = HashMap::new();
 ///    labels.insert("language".to_string(), "en".into());
 ///    body.with_labels(labels);
-///    let resp = c.hit(CreateVoiceFromPreview::new(body)).await?;
+///    let resp = c.hit(SaveVoiceFromPreview::new(body)).await?;
 ///    println!("{:?}", resp);
 ///    Ok(())
 /// }
 /// ```
 /// # Note
 /// The `generated_voice_id` must be from a call to `CreatePreviews`
-
+///
+/// See [Save Voice from Preview API reference](https://elevenlabs.io/docs/api-reference/text-to-voice/create-voice-from-preview)
 #[derive(Clone, Debug)]
-pub struct CreateVoiceFromPreview(CreateVoiceFromPreviewBody);
+pub struct SaveVoiceFromPreview {
+    body: SaveVoiceFromPreviewBody,
+}
 
-impl CreateVoiceFromPreview {
-    pub fn new(body: CreateVoiceFromPreviewBody) -> Self {
-        Self(body)
+impl SaveVoiceFromPreview {
+    pub fn new(body: SaveVoiceFromPreviewBody) -> Self {
+        Self { body }
     }
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
-pub struct CreateVoiceFromPreviewBody {
+pub struct SaveVoiceFromPreviewBody {
     voice_name: String,
     voice_description: String,
     generated_voice_id: String,
     labels: HashMap<String, String>,
+    played_not_selected_voice_ids: Option<Vec<String>>,
 }
 
-impl CreateVoiceFromPreviewBody {
+impl SaveVoiceFromPreviewBody {
     pub fn new<T: Into<String>>(name: T, voice_description: T, generated_voice_id: T) -> Self {
         Self {
             voice_name: name.into(),
             voice_description: voice_description.into(),
             generated_voice_id: generated_voice_id.into(),
             labels: HashMap::new(),
+            played_not_selected_voice_ids: None,
         }
     }
 
@@ -263,23 +270,19 @@ impl CreateVoiceFromPreviewBody {
     }
 }
 
-impl Endpoint for CreateVoiceFromPreview {
+impl ElevenLabsEndpoint for SaveVoiceFromPreview {
+    const PATH: &'static str = "/v1/text-to-voice/create-voice-from-preview";
+    const METHOD: Method = Method::POST;
+
     //type ResponseBody = CreateVoiceFromPreviewResponse;
     type ResponseBody = Value;
 
-    const METHOD: Method = Method::POST;
-
     async fn request_body(&self) -> Result<RequestBody> {
-        Ok(RequestBody::Json(serde_json::to_value(&self.0)?))
+        Ok(RequestBody::Json(serde_json::to_value(&self.body)?))
     }
 
     async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
         Ok(resp.json().await?)
-    }
-
-    fn url(&self) -> Result<Url> {
-        let url = format!("{}{}", BASE_URL, CREATE_VOICE_FROM_PREVIEW_PATH);
-        Ok(Url::parse(&url).unwrap())
     }
 }
 
@@ -288,8 +291,3 @@ impl Endpoint for CreateVoiceFromPreview {
 //pub struct CreateVoiceFromPreviewResponse {
 //    voice_id: String,
 //}
-
-
-
-
-

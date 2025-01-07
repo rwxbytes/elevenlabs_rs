@@ -36,7 +36,7 @@ use std::pin::Pin;
 pub struct TextToSpeech {
     voice_id: VoiceID,
     body: TextToSpeechBody,
-    query: Option<TTSWebSocketQuery>,
+    query: Option<TextToSpeechQuery>,
 }
 
 impl TextToSpeech {
@@ -48,7 +48,7 @@ impl TextToSpeech {
         }
     }
 
-    pub fn with_query(mut self, query: TTSWebSocketQuery) -> Self {
+    pub fn with_query(mut self, query: TextToSpeechQuery) -> Self {
         self.query = Some(query);
         self
     }
@@ -229,11 +229,11 @@ pub enum Normalization {
 }
 
 #[derive(Clone, Debug, Default)]
-pub struct TTSWebSocketQuery {
+pub struct TextToSpeechQuery {
     params: QueryValues,
 }
 
-impl TTSWebSocketQuery {
+impl TextToSpeechQuery {
     pub fn with_output_format(mut self, output_format: OutputFormat) -> Self {
         self.params
             .push(("output_format", output_format.to_string()));
@@ -274,7 +274,7 @@ impl TTSWebSocketQuery {
 pub struct TextToSpeechStream {
     voice_id: VoiceID,
     body: TextToSpeechBody,
-    query: Option<TTSWebSocketQuery>,
+    query: Option<TextToSpeechQuery>,
 }
 
 impl TextToSpeechStream {
@@ -285,7 +285,7 @@ impl TextToSpeechStream {
             query: None,
         }
     }
-    pub fn with_query(mut self, query: TTSWebSocketQuery) -> Self {
+    pub fn with_query(mut self, query: TextToSpeechQuery) -> Self {
         self.query = Some(query);
         self
     }
@@ -352,7 +352,7 @@ impl ElevenLabsEndpoint for TextToSpeechStream {
 pub struct TextToSpeechWithTimestamps {
     voice_id: VoiceID,
     body: TextToSpeechBody,
-    query: Option<TTSWebSocketQuery>,
+    query: Option<TextToSpeechQuery>,
 }
 
 impl TextToSpeechWithTimestamps {
@@ -364,7 +364,7 @@ impl TextToSpeechWithTimestamps {
         }
     }
 
-    pub fn with_query(mut self, query: TTSWebSocketQuery) -> Self {
+    pub fn with_query(mut self, query: TextToSpeechQuery) -> Self {
         self.query = Some(query);
         self
     }
@@ -490,7 +490,7 @@ pub struct Alignment {
 pub struct TextToSpeechStreamWithTimestamps {
     voice_id: VoiceID,
     body: TextToSpeechBody,
-    query: Option<TTSWebSocketQuery>,
+    query: Option<TextToSpeechQuery>,
 }
 
 impl TextToSpeechStreamWithTimestamps {
@@ -501,7 +501,7 @@ impl TextToSpeechStreamWithTimestamps {
             query: None,
         }
     }
-    pub fn with_query(mut self, query: TTSWebSocketQuery) -> Self {
+    pub fn with_query(mut self, query: TextToSpeechQuery) -> Self {
         self.query = Some(query);
         self
     }

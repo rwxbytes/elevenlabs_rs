@@ -38,8 +38,6 @@ genai = []
 audio_isolation = []
 dubbing = []
 sts = []
-voice_design = []
-voice_generation = []
 ws = []
 incomplete = []
 
