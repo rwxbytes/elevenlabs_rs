@@ -1,40 +1,6 @@
 //! Voice design endpoints
 //!
-//! # Voice Design Guide From Official Documentation
-//!
-//! ## Voice Design Types
-//!
-//! - **Realistic Voice Design**: Create original, realistic voices by specifying attributes like age, accent/nationality, gender, tone, pitch, intonation, speed, and emotion.
-//!
-//!   Example prompts:
-//!   - "A young Indian female with a soft, high voice. Conversational, slow, and calm."
-//!   - "An old British male with a raspy, deep voice. Professional, relaxed, and assertive."
-//!   - "A middle-aged Australian female with a warm, low voice. Corporate, fast, and happy."
-//!
-//! - **Character Voice Design**: Generate unique voices for creative characters using simpler prompts.
-//!
-//!   Example prompts:
-//!   - "A massive evil ogre, troll."
-//!   - "A sassy little squeaky mouse."
-//!   - "An angry old pirate, shouting."
-//!
-//! Other creative character ideas include Goblin, Vampire, Elf, Troll, Werewolf, Ghost, Alien, Giant, Witch, Wizard, Zombie, Demon, Pirate, Genie, Ogre, Orc, Knight, Samurai, etc.
-//!
-//! ## Voice Attributes
-//!
-//! When designing a voice, the following attributes can be customized:
-//!
-//! - **Age** (High Importance): Young, Teenage, Adult, Middle-Aged, Old, etc.
-//! - **Accent/Nationality** (High Importance): British, Indian, Polish, American, etc.
-//! - **Gender** (High Importance): Male, Female, Gender Neutral.
-//! - **Tone** (Optional): Gruff, Soft, Warm, Raspy, etc.
-//! - **Pitch** (Optional): Deep, Low, High, Squeaky, etc.
-//! - **Intonation** (Optional): Conversational, Professional, Corporate, Urban, Posh, etc.
-//! - **Speed** (Optional): Fast, Quick, Slow, Relaxed, etc.
-//! - **Emotion/Delivery** (Optional): Angry, Calm, Scared, Happy, Assertive, Whispering, Shouting, etc.
-//!
-//! For further reading, check the official [voice design guide documentation](https://elevenlabs.io/docs/voices/voice-lab/voice-design)
-//!
+//! See [Voice Design Prompt Guide](https://elevenlabs.io/docs/product/voices/voice-lab/voice-design)
 //!
 //! ## Example
 //! ```no_run
@@ -46,7 +12,8 @@
 //! async fn main() -> Result<()> {
 //!     let c = ElevenLabsClient::from_env()?;
 //!
-//!     let text = " Hee-hee! I bet you can't catch me! Oh, look at all the sparkles and glowing lights! /
+//!     let text = " Hee-hee! I bet you can't catch me! /
+//!         Oh, look at all the sparkles and glowing lights! /
 //!         I fly faster than the wind, always tricking and teasing. /
 //!         Come play with me in the forest! But beware, I love a good prank or two! /
 //!         I might sprinkle pixie dust in your hair, or hide your shoes, just for fun! /
@@ -69,6 +36,10 @@
 //! ```
 
 use super::*;
+use crate::shared::{
+    FineTuning, SafetyControl, Sharing, VoiceCategory, VoiceSample, VoiceSettings,
+    VoiceVerification,
+};
 use std::collections::HashMap;
 
 /// Generate voices from a single text prompt.
@@ -156,7 +127,7 @@ pub struct TextToVoiceQuery {
 impl TextToVoiceQuery {
     pub fn with_output_format(mut self, output_format: OutputFormat) -> Self {
         self.params
-            .push(("output_format".into(), output_format.to_string()));
+            .push(("output_format", output_format.to_string()));
         self
     }
 }
@@ -231,7 +202,7 @@ impl IntoIterator for TextToVoiceResponse {
 /// }
 /// ```
 /// # Note
-/// The `generated_voice_id` must be from a call to `CreatePreviews`
+/// The `generated_voice_id` must be from a call to `TextToVoice`.
 ///
 /// See [Save Voice from Preview API reference](https://elevenlabs.io/docs/api-reference/text-to-voice/create-voice-from-preview)
 #[derive(Clone, Debug)]
@@ -272,10 +243,11 @@ impl SaveVoiceFromPreviewBody {
 
 impl ElevenLabsEndpoint for SaveVoiceFromPreview {
     const PATH: &'static str = "/v1/text-to-voice/create-voice-from-preview";
+
     const METHOD: Method = Method::POST;
 
-    //type ResponseBody = CreateVoiceFromPreviewResponse;
-    type ResponseBody = Value;
+    type ResponseBody = SaveVoiceFromPreviewResponse;
+    //type ResponseBody = Value;
 
     async fn request_body(&self) -> Result<RequestBody> {
         Ok(RequestBody::Json(serde_json::to_value(&self.body)?))
@@ -286,8 +258,26 @@ impl ElevenLabsEndpoint for SaveVoiceFromPreview {
     }
 }
 
-// TODO: Implement this response body
-//#[derive(Clone, Debug, Deserialize, Serialize)]
-//pub struct CreateVoiceFromPreviewResponse {
-//    voice_id: String,
-//}
+// Move to `crate::shared::response_bodies' as identical to `crate::endpoints::admin::voice::GetVoiceResponse` ?
+#[derive(Clone, Debug, Deserialize)]
+pub struct SaveVoiceFromPreviewResponse {
+    pub voice_id: String,
+    pub name: Option<String>,
+    pub samples: Option<Vec<VoiceSample>>,
+    pub category: Option<VoiceCategory>,
+    pub fine_tuning: Option<FineTuning>,
+    pub labels: Option<HashMap<String, String>>,
+    pub description: Option<String>,
+    pub preview_url: Option<String>,
+    pub available_for_tiers: Option<Vec<String>>,
+    pub settings: Option<VoiceSettings>,
+    pub sharing: Option<Sharing>,
+    pub high_quality_base_model_ids: Option<Vec<String>>,
+    pub safety_control: Option<SafetyControl>,
+    pub voice_verification: Option<VoiceVerification>,
+    pub permission_on_resource: Option<String>,
+    pub is_owner: Option<bool>,
+    pub is_legacy: Option<bool>,
+    pub is_mixed: Option<bool>,
+    pub created_at_unix: Option<u64>,
+}

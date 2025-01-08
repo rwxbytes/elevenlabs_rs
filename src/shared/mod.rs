@@ -1,8 +1,12 @@
 #![allow(deprecated)]
 #![allow(unused_imports)]
+
+use std::collections::HashMap;
 use serde::{Deserialize, Serialize, Serializer};
 use std::string::ToString;
+use serde_json::Value;
 use strum::Display;
+use crate::PublicUserID;
 
 pub mod identifiers;
 pub mod response_bodies {
@@ -17,26 +21,26 @@ pub mod response_bodies {
 pub mod query_params {
     use super::*;
 
-    #[deprecated(since = "0.3.2")]
-    #[derive(Clone, Debug, Display)]
-    pub enum Latency {
-        /// Default latency
-        #[strum(to_string = "0")]
-        None = 0,
-        ///  normal latency optimizations (about 50% of possible latency improvement of option 3)
-        #[strum(to_string = "1")]
-        Normal = 1,
-        /// strong latency optimizations (about 75% of possible latency improvement of option 3)
-        #[strum(to_string = "2")]
-        Strong = 2,
-        /// max latency optimizations
-        #[strum(to_string = "3")]
-        Max = 3,
-        /// max latency optimizations, but also with text normalizer turned off for even more latency
-        /// savings (the best latency, but can mispronounce e.g. numbers and dates)
-        #[strum(to_string = "4")]
-        MaxBest = 4,
-    }
+    //#[deprecated(since = "0.3.2")]
+    //#[derive(Clone, Debug, Display)]
+    //pub enum Latency {
+    //    /// Default latency
+    //    #[strum(to_string = "0")]
+    //    None = 0,
+    //    ///  normal latency optimizations (about 50% of possible latency improvement of option 3)
+    //    #[strum(to_string = "1")]
+    //    Normal = 1,
+    //    /// strong latency optimizations (about 75% of possible latency improvement of option 3)
+    //    #[strum(to_string = "2")]
+    //    Strong = 2,
+    //    /// max latency optimizations
+    //    #[strum(to_string = "3")]
+    //    Max = 3,
+    //    /// max latency optimizations, but also with text normalizer turned off for even more latency
+    //    /// savings (the best latency, but can mispronounce e.g. numbers and dates)
+    //    #[strum(to_string = "4")]
+    //    MaxBest = 4,
+    //}
 
     /// See Elevenlabs documentation on [supported output formats](https://help.elevenlabs.io/hc/en-us/articles/15754340124305-What-audio-formats-do-you-support).
     #[derive(Clone, Debug, Display)]
@@ -127,6 +131,197 @@ pub enum VoiceCategory {
     HighQuality,
 }
 
+/// Voice sample
+#[derive(Deserialize, Debug, Clone, PartialEq)]
+pub struct VoiceSample {
+    pub sample_id: Option<String>,
+    pub file_name: Option<String>,
+    pub mime_type: Option<String>,
+    pub size_bytes: Option<u64>,
+    pub hash: Option<String>,
+}
+
+/// Safety control
+#[derive(Debug, Deserialize, Serialize, PartialEq, Clone)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum SafetyControl {
+    None,
+    Ban,
+    Captcha,
+    CaptchaAndModeration,
+    EnterpriseBan,
+    EnterpriseCaptcha,
+}
+
+/// Fine-Tuning
+#[derive(Clone, Debug, Deserialize)]
+pub struct FineTuning {
+    pub is_allowed_to_fine_tune: Option<bool>,
+    pub state: Option<HashMap<String, FineTuningState>>,
+    pub verification_failures: Option<Vec<String>>,
+    pub verification_attempts_count: Option<u32>,
+    pub manual_verification_requested: Option<bool>,
+    pub language: Option<String>,
+    pub progress: Option<HashMap<String, f32>>,
+    pub message: Option<HashMap<String, String>>,
+    pub dataset_duration_seconds: Option<u32>,
+    pub verification_attempts: Option<Vec<VerificationAttempt>>,
+    pub slice_ids: Option<Vec<String>>,
+    pub manual_verification: Option<ManualVerification>,
+    pub max_verification_attempts: Option<u32>,
+    pub next_max_verification_attempts_rest_unix_ms: Option<u32>,
+    pub finetuning_state: Option<Value>,
+}
+
+/// Fine-Tuning state
+#[derive(Clone, Debug, Deserialize, PartialEq)]
+#[serde(rename_all = "snake_case")]
+pub enum FineTuningState {
+    NotStarted,
+    Queued,
+    FineTuning,
+    FineTuned,
+    Failed,
+    Delayed,
+}
+
+/// Verification attempt
+#[derive(Clone, Debug, Deserialize)]
+pub struct VerificationAttempt {
+    pub text: String,
+    pub date_unix: u64,
+    pub accepted: bool,
+    pub similarity: f32,
+    pub levenshtein_distance: u32,
+    pub recording: Option<Recording>,
+}
+
+/// Recording
+#[derive(Clone, Debug, Deserialize)]
+pub struct Recording {
+    pub recording_id: String,
+    pub mime_type: String,
+    pub size_bytes: u32,
+    pub upload_date_unix: u64,
+    pub transcription: String,
+}
+
+/// Manual verification
+#[derive(Clone, Debug, Deserialize)]
+pub struct ManualVerification {
+    pub extra_text: String,
+    pub request_time_unix: u64,
+    pub files: Vec<ManualVerificationFile>,
+}
+
+/// Manual verification file
+#[derive(Clone, Debug, Deserialize)]
+pub struct ManualVerificationFile {
+    pub file_id: String,
+    pub file_name: String,
+    pub mime_type: String,
+    pub size_bytes: u32,
+    pub upload_date_unix: u64,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct Sharing {
+    pub status: Option<SharingStatus>,
+    pub history_item_sample_id: Option<String>,
+    pub date_unix: Option<i64>,
+    pub whitelisted_emails: Option<Vec<String>>,
+    pub public_owner_id: Option<String>,
+    pub original_voice_id: Option<String>,
+    pub financial_rewards_enabled: Option<bool>,
+    pub free_users_allowed: Option<bool>,
+    pub live_moderation_enabled: Option<bool>,
+    pub rate: Option<f64>,
+    pub notice_period: Option<i64>,
+    pub disable_at_unix: Option<i64>,
+    pub voice_mixing_allowed: Option<bool>,
+    pub featured: Option<bool>,
+    pub category: Option<VoiceCategory>,
+    pub reader_app_enabled: Option<bool>,
+    pub image_url: Option<String>,
+    pub ban_reason: Option<String>,
+    pub liked_by_count: Option<i64>,
+    pub cloned_by_count: Option<i64>,
+    pub name: Option<String>,
+    pub description: Option<String>,
+    pub labels: Option<HashMap<String, String>>,
+    pub review_status: Option<ReviewStatus>,
+    pub review_message: Option<String>,
+    pub enabled_in_library: Option<bool>,
+    pub instagram_username: Option<String>,
+    pub twitter_username: Option<String>,
+    pub youtube_username: Option<String>,
+    pub tiktok_username: Option<String>,
+    pub moderation_check: Option<ModerationCheck>,
+    pub reader_restricted_on: Option<Vec<ReaderRestrictedOn>>,
+}
+
+/// Sharing status
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum SharingStatus {
+    Enabled,
+    Disabled,
+    Copied,
+    CopiedDisabled,
+}
+
+/// Review status
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ReviewStatus {
+    NotRequested,
+    Pending,
+    Declined,
+    Allowed,
+    AllowedWithChanges,
+}
+
+/// Moderation check
+#[derive(Debug, Clone, Deserialize)]
+pub struct ModerationCheck {
+    pub date_checked_unix: Option<u64>,
+    pub name_value: Option<String>,
+    pub name_check: Option<bool>,
+    pub description_value: Option<String>,
+    pub description_check: Option<bool>,
+    pub sample_ids: Option<Vec<String>>,
+    pub sample_checks: Option<Vec<f64>>,
+    pub captcha_ids: Option<Vec<String>>,
+    pub captcha_checks: Option<Vec<f64>>,
+}
+
+/// Reader restricted on
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub struct ReaderRestrictedOn {
+    pub resource_type: ResourceType,
+    pub resource_id: String,
+}
+
+/// Resource type
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ResourceType {
+    Read,
+    Collection
+}
+
+/// Voice Verification
+#[derive(Debug, Clone, Deserialize)]
+pub struct VoiceVerification {
+    pub requires_verification: bool,
+    pub is_verified: bool,
+    pub verification_failures: Vec<String>,
+    pub verification_attempts_count: u32,
+    pub language: Option<String>,
+    pub verification_attempts: Vec<VerificationAttempt>,
+}
+
 /// Age
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "snake_case")]
@@ -158,6 +353,7 @@ pub enum Language {
     Dutch,
     #[default]
     English,
+    Filipino,
     Finnish,
     French,
     German,
@@ -220,6 +416,7 @@ impl Language {
             Language::Turkish => serializer.serialize_unit_variant("Language", 28, "tr"),
             Language::Ukrainian => serializer.serialize_unit_variant("Language", 29, "uk"),
             Language::Vietnamese => serializer.serialize_unit_variant("Language", 30, "vi"),
+            Language::Filipino => serializer.serialize_unit_variant("Language", 31, "fil"),
         }
     }
     pub fn from_code<'de, D>(deserializer: D) -> std::result::Result<Self, D::Error>
@@ -259,6 +456,7 @@ impl Language {
             "tr" => Ok(Language::Turkish),
             "uk" => Ok(Language::Ukrainian),
             "vi" => Ok(Language::Vietnamese),
+            "fil" => Ok(Language::Filipino),
             _ => Err(serde::de::Error::custom("language code unexpected")),
         }
     }

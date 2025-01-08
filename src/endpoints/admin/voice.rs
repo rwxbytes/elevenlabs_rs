@@ -1,7 +1,10 @@
 #![allow(dead_code)]
 //! The voice endpoints
 use super::*;
-use crate::shared::{VoiceCategory, VoiceSettings};
+use crate::shared::{
+    FineTuning, SafetyControl, Sharing, VoiceCategory, VoiceSample, VoiceSettings,
+    VoiceVerification,
+};
 use std::collections::HashMap;
 use std::path::Path;
 
@@ -53,7 +56,6 @@ impl GetVoicesQuery {
 }
 
 impl ElevenLabsEndpoint for GetVoices {
-
     const PATH: &'static str = "/v1/voices";
 
     const METHOD: Method = Method::GET;
@@ -99,7 +101,6 @@ impl GetVoiceSettings {
 }
 
 impl ElevenLabsEndpoint for GetVoiceSettings {
-
     const PATH: &'static str = "/v1/voices/:voice_id/settings";
 
     const METHOD: Method = Method::GET;
@@ -173,7 +174,6 @@ impl GetVoiceQuery {
 }
 
 impl ElevenLabsEndpoint for GetVoice {
-
     const PATH: &'static str = "/v1/voices/:voice_id";
 
     const METHOD: Method = Method::GET;
@@ -223,7 +223,6 @@ impl DeleteVoice {
 }
 
 impl ElevenLabsEndpoint for DeleteVoice {
-
     const PATH: &'static str = "/v1/voices/:voice_id";
 
     const METHOD: Method = Method::DELETE;
@@ -274,7 +273,6 @@ impl EditVoiceSettings {
 }
 
 impl ElevenLabsEndpoint for EditVoiceSettings {
-
     const PATH: &'static str = "/v1/voices/:voice_id/settings/edit";
 
     const METHOD: Method = Method::POST;
@@ -350,7 +348,6 @@ impl AddVoice {
 }
 
 impl ElevenLabsEndpoint for AddVoice {
-
     const PATH: &'static str = "/v1/voices/add";
 
     const METHOD: Method = Method::POST;
@@ -503,7 +500,6 @@ impl EditVoice {
 }
 
 impl ElevenLabsEndpoint for EditVoice {
-
     const PATH: &'static str = "/v1/voices/:voice_id/edit";
 
     const METHOD: Method = Method::POST;
@@ -531,25 +527,22 @@ pub struct GetVoicesResponse {
 }
 
 /// Voice response body
-#[derive(Debug, Deserialize, PartialEq, Clone)]
+#[derive(Clone, Debug, Deserialize)]
 pub struct GetVoiceResponse {
     pub voice_id: String,
     pub name: Option<String>,
     pub samples: Option<Vec<VoiceSample>>,
-    //TODO: implement type
-    pub fine_tuning: Option<Value>,
+    pub fine_tuning: Option<FineTuning>,
     pub category: Option<VoiceCategory>,
     pub labels: Option<HashMap<String, String>>,
     pub description: Option<String>,
     pub preview_url: Option<String>,
     pub available_for_tiers: Option<Vec<String>>,
     pub settings: Option<VoiceSettings>,
-    //TODO: implement type
-    pub sharing: Option<Value>,
+    pub sharing: Option<Sharing>,
     pub high_quality_base_model_ids: Option<Vec<String>>,
     pub safety_control: Option<SafetyControl>,
-    // TODO: implement type
-    pub voice_verification: Option<Value>,
+    pub voice_verification: Option<VoiceVerification>,
     pub permission_on_resource: Option<String>,
     pub is_owner: Option<bool>,
     pub is_legacy: Option<bool>,
@@ -606,7 +599,6 @@ impl ListSimilarVoices {
 }
 
 impl ElevenLabsEndpoint for ListSimilarVoices {
-
     const PATH: &'static str = "/v1/similar-voices";
 
     const METHOD: Method = Method::POST;
@@ -695,27 +687,4 @@ impl TryFrom<ListSimilarVoicesBody> for Form {
 pub struct ListSimilarVoicesResponse {
     // TODO: implement type
     pub voices: Vec<Value>,
-}
-
-
-/// Voice sample
-#[derive(Deserialize, Debug, Clone, PartialEq)]
-pub struct VoiceSample {
-    pub sample_id: String,
-    pub file_name: String,
-    pub mime_type: String,
-    pub size_bytes: Option<u64>,
-    pub hash: String,
-}
-
-/// Safety control
-#[derive(Debug, Deserialize, Serialize, PartialEq, Clone)]
-#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
-pub enum SafetyControl {
-    None,
-    Ban,
-    Captcha,
-    CaptchaAndModeration,
-    EnterpriseBan,
-    EnterpriseCaptcha,
 }

@@ -38,7 +38,7 @@ genai = []
 audio_isolation = []
 dubbing = []
 sts = []
-ws = []
+ws_tts = []
 incomplete = []
 
 [dev-dependencies]

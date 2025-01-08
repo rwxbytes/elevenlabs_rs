@@ -1,7 +1,7 @@
 use crate::endpoints::{ElevenLabsEndpoint, RequestBody};
 use crate::error::Error::HttpError;
 use crate::error::WebSocketError;
-//use crate::ws::{EOSMessage, Flush, TextChunk, WebSocketTTS, WebSocketTTSResponse};
+#[cfg(feature = "ws_tts")]
 use crate::endpoints::genai::tts::ws::*;
 use futures_util::{pin_mut, SinkExt, Stream, StreamExt};
 use reqwest::{header::CONTENT_TYPE, Method, Response};
@@ -62,12 +62,12 @@ impl ElevenLabsClient {
         endpoint.response_body(resp).await
     }
 
-    #[cfg(feature = "ws")]
+    #[cfg(feature = "ws_tts")]
     const FLUSH_JSON: &'static str = r#"{"text":" ","flush":true}"#;
-    #[cfg(feature = "ws")]
+    #[cfg(feature = "ws_tts")]
     const EOS_JSON: &'static str = r#"{"text":""}"#;
 
-    #[cfg(feature = "ws")]
+    #[cfg(feature = "ws_tts")]
     pub async fn hit_ws<S>(
         &self,
         mut endpoint: WebSocketTTS<S>,

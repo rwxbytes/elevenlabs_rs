@@ -552,7 +552,7 @@ fn stream_chunks_to_json(
     }
 }
 
-//#[cfg(feature = "ws")]
+#[cfg(feature = "ws_tts")]
 pub mod ws {
     //! Websocket Text to Speech endpoints
 
