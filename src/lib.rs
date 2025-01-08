@@ -34,6 +34,7 @@
 pub use crate::client::{ElevenLabsClient, Result};
 pub use crate::endpoints::genai::tts::*;
 pub use crate::shared::identifiers::*;
+pub use crate::shared::query_params::*;
 pub use bytes::Bytes;
 pub use futures_util::{pin_mut, StreamExt};
 

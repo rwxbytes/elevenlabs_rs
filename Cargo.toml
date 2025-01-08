@@ -36,7 +36,6 @@ admin = []
 convai = []
 genai = []
 dubbing = []
-sts = []
 ws_tts = []
 incomplete = []
 

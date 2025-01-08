@@ -1,5 +1,4 @@
 //! The audio isolation endpoint
-//!
 
 use super::*;
 use crate::error::Error;
