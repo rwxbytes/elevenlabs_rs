@@ -35,7 +35,6 @@ playback = ["dep:rodio"]
 admin = []
 convai = []
 genai = []
-dubbing = []
 ws_tts = []
 incomplete = []
 

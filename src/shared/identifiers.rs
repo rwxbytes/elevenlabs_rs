@@ -41,6 +41,38 @@ impl From<&str> for DictionaryID {
 }
 
 #[derive(Clone, Debug)]
+pub struct DubbingID {
+ pub(crate)  _inner: String,
+}
+
+impl Identifier for DubbingID {
+    const PLACEHOLDER: &'static str = ":dubbing_id";
+    fn get_value(&self) -> &str {
+        &self._inner
+    }
+}
+
+impl From<String> for DubbingID {
+    fn from(id: String) -> Self {
+        DubbingID { _inner: id }
+    }
+}
+
+impl From<&String> for DubbingID {
+    fn from(id: &String) -> Self {
+        DubbingID { _inner: id.clone() }
+    }
+}
+
+impl From<&str> for DubbingID {
+    fn from(id: &str) -> Self {
+        DubbingID {
+            _inner: id.to_string(),
+        }
+    }
+}
+
+#[derive(Clone, Debug)]
 pub struct HistoryItemID {
     pub _inner: String,
 }
@@ -99,6 +131,38 @@ impl From<&String> for ModelID {
 impl From<&str> for ModelID {
     fn from(id: &str) -> Self {
         ModelID {
+            _inner: id.to_string(),
+        }
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct LanguageCodeID {
+    pub(crate) _inner: String,
+}
+
+impl Identifier for LanguageCodeID {
+    const PLACEHOLDER: &'static str = ":language_code";
+    fn get_value(&self) -> &str {
+        &self._inner
+    }
+}
+
+impl From<String> for LanguageCodeID {
+    fn from(id: String) -> Self {
+        LanguageCodeID { _inner: id }
+    }
+}
+
+impl From<&String> for LanguageCodeID {
+    fn from(id: &String) -> Self {
+        LanguageCodeID { _inner: id.clone() }
+    }
+}
+
+impl From<&str> for LanguageCodeID {
+    fn from(id: &str) -> Self {
+        LanguageCodeID {
             _inner: id.to_string(),
         }
     }

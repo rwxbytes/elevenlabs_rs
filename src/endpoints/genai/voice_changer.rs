@@ -98,7 +98,7 @@ impl VoiceChangerQuery {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct VoiceChangerBody {
     audio: String,
     model_id: Option<ModelID>,
@@ -111,10 +111,7 @@ impl VoiceChangerBody {
     pub fn new(audio: impl Into<String>) -> Self {
         VoiceChangerBody {
             audio: audio.into(),
-            model_id: None,
-            voice_settings: None,
-            seed: None,
-            remove_background_noise: None,
+            ..Default::default()
         }
     }
     pub fn with_model_id(mut self, model_id: impl Into<ModelID>) -> Self {
@@ -138,7 +135,7 @@ impl VoiceChangerBody {
 
 
 
-/// Transform audio from one voice to another. Maintain full control over emotion, timing and delivery.
+/// Stream audio from one voice to another. Maintain full control over emotion, timing and delivery.
 ///
 /// # Example
 /// ```no_run

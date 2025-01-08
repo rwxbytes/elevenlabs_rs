@@ -1,6 +1,5 @@
 pub use super::*;
 pub mod audio_isolation;
-#[cfg(feature = "dubbing")]
 pub mod dubbing;
 
 pub mod sound_effects;
