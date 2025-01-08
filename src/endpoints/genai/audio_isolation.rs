@@ -1,29 +1,21 @@
-#![allow(dead_code)]
 //! The audio isolation endpoint
 //!
-//! # Pricing
-//!
-//!The API is charged at 1000 characters per minute of audio.
+
+use super::*;
 use crate::error::Error;
-use crate::shared::path_segments::STREAM_PATH;
-use std::path::Path;
-//use base64::{engine::general_purpose, Engine as _};
 use futures_util::{Stream, StreamExt};
+use std::path::Path;
 use std::pin::Pin;
 
 
-use super::*;
-
-const AUDIO_ISOLATION_PATH: &str = "v1/audio-isolation";
-
-/// The audio isolation endpoint
-///
+/// Removes background noise from audio.
 ///
 /// # Example
 ///
 /// ```no_run
+/// use elevenlabs_rs::{ElevenLabsClient, Result};
+/// use elevenlabs_rs::endpoints::genai::audio_isolation::AudioIsolation;
 /// use elevenlabs_rs::utils::{play, save,};
-/// use elevenlabs_rs::*;
 ///
 /// #[tokio::main]
 /// async fn main() -> Result<()> {
@@ -35,46 +27,69 @@ const AUDIO_ISOLATION_PATH: &str = "v1/audio-isolation";
 ///     Ok(())
 /// }
 /// ```
+/// See [Audio Isolation API reference](https://elevenlabs.io/docs/api-reference/audio-isolation/audio-isolation).
 #[derive(Clone, Debug)]
 pub struct AudioIsolation {
-    pub audio_file: String,
+    body: AudioIsolationBody,
 }
 
 impl AudioIsolation {
-    pub fn new<T: Into<String> >(audio_file: T) -> Self {
-        Self { audio_file: audio_file.into() }
+    pub fn new(body: impl Into<AudioIsolationBody>) -> Self {
+        Self { body: body.into() }
     }
 }
 
-impl Endpoint for AudioIsolation {
-    //type ResponseBody = AudioIsolationResponse;
+#[derive(Clone, Debug)]
+pub struct AudioIsolationBody {
+    audio_file: String,
+}
+
+impl AudioIsolationBody {
+    pub fn new(audio_file: impl Into<String>) -> Self {
+        Self {
+            audio_file: audio_file.into(),
+        }
+    }
+}
+
+impl From<&str> for AudioIsolationBody {
+    fn from(audio_file: &str) -> Self {
+        Self {
+            audio_file: audio_file.to_string(),
+        }
+    }
+}
+
+impl From<String> for AudioIsolationBody {
+    fn from(audio_file: String) -> Self {
+        Self { audio_file }
+    }
+}
+
+impl ElevenLabsEndpoint for AudioIsolation {
+    const PATH: &'static str = "v1/audio-isolation";
+
+    const METHOD: Method = Method::POST;
+
     type ResponseBody = Bytes;
 
-    fn method(&self) -> Method {
-        Method::POST
-    }
     async fn request_body(&self) -> Result<RequestBody> {
-        Ok(RequestBody::Multipart(to_form(&self.audio_file)?))
+        TryInto::try_into(&self.body)
     }
+
     async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
-        //Ok(resp.json().await?)
         Ok(resp.bytes().await?)
-    }
-    fn url(&self) -> Url {
-        let mut url = BASE_URL.parse::<Url>().unwrap();
-        url.set_path(AUDIO_ISOLATION_PATH);
-        url
     }
 }
 
-
-/// The audio isolation stream endpoint
+/// Removes background noise from audio.
 ///
 /// # Example
 ///
 /// ```no_run
+/// use elevenlabs_rs::{ElevenLabsClient, Result};
+/// use elevenlabs_rs::endpoints::genai::audio_isolation::AudioIsolationStream;
 /// use elevenlabs_rs::utils::{save, stream_audio};
-/// use elevenlabs_rs::*;
 ///
 /// #[tokio::main]
 /// async fn main() -> Result<()> {
@@ -85,90 +100,52 @@ impl Endpoint for AudioIsolation {
 ///     Ok(())
 /// }
 /// ```
+/// See [Audio Isolation Stream API reference](https://elevenlabs.io/docs/api-reference/audio-isolation/audio-isolation-stream).
 #[derive(Clone, Debug)]
 pub struct AudioIsolationStream {
-    pub audio_file: String,
+    body: AudioIsolationBody,
 }
 
 impl AudioIsolationStream {
-    pub fn new<T: Into<String> >(audio_file: T) -> Self {
-        Self { audio_file: audio_file.into() }
+    pub fn new(body: impl Into<AudioIsolationBody>) -> Self {
+        Self { body: body.into() }
     }
 }
 
 type AudioIsolationStreamResponse = Pin<Box<dyn Stream<Item = Result<Bytes>> + Send>>;
-impl Endpoint for AudioIsolationStream {
+impl ElevenLabsEndpoint for AudioIsolationStream {
+    const PATH: &'static str = "v1/audio-isolation/stream";
+
+    const METHOD: Method = Method::POST;
+
     type ResponseBody = AudioIsolationStreamResponse;
 
-    fn method(&self) -> Method {
-        Method::POST
-    }
     async fn request_body(&self) -> Result<RequestBody> {
-        Ok(RequestBody::Multipart(to_form(&self.audio_file)?))
+        TryInto::try_into(&self.body)
     }
     async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
         let stream = resp.bytes_stream();
         let stream = stream.map(|r| r.map_err(Into::into));
         Ok(Box::pin(stream))
     }
-    fn url(&self) -> Url {
-        let mut url = BASE_URL.parse::<Url>().unwrap();
-        url.set_path(&format!("{}{}", AUDIO_ISOLATION_PATH, STREAM_PATH));
-        url
+}
+
+impl TryFrom<&AudioIsolationBody> for RequestBody {
+    type Error = Box<dyn std::error::Error + Send + Sync>;
+
+    fn try_from(body: &AudioIsolationBody) -> Result<Self> {
+        let path = Path::new(&body.audio_file);
+        let audio_bytes = std::fs::read(&body.audio_file)?;
+        let mut part = Part::bytes(audio_bytes);
+        let file_path_str = path.to_str().ok_or(Box::new(Error::PathNotValidUTF8))?;
+        part = part.file_name(file_path_str.to_string());
+        let mime_subtype = path
+            .extension()
+            .ok_or(Box::new(Error::FileExtensionNotFound))?
+            .to_str()
+            .ok_or(Box::new(Error::FileExtensionNotValidUTF8))?;
+        let mime = format!("audio/{}", mime_subtype);
+        part = part.mime_str(&mime)?;
+        Ok(RequestBody::Multipart(Form::new().part("audio", part)))
     }
 }
-
-
-fn to_form(audio_file: &str) -> Result<Form> {
-    let mut form = Form::new();
-    let path = Path::new(audio_file);
-    let audio_bytes = std::fs::read(audio_file)?;
-    let mut part = Part::bytes(audio_bytes);
-    let file_path_str = path.to_str().ok_or(Box::new(Error::PathNotValidUTF8))?;
-    part = part.file_name(file_path_str.to_string());
-    let mime_subtype = path
-        .extension()
-        .ok_or(Box::new(Error::FileExtensionNotFound))?
-        .to_str()
-        .ok_or(Box::new(Error::FileExtensionNotValidUTF8))?;
-    let mime = format!("audio/{}", mime_subtype);
-    part = part.mime_str(&mime)?;
-    form = form.part("audio", part);
-    Ok(form)
-}
-
-
-//#[derive(Clone, Debug, Deserialize)]
-//pub struct AudioIsolationResponse {
-//    audio: IsolatedAudio,
-//    waveform_base_64: String,
-//}
-//
-//#[derive(Clone, Debug, Deserialize)]
-//pub struct IsolatedAudio {
-//    audio_isolation_id: String,
-//    created_at_unix: u64,
-//}
-//
-//impl AudioIsolationResponse {
-//    pub fn audio(&self) -> &IsolatedAudio {
-//        &self.audio
-//    }
-//    pub fn waveform_base_64(&self) -> &str {
-//        &self.waveform_base_64
-//    }
-//
-//    pub fn audio_as_bytes(&self) -> Result<Bytes> {
-//        Ok(Bytes::from(general_purpose::STANDARD.decode(&self.waveform_base_64)?))
-//    }
-//}
-//
-//impl IsolatedAudio {
-//    pub fn audio_isolation_id(&self) -> &str {
-//        &self.audio_isolation_id
-//    }
-//    pub fn created_at_unix(&self) -> u64 {
-//        self.created_at_unix
-//    }
-//
-//}
