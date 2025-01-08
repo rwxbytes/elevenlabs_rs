@@ -252,6 +252,7 @@ impl GetDubbedAudio {
 
 impl ElevenLabsEndpoint for GetDubbedAudio {
     const PATH: &'static str = "v1/dubbing/:dubbing_id/audio/:language_code";
+
     const METHOD: Method = Method::GET;
 
     type ResponseBody = Bytes;
