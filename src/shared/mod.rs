@@ -9,6 +9,8 @@ use strum::Display;
 use crate::PublicUserID;
 
 pub mod identifiers;
+pub(crate) mod url;
+
 pub mod response_bodies {
     use serde::Deserialize;
     #[derive(Clone, Debug, Deserialize)]

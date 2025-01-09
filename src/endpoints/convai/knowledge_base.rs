@@ -1,12 +1,78 @@
 use super::*;
-use crate::endpoints::convai::agents::{KnowledgeBaseType, AGENTS_PATH};
 use crate::error::Error;
-use std::path::{Path, PathBuf};
+use std::path::Path;
+use crate::endpoints::PathParam::{Agent, Documentation};
 
-const KNOWLEDGE_BASE_PATH: &str = "/knowledge-base";
-const ADD_KNOWLEDGE_BASE_PATH: &str = "/add-to-knowledge-base";
+/// Get details about a specific documentation making up the agent’s knowledge base.
+///
+/// # Example
+///
+/// ```no_run
+/// use elevenlabs_rs::{ElevenLabsClient, Result};
+/// use elevenlabs_rs::endpoints::convai::knowledge_base::*;
+///
+/// #[tokio::main]
+/// async fn main() -> Result<()> {
+///    let client = ElevenLabsClient::from_env()?;
+///
+///    let endpoint = GetKnowledgeBase::new("agent_id", "documentation_id");
+///
+///    let resp = client.hit(endpoint).await?;
+///
+///    println!("{:#?}", resp);
+///
+///    Ok(())
+/// }
+/// ```
+/// See [Get Knowledge Base Document API reference](https://elevenlabs.io/docs/conversational-ai/api-reference/get-conversational-ai-knowledge-base-document).
+#[derive(Debug, Clone)]
+pub struct GetKnowledgeBase {
+    agent_id: String,
+    documentation_id: String,
+}
 
-/// See the [Create Knowledge Base Document API reference](https://elevenlabs.io/docs/conversational-ai/api-reference/post-conversational-ai-knowledge-base-document).
+impl GetKnowledgeBase {
+    pub fn new<T: Into<String>>(agent_id: T, documentation_id: T) -> Self {
+        Self {
+            agent_id: agent_id.into(),
+            documentation_id: documentation_id.into(),
+        }
+    }
+}
+
+impl ElevenLabsEndpoint for GetKnowledgeBase {
+    const PATH: &'static str = "v1/convai/agents/:agent_id/knowledge-base/:documentation_id";
+
+    const METHOD: Method = Method::GET;
+
+    type ResponseBody = GetKnowledgeBaseResponse;
+
+    fn path_params(&self) -> Vec<(&'static str, &str)> {
+        vec![
+            self.agent_id.and_param(Agent),
+            self.documentation_id.and_param(Documentation),
+        ]
+    }
+
+    async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
+        Ok(resp.json().await?)
+    }
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct GetKnowledgeBaseResponse {
+    pub id: String,
+    pub r#type: KnowledgeBaseType,
+    pub extracted_inner_html: String,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum KnowledgeBaseType {
+    File,
+    Url,
+}
+
 ///
 /// # Example
 ///
@@ -18,63 +84,94 @@ const ADD_KNOWLEDGE_BASE_PATH: &str = "/add-to-knowledge-base";
 /// async fn main() -> Result<()> {
 ///   use elevenlabs_rs::endpoints::Url;
 ///   let client = ElevenLabsClient::from_env()?;
-///   let kb = KnowledgeBaseDoc::url("https://elevenlabs.io/blog");
-///   //let kb_file = KnowledgeBaseDoc::file("path/to/file");
-///   let endpoint = CreateKnowledgeBase::new("some_agent_id", vec![kb]);
+///   let kb_file = KnowledgeBaseDoc::url("https://elevenlabs.io/blog");
+///   //let kb_file = KnowledgeBaseDoc::file("some_file.pdf");
+///   let endpoint = CreateKnowledgeBase::new("some_agent_id", kb_file);
 ///   let resp = client.hit(endpoint).await?;
 ///   println!("{:#?}", resp);
 /// Ok(())
-/// }///
+/// }
+/// ```
+/// See the [Create Knowledge Base Document API reference](https://elevenlabs.io/docs/conversational-ai/api-reference/post-conversational-ai-knowledge-base-document).
 #[derive(Debug, Clone)]
 pub struct CreateKnowledgeBase {
-    agent_id: AgentID,
-    // TODO: No longer a Vec!
-    knowledge_base_doc: Vec<KnowledgeBaseDoc>,
+    agent_id: String,
+    body: CreateKnowledgeBaseBody,
 }
 
 impl CreateKnowledgeBase {
-    pub fn new<T: Into<String>>(agent_id: T, knowledge_base_doc: Vec<KnowledgeBaseDoc>) -> Self {
+    pub fn new(agent_id: impl Into<String>, body: impl Into<CreateKnowledgeBaseBody>) -> Self {
         Self {
-            agent_id: AgentID(agent_id.into()),
-            knowledge_base_doc,
+            agent_id: agent_id.into(),
+            body: body.into(),
         }
     }
+}
+impl ElevenLabsEndpoint for CreateKnowledgeBase {
+    const PATH: &'static str = "v1/convai/agents/:agent_id/add-to-knowledge-base";
 
-    async fn build_form(&self) -> Result<Form> {
-        let mut form = Form::new();
+    const METHOD: Method = Method::POST;
 
-        for doc in &self.knowledge_base_doc {
-            match doc {
-                KnowledgeBaseDoc::File(path) => {
-                    let content = tokio::fs::read(path).await?;
-                    let filename = path.file_name()
-                        .and_then(|n| n.to_str())
-                        .ok_or(Error::PathNotValidUTF8)?;
-                        //.ok_or(Error::InvalidPath)?;
+    type ResponseBody = CreateKnowledgeBaseResponse;
 
-                    let ext = path.extension()
-                        .and_then(|e| e.to_str())
-                        .ok_or(Error::FileExtensionNotFound)?;
-                        //.ok_or(Error::MissingExtension)?;
+    fn path_params(&self) -> Vec<(&'static str, &str)> {
+        vec![self.agent_id.and_param(Agent)]
+    }
 
-                    let file_type = FileType::from_extension(ext)?;
+    async fn request_body(&self) -> Result<RequestBody> {
+        TryInto::try_into(&self.body)
+    }
 
-                    let part = Part::bytes(content)
-                        .file_name(filename.to_string())
-                        .mime_str(file_type.mime_type())?;
-
-                    form = form.part("file", part);
-                }
-                KnowledgeBaseDoc::Url(url) => {
-                    form = form.text("url", url.clone());
-                }
-            }
-        }
-        Ok(form)
+    async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
+        Ok(resp.json().await?)
     }
 }
 
-/// File type definitions
+#[derive(Debug, Clone)]
+pub struct CreateKnowledgeBaseBody {
+    knowledge_base_doc: KnowledgeBaseDoc,
+}
+
+impl CreateKnowledgeBaseBody {
+    pub fn new(knowledge_base_doc: KnowledgeBaseDoc) -> Self {
+        Self { knowledge_base_doc }
+    }
+}
+
+impl TryFrom<&CreateKnowledgeBaseBody> for RequestBody {
+    type Error = Box<dyn std::error::Error + Send + Sync>;
+
+    fn try_from(body: &CreateKnowledgeBaseBody) -> Result<Self> {
+        match body.knowledge_base_doc.clone() {
+            KnowledgeBaseDoc::File(path) => {
+                let path = Path::new(&path);
+
+                let filename = path
+                    .file_name()
+                    .and_then(|n| n.to_str())
+                    .ok_or(Error::PathNotValidUTF8)?;
+
+                let ext = path
+                    .extension()
+                    .and_then(|e| e.to_str())
+                    .ok_or(Error::FileExtensionNotFound)?;
+
+                let file_type = FileType::from_extension(ext)?;
+
+                let content = std::fs::read(&path)?;
+
+                let part = Part::bytes(content)
+                    .file_name(filename.to_string())
+                    .mime_str(file_type.mime_type())?;
+
+                Ok(RequestBody::Multipart(Form::new().part("file", part)))
+            }
+
+            KnowledgeBaseDoc::Url(url) => Ok(RequestBody::Multipart(Form::new().text("url", url))),
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy)]
 pub enum FileType {
     Docx,
@@ -102,132 +199,33 @@ impl FileType {
             "html" => Ok(FileType::Html),
             "pdf" => Ok(FileType::Pdf),
             "txt" => Ok(FileType::Txt),
-            _=> Err(Error::FileExtensionNotSupported.into()),
-            //_ => Err(Error::UnsupportedFileType(ext.to_string())),
+            _ => Err(Error::FileExtensionNotSupported.into()),
         }
-    }
-}
-impl Endpoint for CreateKnowledgeBase {
-    type ResponseBody = CreateKnowledgeBaseResponse;
-
-    const METHOD: Method = Method::POST;
-
-    async fn request_body(&self) -> Result<RequestBody> {
-        Ok(RequestBody::Multipart(self.build_form().await?))
-    }
-
-    async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
-        Ok(resp.json().await?)
-    }
-
-    fn url(&self) -> Result<Url> {
-        let mut url: Url = BASE_URL.parse().unwrap();
-        url.set_path(&format!(
-            "{}/{}{}",
-            AGENTS_PATH, self.agent_id, ADD_KNOWLEDGE_BASE_PATH
-        ));
-        Ok(url)
-    }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct CreateKnowledgeBaseResponse {
-    id: String,
-}
-
-impl CreateKnowledgeBaseResponse {
-    pub fn id(&self) -> &str {
-        &self.id
-    }
-}
-
-#[derive(Debug, Clone)]
-pub enum KnowledgeBaseDoc {
-    //Docx(PathBuf),
-    //Epub(PathBuf),
-    //Html(PathBuf),
-    //Pdf(PathBuf),
-    //Txt(PathBuf),
-    File(PathBuf),
-    Url(String),
-}
-
-impl KnowledgeBaseDoc {
-    pub fn file<T: Into<PathBuf>>(path: T) -> Self {
-        Self::File(path.into())
-    }
-    pub fn url<T: Into<String>>(url: T) -> Self {
-        Self::Url(url.into())
-    }
-}
-
-// TODO: Finish example after implementing `AddKnowledgeBase` endpoint
-/// See the [Get Knowledge Base Document API reference](https://elevenlabs.io/docs/conversational-ai/api-reference/get-conversational-ai-knowledge-base-document).
-///
-/// # Example
-///
-/// ```no_run
-/// use elevenlabs_rs::{ElevenLabsClient, Result};
-/// use elevenlabs_rs::endpoints::convai::knowledge_base::GetKnowledgeBase;
-///
-/// #[tokio::main]
-/// async fn main() -> Result<()> {
-///    let client = ElevenLabsClient::from_env()?;
-///    let endpoint = GetKnowledgeBase::new("some_agent_id", "some_documentation_id");
-///    let resp = client.hit(endpoint).await?;
-///    println!("{:#?}", resp.extracted_inner_html());
-///    Ok(())
-/// }
-/// ```
-#[derive(Debug, Clone, Serialize)]
-pub struct GetKnowledgeBase {
-    agent_id: AgentID,
-    documentation_id: DocumentationID,
-}
-
-impl GetKnowledgeBase {
-    pub fn new<T: Into<String>>(agent_id: T, documentation_id: T) -> Self {
-        Self {
-            agent_id: AgentID(agent_id.into()),
-            documentation_id: DocumentationID(documentation_id.into()),
-        }
-    }
-}
-
-impl Endpoint for GetKnowledgeBase {
-    type ResponseBody = GetKnowledgeBaseResponse;
-
-    const METHOD: Method = Method::GET;
-
-    async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
-        Ok(resp.json().await?)
-    }
-
-    fn url(&self) -> Result<Url> {
-        let mut url: Url = BASE_URL.parse().unwrap();
-        url.set_path(&format!(
-            "{}/{}{}/{}",
-            AGENTS_PATH, self.agent_id, KNOWLEDGE_BASE_PATH, self.documentation_id
-        ));
-        Ok(url)
     }
 }
 
 #[derive(Debug, Clone, Deserialize)]
-pub struct GetKnowledgeBaseResponse {
-    id: String,
-    r#type: KnowledgeBaseType,
-    extracted_inner_html: String,
+pub struct CreateKnowledgeBaseResponse {
+    pub id: String,
 }
 
-impl GetKnowledgeBaseResponse {
-    pub fn extracted_inner_html(&self) -> &str {
-        &self.extracted_inner_html
+#[derive(Debug, Clone)]
+pub enum KnowledgeBaseDoc {
+    File(String),
+    Url(String),
+}
+
+impl KnowledgeBaseDoc {
+    pub fn file(path: impl Into<String>) -> Self {
+        Self::File(path.into())
     }
-    pub fn id(&self) -> &str {
-        &self.id
+    pub fn url(url: impl Into<String>) -> Self {
+        Self::Url(url.into())
     }
-    pub fn file_type(&self) -> &KnowledgeBaseType {
-        &self.r#type
+}
+
+impl From<KnowledgeBaseDoc> for CreateKnowledgeBaseBody {
+    fn from(knowledge_base_doc: KnowledgeBaseDoc) -> Self {
+        Self { knowledge_base_doc }
     }
 }

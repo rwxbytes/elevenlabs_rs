@@ -64,6 +64,7 @@ impl ElevenLabsEndpoint for DubAVideoOrAnAudioFile {
     }
 }
 
+// TODO: wrap `file` and `source_url` in an enum an make it required in fn new
 #[derive(Clone, Debug, Default)]
 pub struct DubbingBody {
     file: Option<String>,

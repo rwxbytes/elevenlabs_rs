@@ -1,5 +1,6 @@
 pub(crate) use crate::client::Result;
 pub(crate) use crate::shared::identifiers::*;
+pub(crate) use crate::shared::url::*;
 pub(crate) use crate::shared::query_params::*;
 pub(crate) use crate::shared::response_bodies::*;
 pub(crate) use base64::prelude::{Engine, BASE64_STANDARD};
@@ -15,6 +16,7 @@ pub(crate) use serde_json::Value;
 pub mod admin;
 #[cfg(feature = "convai")]
 pub mod convai;
+#[cfg(feature = "genai")]
 pub mod genai;
 
 type QueryValues = Vec<(&'static str, String)>;

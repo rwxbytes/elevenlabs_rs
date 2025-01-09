@@ -205,7 +205,7 @@ impl From<GetDictionariesResponse> for DictionaryLocators {
     }
 }
 
-#[derive(Clone, Debug, Serialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct DictionaryLocator {
     pronunciation_dictionary_id: String,
     version_id: String,
