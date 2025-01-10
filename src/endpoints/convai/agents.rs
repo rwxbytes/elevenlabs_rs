@@ -1,12 +1,100 @@
-#![allow(dead_code)]
 //! Agents endpoints
-use super::*;
 
-const AGENTS_PATH: &str = "/v1/convai/agents";
-const AGENT_ID_QUERY: &str = "agent_id";
-const CURSOR_QUERY: &str = "cursor";
-const SEARCH_QUERY: &str = "search";
-const PAGE_SIZE_QUERY: &str = "page_size";
+use super::*;
+use std::collections::HashMap;
+use crate::shared::Language;
+// TODO: move this to a shared module
+use crate::DictionaryLocator;
+
+/// Create an agent from a config object
+///
+/// # Example
+/// ```no_run
+/// use elevenlabs_rs::{ElevenLabsClient, Result};
+/// use elevenlabs_rs::endpoints::convai::agents::{CreateAgent, CreateAgentBody};
+///
+/// #[tokio::main]
+/// async fn main() -> Result<()> {
+///     let client = ElevenLabsClient::from_env()?;
+///
+///     let body = CreateAgentBody::new("some_agent_name");
+///
+///     let endpoint = CreateAgent::new(body);
+///
+///     let resp = client.hit(endpoint).await?;
+///
+///     println!("{:?}", resp);
+///
+///     Ok(())
+/// }
+/// ```
+/// See [Create Agent API reference](https://elevenlabs.io/docs/conversational-ai/api-reference/agents/create-agent)
+#[derive(Clone, Debug)]
+pub struct CreateAgent {
+    body: CreateAgentBody,
+}
+
+impl CreateAgent {
+    pub fn new(body: CreateAgentBody) -> Self {
+        CreateAgent { body }
+    }
+}
+
+#[derive(Clone, Debug, Default, Serialize)]
+pub struct CreateAgentBody {
+    pub conversation_config: ConversationConfig,
+    pub platform_settings: PlatformSettings,
+    pub name: String,
+}
+
+impl CreateAgentBody {
+    pub fn new(name: impl Into<String>) -> Self {
+        CreateAgentBody {
+            name: name.into(),
+            conversation_config: ConversationConfig::default(),
+            platform_settings: PlatformSettings::default(),
+        }
+    }
+
+    pub fn with_conversation_config(mut self, conversation_config: ConversationConfig) -> Self {
+        self.conversation_config = conversation_config;
+        self
+    }
+
+    pub fn with_platform_settings(mut self, platform_settings: PlatformSettings) -> Self {
+        self.platform_settings = platform_settings;
+        self
+    }
+}
+
+impl ElevenLabsEndpoint for CreateAgent {
+    const PATH: &'static str = "/v1/convai/agents/create";
+
+    const METHOD: Method = Method::POST;
+
+    type ResponseBody = CreateAgentResponse;
+
+    async fn request_body(&self) -> Result<RequestBody> {
+        TryInto::try_into(&self.body)
+    }
+
+    async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
+        Ok(resp.json().await?)
+    }
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct CreateAgentResponse {
+    pub agent_id: String,
+}
+
+impl TryFrom<&CreateAgentBody> for RequestBody {
+    type Error = Box<dyn std::error::Error + Send + Sync>;
+
+    fn try_from(body: &CreateAgentBody) -> Result<Self> {
+        Ok(RequestBody::Json(serde_json::to_value(body)?))
+    }
+}
 
 /// See the official [Delete Agent API reference](https://elevenlabs.io/docs/api-reference/delete-conversational-ai-agent)
 ///
@@ -18,190 +106,2037 @@ const PAGE_SIZE_QUERY: &str = "page_size";
 ///
 /// #[tokio::main]
 /// async fn main() -> Result<()> {
-///    let client = ElevenLabsClient::default()?;
-///    let agent_query = GetAgentsQuery::default().with_search("Foo");
-///    let agents_resp = client.hit(GetAgents::new(agent_query)).await?;
+///    let client = ElevenLabsClient::from_env()?;
+///    let query = GetAgentsQuery { search: "Foo".into(), ..Default::default() };
+///    let agents_resp = client.hit(GetAgents::new(query)).await?;
 ///    let Some(foo_agent) = agents_resp.agents().first() else {
-///         return Err("Agent named Foo not found".into());
+///         return Err("agent named Foo not found".into());
 ///   };
 ///    let endpoint = DeleteAgent::new(foo_agent.agent_id());
 ///    let _ = client.hit(endpoint).await?;
 ///    Ok(())
 /// }
 /// ```
-#[derive(Clone, Debug)]
-pub struct DeleteAgent(AgentID);
+//#[derive(Clone, Debug)]
+//pub struct DeleteAgent {
+//    agent_id: AgentID,
+//}
+//
+//impl DeleteAgent {
+//    pub fn new(agent_id: impl Into<String>) -> Self {
+//        DeleteAgent {
+//            agent_id: AgentID(agent_id.into()),
+//        }
+//    }
+//}
+//
+//impl Endpoint for DeleteAgent {
+//    type ResponseBody = ();
+//
+//    const METHOD: Method = Method::DELETE;
+//
+//    async fn response_body(self, _: Response) -> Result<Self::ResponseBody> {
+//        Ok(())
+//    }
+//
+//    fn url(&self) -> Result<Url> {
+//        let mut url = BASE_URL.parse::<Url>().unwrap();
+//        url.set_path(&format!("{}/{}", AGENTS_PATH, self.agent_id));
+//        Ok(url)
+//    }
+//}
+//
+//
+//
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct ConversationConfig {
+    pub agent: AgentConfig,
+    pub asr: ASR,
+    pub conversation: Conversation,
+    pub tts: TTSConfig,
+    pub turn: Turn,
+}
 
-impl DeleteAgent {
-    pub fn new<T: Into<String>>(agent_id: T) -> Self {
-        DeleteAgent(AgentID(agent_id.into()))
+impl ConversationConfig {
+    pub fn with_agent_config(mut self, agent_config: AgentConfig) -> Self {
+        self.agent = agent_config;
+        self
+    }
+
+    pub fn with_asr(mut self, asr: ASR) -> Self {
+        self.asr = asr;
+        self
+    }
+
+    pub fn with_conversation(mut self, conversation: Conversation) -> Self {
+        self.conversation = conversation;
+        self
+    }
+
+    pub fn with_tts_config(mut self, tts: TTSConfig) -> Self {
+        self.tts = tts;
+        self
+    }
+
+    pub fn with_turn(mut self, turn: Turn) -> Self {
+        self.turn = turn;
+        self
     }
 }
 
-impl Endpoint for DeleteAgent {
-    type ResponseBody = ();
-
-    fn method(&self) -> Method {
-        Method::DELETE
-    }
-
-    async fn response_body(self, _: Response) -> Result<Self::ResponseBody> {
-        Ok(())
-    }
-
-    fn url(&self) -> Url {
-        let mut url = BASE_URL.parse::<Url>().unwrap();
-        url.set_path(&format!("{}/{}", AGENTS_PATH, self.0.0));
-        url
+impl Default for ConversationConfig {
+    fn default() -> Self {
+        ConversationConfig {
+            agent: AgentConfig::default(),
+            asr: ASR::default(),
+            conversation: Conversation::default(),
+            tts: TTSConfig::default(),
+            turn: Turn::default(),
+        }
     }
 }
 
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+pub struct AgentConfig {
+    //pub server: Option<ServerConfig>,
+    /// The system prompt is used to determine the persona of the agent and the context of the conversation.
+    pub prompt: Prompt,
+    /// The first message the agent will say.
+    ///
+    /// If empty the agent will wait for the user to start the conversation.
+    pub first_message: String,
+    /// The language of the agent.
+    ///
+    /// The agent will use English as the default language.
+    #[serde(serialize_with = "Language::to_code")]
+    #[serde(deserialize_with = "Language::from_code")]
+    pub language: Language,
+}
 
+impl AgentConfig {
+    pub fn new(prompt: Prompt, first_message: impl Into<String>, language: Language) -> Self {
+        AgentConfig {
+            prompt,
+            first_message: first_message.into(),
+            language,
+        }
+    }
 
-/// see Elevenlabs' docs on [Get Agents](https://elevenlabs.io/docs/api-reference/get-conversational-ai-agents)
-///
-/// This endpoint retrieves a list of agents that are available for use in the Conversational AI API.
-///
-/// # Query Parameters
-///
-/// - `search` (optional): A search term to filter agents by name.
-/// - `page_size` (optional): The number of agents to return per page. Can not exceed 100, default is 30.
-/// - `cursor` (optional): A cursor to paginate through the list of agents.
-///
-/// # Response
-///
-/// The response will contain a list of agents and metadata about the list.
-///
-/// - `agents`: A list of agents.
-/// - `has_more`: A boolean indicating if there are more agents to retrieve.
-/// - `next_cursor`: A cursor to paginate to the next page of agents.
-///
-/// # Example
-///
-/// // TODO: do we stop using pub use, and instead use the full path?
-/// ```no_run
-/// use elevenlabs_rs::endpoints::convai::agents::{GetAgents, GetAgentsQuery};
-/// use elevenlabs_rs::{ElevenLabsClient, Result};
-///
-/// #[tokio::main]
-/// async fn main() -> Result<()> {
-///    let client = ElevenLabsClient::default()?;
-///    let query = GetAgentsQuery::default();
-///    let agents = client.hit(GetAgents::new(query)).await?;
-///    for agent in agents {
-///         println!("{:?}", agent);
-///   }
-///   Ok(())
-/// }
-/// ```
-#[derive(Clone, Debug, Serialize)]
-pub struct GetAgents(GetAgentsQuery);
+    //pub fn with_server(mut self, server: ServerConfig) -> Self {
+    //    self.server = Some(server);
+    //    self
+    //}
 
-impl GetAgents {
-    pub fn new(query: GetAgentsQuery) -> Self {
-        GetAgents(query)
+    pub fn with_prompt(mut self, prompt: Prompt) -> Self {
+        self.prompt = prompt;
+        self
+    }
+
+    pub fn with_first_message(mut self, first_message: impl Into<String>) -> Self {
+        self.first_message = first_message.into();
+        self
+    }
+
+    pub fn with_language(mut self, language: Language) -> Self {
+        self.language = language;
+        self
     }
 }
 
-impl Endpoint for GetAgents {
-    type ResponseBody = GetAgentsResponse;
+//#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+//pub struct ServerConfig {
+//    pub server_events: Vec<ServerEvent>,
+//    pub url: String,
+//    pub secret: String,
+//    pub timeout: u32,
+//    pub num_retries: u32,
+//    pub error_message: String,
+//}
+//
+//#[derive(Clone, Debug, Deserialize, Serialize)]
+//#[serde(rename_all = "snake_case")]
+//pub enum ServerEvent {
+//    Interruption,
+//    Turn,
+//    TurnAbandoned,
+//}
 
-    fn method(&self) -> Method {
-        Method::GET
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct Prompt {
+    /// Provide the LLM with domain-specific information to help it answer questions more accurately.
+    pub knowledge_base: Vec<KnowledgeBase>,
+    pub llm: LLM,
+    /// Configure the maximum number of tokens that the LLM can predict.
+    /// A limit will be applied if the value is greater than 0.
+    pub max_tokens: i32,
+    /// System prompt is used to determine the persona of the agent and the context of the conversation.
+    pub prompt: String,
+    /// Temperature is a parameter that controls the creativity
+    /// or randomness of the responses generated by the LLM.
+    pub temperature: f32,
+    pub tools: Vec<Tool>,
+    pub custom_llm: Option<CustomLLM>,
+}
+
+impl Prompt {
+    pub fn with_knowledge_base(mut self, knowledge_base: Vec<KnowledgeBase>) -> Self {
+        self.knowledge_base = knowledge_base;
+        self
     }
 
-    async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
-        Ok(resp.json().await?)
+    pub fn with_llm(mut self, llm: LLM) -> Self {
+        self.llm = llm;
+        self
     }
 
-    fn url(&self) -> Url {
-        let mut url = BASE_URL.parse::<Url>().unwrap();
-        url.set_path(AGENTS_PATH);
-        url.set_query(self.0.join_query().as_deref());
-        url
+    pub fn with_max_tokens(mut self, max_tokens: i32) -> Self {
+        self.max_tokens = max_tokens;
+        self
+    }
+
+    pub fn with_prompt(mut self, prompt: impl Into<String>) -> Self {
+        self.prompt = prompt.into();
+        self
+    }
+
+    pub fn with_temperature(mut self, temperature: f32) -> Self {
+        self.temperature = temperature;
+        self
+    }
+
+    pub fn with_tools(mut self, tools: Vec<Tool>) -> Self {
+        self.tools = tools;
+        self
+    }
+
+    pub fn with_custom_llm(mut self, custom_llm: CustomLLM) -> Self {
+        self.custom_llm = Some(custom_llm);
+        self
     }
 }
 
-#[derive(Clone, Debug, Deserialize)]
-pub struct GetAgentsResponse {
-    agents: Vec<Agent>,
-    has_more: bool,
-    next_cursor: Option<String>,
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct KnowledgeBase {
+    pub id: String,
+    pub name: String,
+    pub r#type: KnowledgeBaseType,
 }
 
-impl GetAgentsResponse {
-    pub fn agents(&self) -> &[Agent] {self.agents.as_slice()}
-    pub fn is_more(&self) -> bool {self.has_more}
-    pub fn cursor(&self) -> Option<&str> {self.next_cursor.as_deref()}
+#[derive(Copy, Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum KnowledgeBaseType {
+    File,
+    Url,
 }
 
-impl Iterator for GetAgentsResponse {
-    type Item = Agent;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        self.agents.pop()
+impl std::fmt::Display for KnowledgeBaseType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            KnowledgeBaseType::File => write!(f, "file"),
+            KnowledgeBaseType::Url => write!(f, "url"),
+        }
     }
 }
 
-#[derive(Clone, Debug, Deserialize)]
-pub struct Agent {
-    agent_id: String,
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum LLM {
+    #[serde(rename = "gpt-4o-mini")]
+    Gpt4oMini,
+    #[serde(rename = "gpt-4o")]
+    Gpt4o,
+    #[serde(rename = "gpt-4")]
+    Gpt4,
+    #[serde(rename = "gpt-4-turbo")]
+    Gpt4Turbo,
+    #[serde(rename = "gpt-3.5-turbo")]
+    Gpt3_5Turbo,
+    #[serde(rename = "gemini-1.5-pro")]
+    #[default]
+    Gemini1_5Pro,
+    #[serde(rename = "gemini-1.5-flash")]
+    Gemini1_5Flash,
+    #[serde(rename = "gemini-1.0-pro")]
+    Gemini1_0Pro,
+    #[serde(rename = "claude-3-5-sonnet")]
+    Claude3_5Sonnet,
+    #[serde(rename = "claude-3-haiku")]
+    Claude3Haiku,
+    #[serde(rename = "grok-beta")]
+    GrokBeta,
+    #[serde(rename = "custom-llm")]
+    CustomLlm,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+#[serde(untagged)]
+pub enum Tool {
+    WebHook(WebHook),
+    Client(ClientTool),
+}
+
+//impl Tool {
+//    pub fn new_webhook<T: Into<String>>(name: T, description: T, api_schema: ApiSchema) -> Self {
+//        WebHook::new(name, description, api_schema).into()
+//    }
+//
+//    pub fn new_client<T: Into<String>>(name: T, description: T) -> Self {
+//        ClientTool::new(name, description).into()
+//    }
+//
+//
+//}
+
+/// A webhook tool is a tool that calls an external webhook from ElevenLabs' server
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct WebHook {
+    api_schema: ApiSchema,
+    description: String,
     name: String,
-    created_at_unix_secs: u64,
+    r#type: ToolType,
 }
 
-impl Agent {
-    pub fn agent_id(&self) -> &str {self.agent_id.as_str()}
-    pub fn name(&self) -> &str {self.name.as_str()}
-    pub fn created_at(&self) -> u64 {self.created_at_unix_secs}
-}
-
-
-#[derive(Clone, Debug, Default, Serialize)]
-pub struct GetAgentsQuery {
-    search: Option<String>,
-    page_size: Option<String>,
-    cursor: Option<String>,
-}
-
-impl GetAgentsQuery {
-    pub fn with_search<T: Into<String>>(mut self, search: T) -> Self {
-        self.search = Some(format!("{}={}", SEARCH_QUERY, search.into()));
-        self
-    }
-
-    pub fn with_page_size(mut self, page_size: u32) -> Self {
-        self.page_size = Some(format!("{}={}", PAGE_SIZE_QUERY, page_size));
-        self
-    }
-
-    pub fn with_cursor<T: Into<String>>(mut self, cursor: T) -> Self {
-        self.cursor = Some(format!("{}={}", CURSOR_QUERY, cursor.into()));
-        self
-    }
-
-
-    fn join_query(&self) -> Option<String> {
-        let mut query = String::new();
-        if let Some(search) = &self.search {
-            query.push_str(&search);
+impl WebHook {
+    pub fn new<T: Into<String>>(name: T, description: T, api_schema: ApiSchema) -> Self {
+        WebHook {
+            api_schema,
+            description: description.into(),
+            name: name.into(),
+            r#type: ToolType::Webhook,
         }
-        if let Some(page_size) = &self.page_size {
-            if !query.is_empty() {
-                query.push('&');
+    }
+}
+
+impl From<WebHook> for Tool {
+    fn from(webhook: WebHook) -> Self {
+        Tool::WebHook(webhook)
+    }
+}
+
+impl From<ClientTool> for Tool {
+    fn from(client_tool: ClientTool) -> Self {
+        Tool::Client(client_tool)
+    }
+}
+
+/// A client tool is one that sends an event to the user’s client to trigger something client side
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct ClientTool {
+    pub description: String,
+    pub name: String,
+    pub expects_response: Option<bool>,
+    pub parameters: Option<ClientToolParams>,
+    pub response_timeout_secs: Option<u32>,
+    r#type: ToolType,
+}
+
+impl ClientTool {
+    pub fn new<T: Into<String>>(name: T, description: T) -> Self {
+        ClientTool {
+            description: description.into(),
+            name: name.into(),
+            expects_response: None,
+            parameters: None,
+            response_timeout_secs: None,
+            r#type: ToolType::Client,
+        }
+    }
+
+    pub fn with_expects_response(mut self, expects_response: bool) -> Self {
+        self.expects_response = Some(expects_response);
+        self
+    }
+
+    pub fn with_parameters(mut self, parameters: ClientToolParams) -> Self {
+        self.parameters = Some(parameters);
+        self
+    }
+
+    pub fn with_response_timeout_secs(mut self, response_timeout_secs: u32) -> Self {
+        self.response_timeout_secs = Some(response_timeout_secs);
+        self
+    }
+
+}
+
+
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct ClientToolParams {
+    r#type: DataType,
+    pub properties: Option<HashMap<String, Schema>>,
+    pub required: Option<Vec<String>>,
+    pub description: Option<String>,
+}
+
+impl ClientToolParams {
+    pub fn with_properties(mut self, properties: HashMap<String, Schema>) -> Self {
+        self.properties = Some(properties);
+        self
+    }
+
+    pub fn with_required(mut self, required: Vec<String>) -> Self {
+        self.required = Some(required);
+        self
+    }
+
+    pub fn with_description(mut self, description: impl Into<String>) -> Self {
+        self.description = Some(description.into());
+        self
+    }
+}
+
+
+impl Default for ClientToolParams {
+    fn default() -> Self {
+        ClientToolParams {
+            r#type: DataType::Object,
+            properties: None,
+            required: None,
+            description: None,
+        }
+    }
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(untagged)]
+pub enum Schema {
+    Literal(LiteralJsonSchema),
+    Object(ObjectJsonSchema),
+    Array(ArrayJsonSchema),
+}
+
+impl Schema {
+    pub fn new_literal(data_type: DataType, description: impl Into<String>) -> Self {
+        Schema::Literal(LiteralJsonSchema {
+            r#type: data_type,
+            description: description.into(),
+        })
+    }
+
+    pub fn new_object(properties: HashMap<String, Schema>) -> Self {
+        Schema::Object(ObjectJsonSchema {
+            r#type: DataType::Object,
+            properties: Some(properties),
+            required: None,
+            description: None,
+        })
+    }
+
+    pub fn new_array(items: Schema) -> Self {
+        Schema::Array(ArrayJsonSchema {
+            r#type: DataType::Array,
+            items: Box::new(items),
+            description: None,
+        })
+    }
+
+    pub fn with_required(mut self, required: Vec<String>) -> Self {
+        match &mut self {
+            Schema::Object(obj) => {
+                obj.required = Some(required);
             }
-            query.push_str(&page_size);
+            _ => {}
         }
-        if let Some(cursor) = &self.cursor {
-            if !query.is_empty() {
-                query.push('&');
+        self
+    }
+
+    pub fn with_description(mut self, description: impl Into<String>) -> Self {
+        match &mut self {
+            Schema::Literal(literal) => {
+                literal.description = description.into();
             }
-            query.push_str(&cursor);
+            Schema::Object(obj) => {
+                obj.description = Some(description.into());
+            }
+            Schema::Array(array) => {
+                array.description = Some(description.into());
+            }
         }
-        if query.is_empty() {
-            None
-        } else {
-            Some(query)
+        self
+    }
+
+    pub fn with_properties(mut self, properties: HashMap<String, Schema>) -> Self {
+        match &mut self {
+            Schema::Object(obj) => {
+                obj.properties = Some(properties);
+            }
+            _ => {}
+        }
+        self
+    }
+
+    pub fn with_items(mut self, items: Schema) -> Self {
+        match &mut self {
+            Schema::Array(array) => {
+                array.items = Box::new(items);
+            }
+            _ => {}
+        }
+        self
+    }
+
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct LiteralJsonSchema {
+    pub r#type: DataType,
+    pub description: String,
+}
+
+//impl LiteralJsonSchema {
+//    pub fn new(data_type: DataType, description: impl Into<String>) -> Self {
+//        LiteralJsonSchema {
+//            r#type: data_type,
+//            description: description.into(),
+//        }
+//    }
+//}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct ObjectJsonSchema {
+    r#type: DataType,
+    pub properties: Option<HashMap<String, Schema>>,
+    pub required: Option<Vec<String>>,
+    pub description: Option<String>,
+}
+
+//impl ObjectJsonSchema {
+//    pub fn new(properties: HashMap<String, Schema>) -> Self {
+//        ObjectJsonSchema {
+//            r#type: DataType::Object,
+//            properties: Some(properties),
+//            required: None,
+//            description: None,
+//        }
+//    }
+//
+//    pub fn with_required(mut self, required: Vec<String>) -> Self {
+//        self.required = Some(required);
+//        self
+//    }
+//
+//    pub fn with_description(mut self, description: impl Into<String>) -> Self {
+//        self.description = Some(description.into());
+//        self
+//    }
+//}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct ArrayJsonSchema {
+    r#type: DataType,
+    items: Box<Schema>,
+    pub description: Option<String>,
+}
+
+//impl ArrayJsonSchema {
+//    pub fn new(items: Schema) -> Self {
+//        ArrayJsonSchema {
+//            r#type: DataType::Array,
+//            items: Box::new(items),
+//            description: None,
+//        }
+//    }
+//
+//    pub fn with_description(mut self, description: impl Into<String>) -> Self {
+//        self.description = Some(description.into());
+//        self
+//    }
+//}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct CustomLLM {
+    pub url: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub model_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub apikey: Option<SecretType>,
+}
+
+/// Configuration for a webhook that will be called by an LLM tool.
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+pub struct ApiSchema {
+    url: String,
+    method: ApiMethod,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    path_params_schema: Option<HashMap<String, ParamSchema>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    query_params_schema: Option<QueryParamsSchema>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    request_body_schema: Option<RequestBodySchema>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    request_headers: Option<RequestHeaders>,
+}
+
+pub type RequestHeaders = HashMap<String, ConvAIHeaderValue>;
+
+impl ApiSchema {
+    pub fn new(url: &str) -> Self {
+        ApiSchema {
+            url: url.to_string(),
+            ..Default::default()
+        }
+    }
+
+    pub fn with_method(mut self, method: ApiMethod) -> Self {
+        self.method = method;
+        self
+    }
+    pub fn with_path_params(mut self, path_params_schema: HashMap<String, ParamSchema>) -> Self {
+        self.path_params_schema = Some(path_params_schema);
+        self
+    }
+    pub fn with_query_params(mut self, query_params_schema: QueryParamsSchema) -> Self {
+        self.query_params_schema = Some(query_params_schema);
+        self
+    }
+
+    pub fn with_request_body(mut self, request_body_schema: RequestBodySchema) -> Self {
+        self.request_body_schema = Some(request_body_schema);
+        self
+    }
+
+    pub fn with_request_headers(mut self, request_headers: RequestHeaders) -> Self {
+        self.request_headers = Some(request_headers);
+        self
+    }
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(untagged)]
+pub enum ConvAIHeaderValue {
+    String(String),
+    Secret(Secret),
+}
+
+impl ConvAIHeaderValue {
+    pub fn new_string(value: &str) -> Self {
+        ConvAIHeaderValue::String(value.to_string())
+    }
+
+    //pub fn new_secret(secret_id: &str) -> Self {
+    //    ConvAIHeaderValue::Secret(Secret::new(secret_id))
+    //}
+}
+
+impl From<String> for ConvAIHeaderValue {
+    fn from(value: String) -> Self {
+        ConvAIHeaderValue::String(value)
+    }
+}
+
+impl From<Secret> for ConvAIHeaderValue {
+    fn from(secret: Secret) -> Self {
+        ConvAIHeaderValue::Secret(secret)
+    }
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct Secret {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    secret_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    name: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    r#type: Option<SecretType>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    value: Option<String>,
+}
+
+impl Secret {
+    pub fn new(name: &str, value: &str) -> Self {
+        Secret {
+            secret_id: None,
+            name: Some(name.to_string()),
+            r#type: Some(SecretType::New),
+            value: Some(value.to_string()),
         }
     }
 }
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum SecretType {
+    New,
+    Stored,
+}
+
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+pub enum ApiMethod {
+    #[default]
+    GET,
+    POST,
+    PATCH,
+    DELETE,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct ParamSchema {
+    description: String,
+    r#type: DataType,
+}
+
+impl ParamSchema {
+    pub fn new_bool(description: &str) -> Self {
+        ParamSchema {
+            description: description.to_string(),
+            r#type: DataType::Boolean,
+        }
+    }
+
+    pub fn new_integer(description: &str) -> Self {
+        ParamSchema {
+            description: description.to_string(),
+            r#type: DataType::Integer,
+        }
+    }
+
+    pub fn new_number(description: &str) -> Self {
+        ParamSchema {
+            description: description.to_string(),
+            r#type: DataType::Number,
+        }
+    }
+
+    pub fn new_string(description: &str) -> Self {
+        ParamSchema {
+            description: description.to_string(),
+            r#type: DataType::String,
+        }
+    }
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum DataType {
+    Boolean,
+    Integer,
+    Number,
+    String,
+    Object,
+    Array,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct QueryParamsSchema {
+    properties: HashMap<String, ParamSchema>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    required: Option<Vec<String>>,
+}
+
+impl QueryParamsSchema {
+    pub fn new(properties: HashMap<String, ParamSchema>) -> Self {
+        QueryParamsSchema {
+            properties,
+            required: None,
+        }
+    }
+
+    pub fn with_required(mut self, required: Vec<String>) -> Self {
+        self.required = Some(required);
+        self
+    }
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct RequestBodySchema {
+    r#type: DataType,
+    properties: HashMap<String, Value>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    required: Option<Vec<String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    description: Option<String>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum ToolType {
+    Webhook,
+    Client,
+}
+
+impl Default for Prompt {
+    fn default() -> Self {
+        Prompt {
+            knowledge_base: Vec::new(),
+            llm: Default::default(),
+            max_tokens: -1,
+            prompt: String::new(),
+            temperature: 0.0,
+            tools: Vec::new(),
+            custom_llm: None,
+        }
+    }
+}
+
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+pub struct ASR {
+    quality: AsrQuality,
+    provider: AsrProvider,
+    user_input_audio_format: ConvAIAudioFormat,
+    keywords: Vec<String>,
+}
+
+// impl `with_quality` and `with_provider` methods
+// when enums have more than one variant
+impl ASR {
+    //pub fn with_quality(mut self, quality: AsrQuality) -> Self {
+    //    self.quality = quality;
+    //    self
+    //}
+
+    //pub fn with_provider(mut self, provider: AsrProvider) -> Self {
+    //    self.provider = provider;
+    //    self
+    //}
+    pub fn with_user_input_audio_format(
+        mut self,
+        user_input_audio_format: ConvAIAudioFormat,
+    ) -> Self {
+        self.user_input_audio_format = user_input_audio_format;
+        self
+    }
+
+    pub fn with_keywords(mut self, keywords: Vec<String>) -> Self {
+        self.keywords = keywords;
+        self
+    }
+}
+
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum AsrQuality {
+    #[default]
+    High,
+}
+
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum AsrProvider {
+    #[default]
+    ElevenLabs,
+}
+
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+pub enum ConvAIAudioFormat {
+    #[default]
+    #[serde(rename = "pcm_16000")]
+    Pcm16000hz,
+    #[serde(rename = "pcm_22050")]
+    Pcm22050hz,
+    #[serde(rename = "pcm_24000")]
+    Pcm24000hz,
+    #[serde(rename = "pcm_44100")]
+    Pcm44100hz,
+    #[serde(rename = "ulaw_8000")]
+    Ulaw8000hz,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct Conversation {
+    pub client_events: Vec<ClientEvent>,
+    pub max_duration_seconds: u32,
+}
+
+impl Conversation {
+    pub fn with_client_events(mut self, client_events: Vec<ClientEvent>) -> Self {
+        self.client_events = client_events;
+        self
+    }
+
+    pub fn with_max_duration_seconds(mut self, max_duration_seconds: u32) -> Self {
+        self.max_duration_seconds = max_duration_seconds;
+        self
+    }
+}
+
+impl Default for Conversation {
+    fn default() -> Self {
+        Conversation {
+            client_events: vec![ClientEvent::Audio, ClientEvent::Interruption],
+            max_duration_seconds: 300,
+        }
+    }
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct TTSConfig {
+    /// The voice model to use for the agent.
+    ///
+    /// Default: `ConvAIModel::ElevenTurboV2`
+    ///
+    /// #### Additional Variants
+    /// - `ConvAIModel::ElevenTurboV2_5`
+    /// - `ConvAIModel::ElevenFlashV2`
+    /// - `ConvAIModel::ElevenFlashV2_5`
+    pub model_id: ConvAIModel,
+    /// The voice ID to use for the agent.
+    ///
+    ///  Default: `DefaultVoice::Eric` i.e. `cjVigY5qzO86Huf0OWal`
+    pub voice_id: String,
+    /// The output format you want to use for ElevenLabs text to speech
+    ///
+    ///  Default: `ConvAIAudioFormat::Pcm16000hz`
+    ///
+    /// #### Additional Variants
+    /// - `ConvAIAudioFormat::Pcm22050hz`
+    /// - `ConvAIAudioFormat::Pcm24000hz`
+    /// - `ConvAIAudioFormat::Pcm44100hz`
+    /// - `ConvAIAudioFormat::Ulaw8000hz`
+    pub agent_output_audio_format: ConvAIAudioFormat,
+    pub optimize_streaming_latency: u32,
+    pub stability: f32,
+    pub similarity_boost: f32,
+    pub pronunciation_dictionary_locators: Vec<DictionaryLocator>,
+}
+
+impl TTSConfig {
+    pub fn with_model_id(mut self, model_id: ConvAIModel) -> Self {
+        self.model_id = model_id;
+        self
+    }
+
+    pub fn with_voice_id(mut self, voice_id: impl Into<String>) -> Self {
+        self.voice_id = voice_id.into();
+        self
+    }
+
+    pub fn with_agent_output_audio_format(
+        mut self,
+        agent_output_audio_format: ConvAIAudioFormat,
+    ) -> Self {
+        self.agent_output_audio_format = agent_output_audio_format;
+        self
+    }
+
+    pub fn with_optimize_streaming_latency(mut self, optimize_streaming_latency: u32) -> Self {
+        self.optimize_streaming_latency = optimize_streaming_latency;
+        self
+    }
+
+    pub fn with_stability(mut self, stability: f32) -> Self {
+        self.stability = stability;
+        self
+    }
+
+    pub fn with_similarity_boost(mut self, similarity_boost: f32) -> Self {
+        self.similarity_boost = similarity_boost;
+        self
+    }
+
+    pub fn with_pronunciation_dictionary_locators(
+        mut self,
+        pronunciation_dictionary_locators: Vec<DictionaryLocator>,
+    ) -> Self {
+        self.pronunciation_dictionary_locators = pronunciation_dictionary_locators;
+        self
+    }
+}
+
+impl Default for TTSConfig {
+    fn default() -> Self {
+        TTSConfig {
+            model_id: ConvAIModel::ElevenTurboV2,
+            voice_id: DefaultVoice::default().into(),
+            agent_output_audio_format: ConvAIAudioFormat::Pcm16000hz,
+            optimize_streaming_latency: 3,
+            stability: 0.5,
+            similarity_boost: 0.8,
+            pronunciation_dictionary_locators: Vec::new(),
+        }
+    }
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ClientEvent {
+    AgentResponse,
+    AgentResponseCorrection,
+    AsrInitiationMetadata,
+    Audio,
+    ClientToolCall,
+    ConversationInitiationMetadata,
+    InternalTentativeAgentResponse,
+    InternalTurnProbability,
+    InternalVadScore,
+    Interruption,
+    Ping,
+    UserTranscript,
+}
+
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+pub enum ConvAIModel {
+    #[default]
+    #[serde(rename = "eleven_turbo_v2")]
+    ElevenTurboV2,
+    #[serde(rename = "eleven_turbo_v2_5")]
+    ElevenTurboV2_5,
+    #[serde(rename = "eleven_flash_v2")]
+    ElevenFlashV2,
+    #[serde(rename = "eleven_flash_v2_5")]
+    ElevenFlashV2_5,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct Turn {
+    pub turn_timeout: f32,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub mode: Option<TurnMode>,
+}
+
+impl Turn {
+    pub fn with_mode(mut self, mode: TurnMode) -> Self {
+        self.mode = Some(mode);
+        self
+    }
+
+    pub fn with_turn_timeout(mut self, turn_timeout: f32) -> Self {
+        self.turn_timeout = turn_timeout;
+        self
+    }
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum TurnMode {
+    Silence,
+    Turn,
+}
+
+impl Default for Turn {
+    fn default() -> Self {
+        Turn {
+            turn_timeout: 7.0,
+            mode: None,
+        }
+    }
+}
+
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+pub struct PlatformSettings {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub auth: Option<Auth>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub evaluation: Option<Evaluation>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub widget: Option<Widget>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub data_collection: Option<DataCollection>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub overrides: Option<Overrides>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub ban: Option<Ban>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub safety: Option<Safety>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub privacy: Option<Privacy>,
+}
+
+impl PlatformSettings {
+    pub fn with_auth(mut self, auth: Auth) -> Self {
+        self.auth = Some(auth);
+        self
+    }
+
+    pub fn with_evaluation(mut self, evaluation: Evaluation) -> Self {
+        self.evaluation = Some(evaluation);
+        self
+    }
+
+    pub fn with_widget(mut self, widget: Widget) -> Self {
+        self.widget = Some(widget);
+        self
+    }
+
+    pub fn with_data_collection(mut self, data_collection: DataCollection) -> Self {
+        self.data_collection = Some(data_collection);
+        self
+    }
+
+    pub fn with_overrides(mut self, overrides: Overrides) -> Self {
+        self.overrides = Some(overrides);
+        self
+    }
+
+    pub fn with_ban(mut self, ban: Ban) -> Self {
+        self.ban = Some(ban);
+        self
+    }
+
+    pub fn with_safety(mut self, safety: Safety) -> Self {
+        self.safety = Some(safety);
+        self
+    }
+
+    pub fn with_privacy(mut self, privacy: Privacy) -> Self {
+        self.privacy = Some(privacy);
+        self
+    }
+}
+
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+pub struct Auth {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub enable_auth: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub allowlist: Option<Vec<AllowHost>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub shareable_token: Option<String>,
+}
+
+impl Auth {
+    pub fn with_enable_auth(mut self, enable_auth: bool) -> Self {
+        self.enable_auth = Some(enable_auth);
+        self
+    }
+
+    pub fn with_allowlist<'a, I: IntoIterator<Item = &'a str>>(mut self, allowlist: I) -> Self {
+        let allowlist = allowlist.into_iter().map(AllowHost::new).collect();
+
+        self.allowlist = Some(allowlist);
+        self
+    }
+
+    pub fn with_shareable_token(mut self, shareable_token: impl Into<String>) -> Self {
+        self.shareable_token = Some(shareable_token.into());
+        self
+    }
+}
+
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+struct AllowHost {
+    hostname: String,
+}
+
+impl AllowHost {
+    fn new(hostname: &str) -> Self {
+        AllowHost {
+            hostname: hostname.to_string(),
+        }
+    }
+}
+
+pub type DataCollection = HashMap<String, CustomData>;
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct CustomData {
+    description: String,
+    r#type: CustomDataType,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "snake_case")]
+enum CustomDataType {
+    Boolean,
+    Integer,
+    Number,
+    String,
+}
+
+impl CustomData {
+    pub fn new_boolean(description: impl Into<String>) -> Self {
+        CustomData {
+            description: description.into(),
+            r#type: CustomDataType::Boolean,
+        }
+    }
+
+    pub fn new_integer(description: impl Into<String>) -> Self {
+        CustomData {
+            description: description.into(),
+            r#type: CustomDataType::Integer,
+        }
+    }
+
+    pub fn new_number(description: impl Into<String>) -> Self {
+        CustomData {
+            description: description.into(),
+            r#type: CustomDataType::Number,
+        }
+    }
+
+    pub fn new_string(description: impl Into<String>) -> Self {
+        CustomData {
+            description: description.into(),
+            r#type: CustomDataType::String,
+        }
+    }
+}
+
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+pub struct Evaluation {
+    pub criteria: Vec<Criteria>,
+}
+
+impl Evaluation {
+    pub fn new(criteria: Vec<Criteria>) -> Self {
+        Evaluation { criteria }
+    }
+}
+
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+pub struct Criteria {
+    pub id: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+    r#type: CriteriaType,
+    pub conversation_goal_prompt: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub use_knowledge_base: Option<bool>,
+}
+
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+#[serde(rename_all = "snake_case")]
+enum CriteriaType {
+    #[default]
+    Prompt,
+}
+
+impl Criteria {
+    pub fn new(id: impl Into<String>, conversation_goal_prompt: impl Into<String>) -> Self {
+        Criteria {
+            id: id.into(),
+            name: None,
+            r#type: CriteriaType::Prompt,
+            conversation_goal_prompt: conversation_goal_prompt.into(),
+            use_knowledge_base: None,
+        }
+    }
+
+    pub fn with_name(mut self, name: impl Into<String>) -> Self {
+        self.name = Some(name.into());
+        self
+    }
+
+    pub fn with_use_knowledge_base(mut self, use_knowledge_base: bool) -> Self {
+        self.use_knowledge_base = Some(use_knowledge_base);
+        self
+    }
+}
+
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+pub struct Overrides {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub conversation_config_override: Option<ConversationConfigOverride>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub custom_llm_extra_body: Option<bool>,
+}
+
+impl Overrides {
+    pub fn with_conversation_config_override(
+        mut self,
+        conversation_config_override: ConversationConfigOverride,
+    ) -> Self {
+        self.conversation_config_override = Some(conversation_config_override);
+        self
+    }
+
+    pub fn override_custom_llm_extra_body(mut self, custom_llm_extra_body: bool) -> Self {
+        self.custom_llm_extra_body = Some(custom_llm_extra_body);
+        self
+    }
+}
+
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+pub struct ConversationConfigOverride {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub agent: Option<AgentOverride>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tts: Option<TTSOverride>,
+}
+
+impl ConversationConfigOverride {
+    pub fn with_agent_override(mut self, agent: AgentOverride) -> Self {
+        self.agent = Some(agent);
+        self
+    }
+
+    pub fn with_tts_override(mut self, tts: TTSOverride) -> Self {
+        self.tts = Some(tts);
+        self
+    }
+}
+
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+pub struct AgentOverride {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub prompt: Option<PromptOverride>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub first_message: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub language: Option<bool>,
+}
+
+impl AgentOverride {
+    pub fn with_prompt_override(mut self, prompt: PromptOverride) -> Self {
+        self.prompt = Some(prompt);
+        self
+    }
+
+    pub fn override_first_message(mut self, first_message: bool) -> Self {
+        self.first_message = Some(first_message);
+        self
+    }
+
+    pub fn override_language(mut self, language: bool) -> Self {
+        self.language = Some(language);
+        self
+    }
+}
+
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+pub struct PromptOverride {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub prompt: Option<bool>,
+}
+
+impl PromptOverride {
+    pub fn override_prompt(mut self, prompt: bool) -> Self {
+        self.prompt = Some(prompt);
+        self
+    }
+}
+
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+pub struct TTSOverride {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub voice_id: Option<bool>,
+}
+
+impl TTSOverride {
+    pub fn override_voice_id(mut self, voice_id: bool) -> Self {
+        self.voice_id = Some(voice_id);
+        self
+    }
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct Ban {
+    pub at_unix: u64,
+    pub reason_type: BanReasonType,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub reason: Option<String>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum BanReasonType {
+    Safety,
+    Manual,
+}
+
+impl Ban {
+    pub fn new_safety(at_unix: u64) -> Self {
+        Ban {
+            at_unix,
+            reason_type: BanReasonType::Safety,
+            reason: None,
+        }
+    }
+
+    pub fn new_manual(at_unix: u64) -> Self {
+        Ban {
+            at_unix,
+            reason_type: BanReasonType::Manual,
+            reason: None,
+        }
+    }
+
+    pub fn with_reason(mut self, reason: impl Into<String>) -> Self {
+        self.reason = Some(reason.into());
+        self
+    }
+}
+
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+pub struct Safety {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub ivc: Option<IVC>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub non_ivc: Option<NonIVC>,
+}
+
+impl Safety {
+    pub fn with_ivc(mut self, ivc: IVC) -> Self {
+        self.ivc = Some(ivc);
+        self
+    }
+
+    pub fn with_non_ivc(mut self, non_ivc: NonIVC) -> Self {
+        self.non_ivc = Some(non_ivc);
+        self
+    }
+}
+
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+pub struct IVC {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub is_unsafe: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub llm_reason: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    safety_prompt_version: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub matched_rule_id: Option<Vec<MatchedRule>>,
+}
+
+impl IVC {
+    pub fn with_is_unsafe(mut self, is_unsafe: bool) -> Self {
+        self.is_unsafe = Some(is_unsafe);
+        self
+    }
+
+    pub fn with_llm_reason(mut self, llm_reason: impl Into<String>) -> Self {
+        self.llm_reason = Some(llm_reason.into());
+        self
+    }
+
+    pub fn with_safety_prompt_version(mut self, safety_prompt_version: u32) -> Self {
+        self.safety_prompt_version = Some(safety_prompt_version);
+        self
+    }
+
+    pub fn with_matched_rule_ids<'a, I: IntoIterator<Item = &'a str>>(mut self, matched_rule_ids: I) -> Self {
+        let matched_rule_ids = matched_rule_ids
+            .into_iter()
+            .map(MatchedRule::new)
+            .collect();
+
+        self.matched_rule_id = Some(matched_rule_ids);
+        self
+    }
+}
+
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+pub struct NonIVC {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub is_unsafe: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub llm_reason: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    safety_prompt_version: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub matched_rule_id: Option<Vec<MatchedRule>>,
+}
+
+impl NonIVC {
+    pub fn with_is_unsafe(mut self, is_unsafe: bool) -> Self {
+        self.is_unsafe = Some(is_unsafe);
+        self
+    }
+
+    pub fn with_llm_reason(mut self, llm_reason: impl Into<String>) -> Self {
+        self.llm_reason = Some(llm_reason.into());
+        self
+    }
+
+    pub fn with_safety_prompt_version(mut self, safety_prompt_version: u32) -> Self {
+        self.safety_prompt_version = Some(safety_prompt_version);
+        self
+    }
+
+    pub fn with_matched_rule_ids<'a, I: IntoIterator<Item = &'a str>>(mut self, matched_rule_ids: I) -> Self {
+        let matched_rule_ids = matched_rule_ids
+            .into_iter()
+            .map(MatchedRule::new)
+            .collect();
+
+        self.matched_rule_id = Some(matched_rule_ids);
+        self
+    }
+
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum MatchedRule {
+    SexualMinors,
+    ForgetModeration,
+    Extremism,
+    ScamFraud,
+    Political,
+    SelfHarm,
+    IllegalDistributionMedical,
+    SexualAdults,
+    Unknown,
+}
+
+impl MatchedRule {
+    pub fn new(id: &str) -> Self {
+        match id {
+            "sexual_minors" => MatchedRule::SexualMinors,
+            "forget_moderation" => MatchedRule::ForgetModeration,
+            "extremism" => MatchedRule::Extremism,
+            "scam_fraud" => MatchedRule::ScamFraud,
+            "political" => MatchedRule::Political,
+            "self_harm" => MatchedRule::SelfHarm,
+            "illegal_distribution_medical" => MatchedRule::IllegalDistributionMedical,
+            "sexual_adults" => MatchedRule::SexualAdults,
+            "unknown" => MatchedRule::Unknown,
+            _ => MatchedRule::Unknown,
+        }
+    }
+}
+
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+pub struct Privacy {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub record_voice: Option<bool>,
+}
+
+impl Privacy {
+    pub fn record_voice(mut self, record_voice: bool) -> Self {
+        self.record_voice = Some(record_voice);
+        self
+    }
+}
+
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+pub struct Widget {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub variant: Option<WidgetVariant>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub avatar: Option<Avatar>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub feedback_mode: Option<FeedBackMode>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub custom_avatar_path: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub bg_color: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub text_color: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub btn_color: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub btn_text_color: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub border_color: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub focus_color: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub border_radius: Option<i64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub btn_radius: Option<i64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub action_text: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub start_call_text: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub end_call_text: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub expand_text: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub listening_text: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub speaking_text: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub shareable_page_text: Option<String>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum WidgetVariant {
+    Compact,
+    Full,
+    Expandable,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(untagged)]
+pub enum Avatar {
+    Image {
+        r#type: AvatarType,
+        url: Option<String>,
+    },
+    Orb {
+        r#type: AvatarType,
+        color_1: Option<String>,
+        color_2: Option<String>,
+    },
+    Url {
+        r#type: AvatarType,
+        custom_url: Option<String>,
+    },
+}
+
+impl Avatar {
+    pub fn default_image() -> Self {
+        Avatar::Image {
+            r#type: AvatarType::Image,
+            url: None,
+        }
+    }
+
+    pub fn default_orb() -> Self {
+        Avatar::Orb {
+            r#type: AvatarType::Orb,
+            color_1: None,
+            color_2: None,
+        }
+    }
+
+    pub fn default_url() -> Self {
+        Avatar::Url {
+            r#type: AvatarType::Url,
+            custom_url: None,
+        }
+    }
+
+    pub fn with_custom_url(mut self, custom_url: &str) -> Self {
+        match self {
+            Avatar::Image { ref mut url, .. } => {
+                *url = Some(custom_url.to_string());
+            }
+            _ => {}
+        }
+        self
+    }
+
+    pub fn with_color_1(mut self, color: &str) -> Self {
+        match self {
+            Avatar::Orb {
+                ref mut color_1, ..
+            } => {
+                *color_1 = Some(color.to_string());
+            }
+            _ => {}
+        }
+        self
+    }
+
+    pub fn with_color_2(mut self, color: &str) -> Self {
+        match self {
+            Avatar::Orb {
+                ref mut color_2, ..
+            } => {
+                *color_2 = Some(color.to_string());
+            }
+            _ => {}
+        }
+        self
+    }
+
+    pub fn with_url(mut self, url: &str) -> Self {
+        match self {
+            Avatar::Url {
+                ref mut custom_url, ..
+            } => {
+                *custom_url = Some(url.to_string());
+            }
+            _ => {}
+        }
+        self
+    }
+}
+
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum AvatarType {
+    Image,
+    #[default]
+    Orb,
+    Url,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum FeedBackMode {
+    None,
+    During,
+    End,
+}
+
+impl Widget {
+    pub fn with_variant(mut self, variant: WidgetVariant) -> Self {
+        self.variant = Some(variant);
+        self
+    }
+
+    pub fn with_avatar(mut self, avatar: Avatar) -> Self {
+        self.avatar = Some(avatar);
+        self
+    }
+
+    pub fn with_feedback_mode(mut self, feedback_mode: FeedBackMode) -> Self {
+        self.feedback_mode = Some(feedback_mode);
+        self
+    }
+
+    pub fn with_custom_avatar_path(mut self, custom_avatar_path: impl Into<String>) -> Self {
+        self.custom_avatar_path = Some(custom_avatar_path.into());
+        self
+    }
+
+    pub fn with_bg_color(mut self, bg_color: impl Into<String>) -> Self {
+        self.bg_color = Some(bg_color.into());
+        self
+    }
+
+    pub fn with_text_color(mut self, text_color: impl Into<String>) -> Self {
+        self.text_color = Some(text_color.into());
+        self
+    }
+
+    pub fn with_btn_color(mut self, btn_color: impl Into<String>) -> Self {
+        self.btn_color = Some(btn_color.into());
+        self
+    }
+
+    pub fn with_btn_text_color(mut self, btn_text_color: impl Into<String>) -> Self {
+        self.btn_text_color = Some(btn_text_color.into());
+        self
+    }
+
+    pub fn with_border_color(mut self, border_color: impl Into<String>) -> Self {
+        self.border_color = Some(border_color.into());
+        self
+    }
+
+    pub fn with_focus_color(mut self, focus_color: impl Into<String>) -> Self {
+        self.focus_color = Some(focus_color.into());
+        self
+    }
+
+    pub fn with_border_radius(mut self, border_radius: i64) -> Self {
+        self.border_radius = Some(border_radius);
+        self
+    }
+
+    pub fn with_btn_radius(mut self, btn_radius: i64) -> Self {
+        self.btn_radius = Some(btn_radius);
+        self
+    }
+
+    pub fn with_action_text(mut self, action_text: impl Into<String>) -> Self {
+        self.action_text = Some(action_text.into());
+        self
+    }
+
+    pub fn with_start_call_text(mut self, start_call_text: impl Into<String>) -> Self {
+        self.start_call_text = Some(start_call_text.into());
+        self
+    }
+
+    pub fn with_end_call_text(mut self, end_call_text: impl Into<String>) -> Self {
+        self.end_call_text = Some(end_call_text.into());
+        self
+    }
+
+    pub fn with_expand_text(mut self, expand_text: impl Into<String>) -> Self {
+        self.expand_text = Some(expand_text.into());
+        self
+    }
+
+    pub fn with_listening_text(mut self, listening_text: impl Into<String>) -> Self {
+        self.listening_text = Some(listening_text.into());
+        self
+    }
+
+    pub fn with_speaking_text(mut self, speaking_text: impl Into<String>) -> Self {
+        self.speaking_text = Some(speaking_text.into());
+        self
+    }
+
+    pub fn with_shareable_page_text(mut self, shareable_page_text: impl Into<String>) -> Self {
+        self.shareable_page_text = Some(shareable_page_text.into());
+        self
+    }
+}
+
+///// see Elevenlabs' docs on [Get Agent](https://elevenlabs.io/docs/conversational-ai/api-reference/get-conversational-ai-agent)
+/////
+///// This endpoint retrieves an agent by its ID.
+//#[derive(Clone, Debug, Serialize)]
+//pub struct GetAgent {
+//    agent_id: AgentID,
+//}
+//
+//impl GetAgent {
+//    pub fn new(agent_id: impl Into<String>) -> Self {
+//        GetAgent {
+//            agent_id: AgentID(agent_id.into()),
+//        }
+//    }
+//}
+//
+//impl Endpoint for GetAgent {
+//    type ResponseBody = GetAgentResponse;
+//
+//    const METHOD: Method = Method::GET;
+//
+//    async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
+//        Ok(resp.json().await?)
+//    }
+//
+//    fn url(&self) -> Result<Url> {
+//        let mut url = BASE_URL.parse::<Url>().unwrap();
+//        url.set_path(&format!("{}/{}", AGENTS_PATH, self.agent_id));
+//        Ok(url)
+//    }
+//}
+//
+//#[derive(Clone, Debug, Deserialize, Serialize)]
+//pub struct GetAgentResponse {
+//    agent_id: String,
+//    name: String,
+//    conversation_config: ConversationConfig,
+//    platform_settings: Option<PlatformSettings>,
+//    metadata: Metadata,
+//    secrets: Vec<Secret>,
+//}
+//
+//#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+//pub struct Metadata {
+//    created_at_unix_secs: u64,
+//}
+//impl Metadata {
+//    pub fn created_at(&self) -> u64 {
+//        self.created_at_unix_secs
+//    }
+//}
+//
+//impl GetAgentResponse {
+//    pub fn agent_id(&self) -> &str {
+//        self.agent_id.as_str()
+//    }
+//    pub fn name(&self) -> &str {
+//        self.name.as_str()
+//    }
+//    pub fn conversation_config(&self) -> &ConversationConfig {
+//        &self.conversation_config
+//    }
+//    pub fn platform_settings(&self) -> Option<&PlatformSettings> {
+//        self.platform_settings.as_ref()
+//    }
+//    pub fn metadata(&self) -> &Metadata {
+//        &self.metadata
+//    }
+//    pub fn secrets(&self) -> &[Secret] {
+//        self.secrets.as_slice()
+//    }
+//}
+//
+///// see Elevenlabs' docs on [Get Agents](https://elevenlabs.io/docs/conversational-ai/api-reference/get-conversational-ai-agents)
+/////
+///// This endpoint retrieves a list of agents that are available for use in the Conversational AI API.
+/////
+///// # Query Parameters
+/////
+///// - `search` (optional): A search term to filter agents by name.
+///// - `page_size` (optional): The number of agents to return per page. Can not exceed 100, default is 30.
+///// - `cursor` (optional): A cursor to paginate through the list of agents.
+/////
+///// # Response
+/////
+///// The response will contain a list of agents and metadata about the list.
+/////
+///// - `agents`: A `Vec<Agent>`.
+///// - `has_more`: A boolean indicating if there are more agents to retrieve.
+///// - `next_cursor`: A cursor to paginate to the next page of agents.
+/////
+///// # Example
+/////
+///// ```no_run
+///// use elevenlabs_rs::endpoints::convai::agents::{GetAgents, GetAgentsQuery};
+///// use elevenlabs_rs::{ElevenLabsClient, Result};
+/////
+///// #[tokio::main]
+///// async fn main() -> Result<()> {
+/////    let client = ElevenLabsClient::from_env()?;
+/////    let query = GetAgentsQuery::default();
+/////    let agents = client.hit(GetAgents::new(query)).await?;
+/////    for agent in agents {
+/////         println!("{:?}", agent);
+/////   }
+/////   Ok(())
+///// }
+///// ```
+//#[derive(Clone, Debug, Serialize)]
+//pub struct GetAgents {
+//    query: GetAgentsQuery,
+//}
+//
+//impl GetAgents {
+//    pub fn new(query: GetAgentsQuery) -> Self {
+//        GetAgents { query }
+//    }
+//}
+//
+//impl Endpoint for GetAgents {
+//    type ResponseBody = GetAgentsResponse;
+//
+//    const METHOD: Method = Method::GET;
+//
+//    async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
+//        Ok(resp.json().await?)
+//    }
+//
+//    // TODO: Validate Url
+//    fn url(&self) -> Result<Url> {
+//        let mut url = BASE_URL.parse::<Url>().unwrap();
+//        url.set_path(AGENTS_PATH);
+//        url.set_query(Some(&self.query.to_string()));
+//        Ok(url)
+//    }
+//}
+//
+//#[derive(Clone, Debug, Deserialize, Serialize)]
+//pub struct GetAgentsResponse {
+//    agents: Vec<Agent>,
+//    has_more: bool,
+//    next_cursor: Option<String>,
+//}
+//
+//impl GetAgentsResponse {
+//    pub fn agents(&self) -> &[Agent] {
+//        self.agents.as_slice()
+//    }
+//    pub fn has_more(&self) -> bool {
+//        self.has_more
+//    }
+//    pub fn cursor(&self) -> Option<&str> {
+//        self.next_cursor.as_deref()
+//    }
+//}
+//#[derive(Clone, Debug, Deserialize, Serialize)]
+//pub struct Agent {
+//    agent_id: String,
+//    name: String,
+//    created_at_unix_secs: u64,
+//}
+//
+//impl Agent {
+//    pub fn agent_id(&self) -> &str {
+//        self.agent_id.as_str()
+//    }
+//    pub fn name(&self) -> &str {
+//        self.name.as_str()
+//    }
+//    pub fn created_at(&self) -> u64 {
+//        self.created_at_unix_secs
+//    }
+//}
+//
+//#[derive(Clone, Debug, Default, Serialize)]
+//pub struct GetAgentsQuery {
+//    pub search: String,
+//    pub page_size: String,
+//    pub cursor: String,
+//}
+//
+//#[derive(Clone, Debug, Serialize)]
+//pub struct UpdateAgent {
+//    agent_id: AgentID,
+//    body: UpdateAgentBody,
+//}
+//
+//impl UpdateAgent {
+//    pub fn new(agent_id: &str, body: UpdateAgentBody) -> Self {
+//        UpdateAgent {
+//            agent_id: AgentID(agent_id.into()),
+//            body,
+//        }
+//    }
+//}
+//
+//#[derive(Clone, Debug, Default, Serialize)]
+//pub struct UpdateAgentBody {
+//    #[serde(skip_serializing_if = "Option::is_none")]
+//    conversation_config: Option<ConversationConfig>,
+//    #[serde(skip_serializing_if = "Option::is_none")]
+//    platform_settings: Option<PlatformSettings>,
+//    #[serde(skip_serializing_if = "Option::is_none")]
+//    name: Option<String>,
+//    #[serde(skip_serializing_if = "Option::is_none")]
+//    secrets: Option<Vec<Secret>>,
+//}
+//
+//impl UpdateAgentBody {
+//    pub fn with_conversation_config(mut self, conversation_config: ConversationConfig) -> Self {
+//        self.conversation_config = Some(conversation_config);
+//        self
+//    }
+//    pub fn with_platform_settings(mut self, platform_settings: PlatformSettings) -> Self {
+//        self.platform_settings = Some(platform_settings);
+//        self
+//    }
+//    pub fn with_name(mut self, name: impl Into<String>) -> Self {
+//        self.name = Some(name.into());
+//        self
+//    }
+//    /// Add a secret to the agent.
+//    ///
+//    /// # Example
+//    ///
+//    ///
+//    /// ```
+//    /// use elevenlabs_rs::endpoints::convai::agents::{UpdateAgent, UpdateAgentBody, Secret};
+//    ///
+//    /// let body = UpdateAgentBody::default().with_secrets(vec![
+//    ///     Secret::new("secret_name", "secret_value"),
+//    ///     Secret::new("other_secret_name", "other_secret_value"),
+//    /// ]);
+//    ///
+//    /// let endpoint = UpdateAgent::new("my_agent_id", body);
+//    ///
+//    /// ```
+//    pub fn with_secrets(mut self, secrets: Vec<Secret>) -> Self {
+//        self.secrets = Some(secrets);
+//        self
+//    }
+//}
+//
+//impl Endpoint for UpdateAgent {
+//    type ResponseBody = GetAgentResponse;
+//
+//    const METHOD: Method = Method::PATCH;
+//
+//    async fn request_body(&self) -> Result<RequestBody> {
+//        Ok(RequestBody::Json(serde_json::to_value(&self.body)?))
+//    }
+//
+//    async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
+//        Ok(resp.json().await?)
+//    }
+//
+//    fn url(&self) -> Result<Url> {
+//        let mut url = BASE_URL.parse::<Url>().unwrap();
+//        url.set_path(&format!("{}/{}", AGENTS_PATH, self.agent_id));
+//        Ok(url)
+//    }
+//}
+//
+//impl std::fmt::Display for GetAgentsQuery {
+//    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+//        let mut params = vec![];
+//        if !self.search.is_empty() {
+//            params.push(format!("search={}", self.search));
+//        }
+//        if !self.page_size.is_empty() {
+//            params.push(format!("page_size={}", self.page_size));
+//        }
+//        if !self.cursor.is_empty() {
+//            params.push(format!("cursor={}", self.cursor));
+//        }
+//        write!(f, "{}", params.join("&"))
+//    }
+//}
+//impl IntoIterator for GetAgentsResponse {
+//    type Item = Agent;
+//    type IntoIter = std::vec::IntoIter<Self::Item>;
+//
+//    fn into_iter(self) -> Self::IntoIter {
+//        self.agents.into_iter()
+//    }
+//}
+//
+//impl<'a> IntoIterator for &'a GetAgentsResponse {
+//    type Item = &'a Agent;
+//    type IntoIter = std::slice::Iter<'a, Agent>;
+//
+//    fn into_iter(self) -> Self::IntoIter {
+//        self.agents.iter()
+//    }
+//}
+//
