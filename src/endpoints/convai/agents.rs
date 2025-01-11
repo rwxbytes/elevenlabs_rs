@@ -1,9 +1,10 @@
 //! Agents endpoints
 
 use super::*;
-use std::collections::HashMap;
 use crate::shared::Language;
+use std::collections::HashMap;
 // TODO: move this to a shared module
+use crate::endpoints::PathParam::AgentID;
 use crate::DictionaryLocator;
 
 /// Create an agent from a config object
@@ -17,7 +18,7 @@ use crate::DictionaryLocator;
 /// async fn main() -> Result<()> {
 ///     let client = ElevenLabsClient::from_env()?;
 ///
-///     let body = CreateAgentBody::new("some_agent_name");
+///     let body = CreateAgentBody::new("some_system_prompt");
 ///
 ///     let endpoint = CreateAgent::new(body);
 ///
@@ -40,19 +41,23 @@ impl CreateAgent {
     }
 }
 
-#[derive(Clone, Debug, Default, Serialize)]
+#[derive(Clone, Debug, Serialize)]
 pub struct CreateAgentBody {
     pub conversation_config: ConversationConfig,
-    pub platform_settings: PlatformSettings,
-    pub name: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub platform_settings: Option<PlatformSettings>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
 }
 
 impl CreateAgentBody {
-    pub fn new(name: impl Into<String>) -> Self {
+    pub fn new(prompt: impl Into<String>) -> Self {
         CreateAgentBody {
-            name: name.into(),
-            conversation_config: ConversationConfig::default(),
-            platform_settings: PlatformSettings::default(),
+            conversation_config: ConversationConfig::default().with_agent_config(
+                AgentConfig::default().with_prompt(Prompt::default().with_prompt(prompt.into())),
+            ),
+            platform_settings: None,
+            name: None,
         }
     }
 
@@ -62,7 +67,7 @@ impl CreateAgentBody {
     }
 
     pub fn with_platform_settings(mut self, platform_settings: PlatformSettings) -> Self {
-        self.platform_settings = platform_settings;
+        self.platform_settings = Some(platform_settings);
         self
     }
 }
@@ -148,51 +153,44 @@ impl TryFrom<&CreateAgentBody> for RequestBody {
 //
 //
 //
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
 pub struct ConversationConfig {
-    pub agent: AgentConfig,
-    pub asr: ASR,
-    pub conversation: Conversation,
-    pub tts: TTSConfig,
-    pub turn: Turn,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub agent: Option<AgentConfig>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub asr: Option<ASR>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub conversation: Option<Conversation>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tts: Option<TTSConfig>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub turn: Option<Turn>,
 }
 
 impl ConversationConfig {
     pub fn with_agent_config(mut self, agent_config: AgentConfig) -> Self {
-        self.agent = agent_config;
+        self.agent = Some(agent_config);
         self
     }
 
     pub fn with_asr(mut self, asr: ASR) -> Self {
-        self.asr = asr;
+        self.asr = Some(asr);
         self
     }
 
     pub fn with_conversation(mut self, conversation: Conversation) -> Self {
-        self.conversation = conversation;
+        self.conversation = Some(conversation);
         self
     }
 
     pub fn with_tts_config(mut self, tts: TTSConfig) -> Self {
-        self.tts = tts;
+        self.tts = Some(tts);
         self
     }
 
     pub fn with_turn(mut self, turn: Turn) -> Self {
-        self.turn = turn;
+        self.turn = Some(turn);
         self
-    }
-}
-
-impl Default for ConversationConfig {
-    fn default() -> Self {
-        ConversationConfig {
-            agent: AgentConfig::default(),
-            asr: ASR::default(),
-            conversation: Conversation::default(),
-            tts: TTSConfig::default(),
-            turn: Turn::default(),
-        }
     }
 }
 
@@ -200,25 +198,30 @@ impl Default for ConversationConfig {
 pub struct AgentConfig {
     //pub server: Option<ServerConfig>,
     /// The system prompt is used to determine the persona of the agent and the context of the conversation.
-    pub prompt: Prompt,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub prompt: Option<Prompt>,
     /// The first message the agent will say.
     ///
     /// If empty the agent will wait for the user to start the conversation.
-    pub first_message: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub first_message: Option<String>,
     /// The language of the agent.
     ///
     /// The agent will use English as the default language.
-    #[serde(serialize_with = "Language::to_code")]
-    #[serde(deserialize_with = "Language::from_code")]
-    pub language: Language,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub language: Option<String>,
 }
 
 impl AgentConfig {
-    pub fn new(prompt: Prompt, first_message: impl Into<String>, language: Language) -> Self {
+    pub fn new(
+        prompt: Prompt,
+        first_message: impl Into<String>,
+        language: impl Into<String>,
+    ) -> Self {
         AgentConfig {
-            prompt,
-            first_message: first_message.into(),
-            language,
+            prompt: Some(prompt),
+            first_message: Some(first_message.into()),
+            language: Some(language.into()),
         }
     }
 
@@ -228,17 +231,17 @@ impl AgentConfig {
     //}
 
     pub fn with_prompt(mut self, prompt: Prompt) -> Self {
-        self.prompt = prompt;
+        self.prompt = Some(prompt);
         self
     }
 
     pub fn with_first_message(mut self, first_message: impl Into<String>) -> Self {
-        self.first_message = first_message.into();
+        self.first_message = Some(first_message.into());
         self
     }
 
-    pub fn with_language(mut self, language: Language) -> Self {
-        self.language = language;
+    pub fn with_language(mut self, language: impl Into<String>) -> Self {
+        self.language = Some(language.into());
         self
     }
 }
@@ -261,51 +264,58 @@ impl AgentConfig {
 //    TurnAbandoned,
 //}
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
 pub struct Prompt {
     /// Provide the LLM with domain-specific information to help it answer questions more accurately.
-    pub knowledge_base: Vec<KnowledgeBase>,
-    pub llm: LLM,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub knowledge_base: Option<Vec<KnowledgeBase>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub llm: Option<LLM>,
     /// Configure the maximum number of tokens that the LLM can predict.
     /// A limit will be applied if the value is greater than 0.
-    pub max_tokens: i32,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub max_tokens: Option<i32>,
     /// System prompt is used to determine the persona of the agent and the context of the conversation.
-    pub prompt: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub prompt: Option<String>,
     /// Temperature is a parameter that controls the creativity
     /// or randomness of the responses generated by the LLM.
-    pub temperature: f32,
-    pub tools: Vec<Tool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub temperature: Option<f32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tools: Option<Vec<Tool>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub custom_llm: Option<CustomLLM>,
 }
 
 impl Prompt {
     pub fn with_knowledge_base(mut self, knowledge_base: Vec<KnowledgeBase>) -> Self {
-        self.knowledge_base = knowledge_base;
+        self.knowledge_base = Some(knowledge_base);
         self
     }
 
     pub fn with_llm(mut self, llm: LLM) -> Self {
-        self.llm = llm;
+        self.llm = Some(llm);
         self
     }
 
     pub fn with_max_tokens(mut self, max_tokens: i32) -> Self {
-        self.max_tokens = max_tokens;
+        self.max_tokens = Some(max_tokens);
         self
     }
 
     pub fn with_prompt(mut self, prompt: impl Into<String>) -> Self {
-        self.prompt = prompt.into();
+        self.prompt = Some(prompt.into());
         self
     }
 
     pub fn with_temperature(mut self, temperature: f32) -> Self {
-        self.temperature = temperature;
+        self.temperature = Some(temperature);
         self
     }
 
     pub fn with_tools(mut self, tools: Vec<Tool>) -> Self {
-        self.tools = tools;
+        self.tools = Some(tools);
         self
     }
 
@@ -327,15 +337,6 @@ pub struct KnowledgeBase {
 pub enum KnowledgeBaseType {
     File,
     Url,
-}
-
-impl std::fmt::Display for KnowledgeBaseType {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            KnowledgeBaseType::File => write!(f, "file"),
-            KnowledgeBaseType::Url => write!(f, "url"),
-        }
-    }
 }
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
@@ -365,7 +366,7 @@ pub enum LLM {
     #[serde(rename = "grok-beta")]
     GrokBeta,
     #[serde(rename = "custom-llm")]
-    CustomLlm,
+    CustomLLM,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -375,18 +376,6 @@ pub enum Tool {
     WebHook(WebHook),
     Client(ClientTool),
 }
-
-//impl Tool {
-//    pub fn new_webhook<T: Into<String>>(name: T, description: T, api_schema: ApiSchema) -> Self {
-//        WebHook::new(name, description, api_schema).into()
-//    }
-//
-//    pub fn new_client<T: Into<String>>(name: T, description: T) -> Self {
-//        ClientTool::new(name, description).into()
-//    }
-//
-//
-//}
 
 /// A webhook tool is a tool that calls an external webhook from ElevenLabs' server
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -457,10 +446,7 @@ impl ClientTool {
         self.response_timeout_secs = Some(response_timeout_secs);
         self
     }
-
 }
-
-
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct ClientToolParams {
@@ -487,7 +473,6 @@ impl ClientToolParams {
     }
 }
 
-
 impl Default for ClientToolParams {
     fn default() -> Self {
         ClientToolParams {
@@ -508,9 +493,30 @@ pub enum Schema {
 }
 
 impl Schema {
-    pub fn new_literal(data_type: DataType, description: impl Into<String>) -> Self {
+    pub fn new_boolean(description: impl Into<String>) -> Self {
         Schema::Literal(LiteralJsonSchema {
-            r#type: data_type,
+            r#type: DataType::Boolean,
+            description: description.into(),
+        })
+    }
+
+    pub fn new_integer(description: impl Into<String>) -> Self {
+        Schema::Literal(LiteralJsonSchema {
+            r#type: DataType::Integer,
+            description: description.into(),
+        })
+    }
+
+    pub fn new_number(description: impl Into<String>) -> Self {
+        Schema::Literal(LiteralJsonSchema {
+            r#type: DataType::Number,
+            description: description.into(),
+        })
+    }
+
+    pub fn new_string(description: impl Into<String>) -> Self {
+        Schema::Literal(LiteralJsonSchema {
+            r#type: DataType::String,
             description: description.into(),
         })
     }
@@ -576,7 +582,6 @@ impl Schema {
         }
         self
     }
-
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -584,15 +589,6 @@ pub struct LiteralJsonSchema {
     pub r#type: DataType,
     pub description: String,
 }
-
-//impl LiteralJsonSchema {
-//    pub fn new(data_type: DataType, description: impl Into<String>) -> Self {
-//        LiteralJsonSchema {
-//            r#type: data_type,
-//            description: description.into(),
-//        }
-//    }
-//}
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct ObjectJsonSchema {
@@ -652,6 +648,26 @@ pub struct CustomLLM {
     pub model_id: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub apikey: Option<SecretType>,
+}
+
+impl CustomLLM {
+    pub fn new(url: impl Into<String>) -> Self {
+        CustomLLM {
+            url: url.into(),
+            model_id: None,
+            apikey: None,
+        }
+    }
+
+    pub fn with_model_id(mut self, model_id: impl Into<String>) -> Self {
+        self.model_id = Some(model_id.into());
+        self
+    }
+
+    pub fn with_apikey(mut self, apikey: SecretType) -> Self {
+        self.apikey = Some(apikey);
+        self
+    }
 }
 
 /// Configuration for a webhook that will be called by an LLM tool.
@@ -733,24 +749,37 @@ impl From<Secret> for ConvAIHeaderValue {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
-pub struct Secret {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    secret_id: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    name: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    r#type: Option<SecretType>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    value: Option<String>,
+#[serde(rename_all = "lowercase")]
+#[serde(untagged)]
+pub enum Secret {
+    New {
+        name: String,
+        value: String,
+        #[serde(default = "SecretType::new")]
+        r#type: SecretType,
+    },
+    Stored {
+        name: String,
+        secret_id: String,
+        #[serde(default = "SecretType::stored")]
+        r#type: SecretType,
+    },
 }
 
 impl Secret {
-    pub fn new(name: &str, value: &str) -> Self {
-        Secret {
-            secret_id: None,
-            name: Some(name.to_string()),
-            r#type: Some(SecretType::New),
-            value: Some(value.to_string()),
+    pub fn new(name: impl Into<String>, value: impl Into<String>) -> Self {
+        Secret::New {
+            name: name.into(),
+            value: value.into(),
+            r#type: SecretType::New
+        }
+    }
+
+    pub fn new_stored(name: impl Into<String>, secret_id: impl Into<String>) -> Self {
+        Secret::Stored {
+            name: name.into(),
+            secret_id: secret_id.into(),
+            r#type: SecretType::Stored
         }
     }
 }
@@ -760,6 +789,16 @@ impl Secret {
 pub enum SecretType {
     New,
     Stored,
+}
+
+impl SecretType {
+    fn new() -> Self {
+        SecretType::New
+    }
+
+    fn stored() -> Self {
+        SecretType::Stored
+    }
 }
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
@@ -856,25 +895,17 @@ pub enum ToolType {
     Client,
 }
 
-impl Default for Prompt {
-    fn default() -> Self {
-        Prompt {
-            knowledge_base: Vec::new(),
-            llm: Default::default(),
-            max_tokens: -1,
-            prompt: String::new(),
-            temperature: 0.0,
-            tools: Vec::new(),
-            custom_llm: None,
-        }
-    }
-}
+
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 pub struct ASR {
-    quality: AsrQuality,
-    provider: AsrProvider,
-    user_input_audio_format: ConvAIAudioFormat,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    quality: Option<AsrQuality>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    provider: Option<AsrProvider>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    user_input_audio_format: Option<ConvAIAudioFormat>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
     keywords: Vec<String>,
 }
 
@@ -894,7 +925,7 @@ impl ASR {
         mut self,
         user_input_audio_format: ConvAIAudioFormat,
     ) -> Self {
-        self.user_input_audio_format = user_input_audio_format;
+        self.user_input_audio_format = Some(user_input_audio_format);
         self
     }
 
@@ -935,8 +966,10 @@ pub enum ConvAIAudioFormat {
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Conversation {
+    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub client_events: Vec<ClientEvent>,
-    pub max_duration_seconds: u32,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub max_duration_seconds: Option<u32>,
 }
 
 impl Conversation {
@@ -946,7 +979,7 @@ impl Conversation {
     }
 
     pub fn with_max_duration_seconds(mut self, max_duration_seconds: u32) -> Self {
-        self.max_duration_seconds = max_duration_seconds;
+        self.max_duration_seconds = Some(max_duration_seconds);
         self
     }
 }
@@ -955,12 +988,12 @@ impl Default for Conversation {
     fn default() -> Self {
         Conversation {
             client_events: vec![ClientEvent::Audio, ClientEvent::Interruption],
-            max_duration_seconds: 300,
+            max_duration_seconds: None,
         }
     }
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
 pub struct TTSConfig {
     /// The voice model to use for the agent.
     ///
@@ -970,11 +1003,13 @@ pub struct TTSConfig {
     /// - `ConvAIModel::ElevenTurboV2_5`
     /// - `ConvAIModel::ElevenFlashV2`
     /// - `ConvAIModel::ElevenFlashV2_5`
-    pub model_id: ConvAIModel,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub model_id: Option<ConvAIModel>,
     /// The voice ID to use for the agent.
     ///
     ///  Default: `DefaultVoice::Eric` i.e. `cjVigY5qzO86Huf0OWal`
-    pub voice_id: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub voice_id: Option<String>,
     /// The output format you want to use for ElevenLabs text to speech
     ///
     ///  Default: `ConvAIAudioFormat::Pcm16000hz`
@@ -984,21 +1019,26 @@ pub struct TTSConfig {
     /// - `ConvAIAudioFormat::Pcm24000hz`
     /// - `ConvAIAudioFormat::Pcm44100hz`
     /// - `ConvAIAudioFormat::Ulaw8000hz`
-    pub agent_output_audio_format: ConvAIAudioFormat,
-    pub optimize_streaming_latency: u32,
-    pub stability: f32,
-    pub similarity_boost: f32,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub agent_output_audio_format: Option<ConvAIAudioFormat>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub optimize_streaming_latency: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub stability: Option<f32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub similarity_boost: Option<f32>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub pronunciation_dictionary_locators: Vec<DictionaryLocator>,
 }
 
 impl TTSConfig {
     pub fn with_model_id(mut self, model_id: ConvAIModel) -> Self {
-        self.model_id = model_id;
+        self.model_id = Some(model_id);
         self
     }
 
     pub fn with_voice_id(mut self, voice_id: impl Into<String>) -> Self {
-        self.voice_id = voice_id.into();
+        self.voice_id = Some(voice_id.into());
         self
     }
 
@@ -1006,22 +1046,22 @@ impl TTSConfig {
         mut self,
         agent_output_audio_format: ConvAIAudioFormat,
     ) -> Self {
-        self.agent_output_audio_format = agent_output_audio_format;
+        self.agent_output_audio_format = Some(agent_output_audio_format);
         self
     }
 
     pub fn with_optimize_streaming_latency(mut self, optimize_streaming_latency: u32) -> Self {
-        self.optimize_streaming_latency = optimize_streaming_latency;
+        self.optimize_streaming_latency = Some(optimize_streaming_latency);
         self
     }
 
     pub fn with_stability(mut self, stability: f32) -> Self {
-        self.stability = stability;
+        self.stability = Some(stability);
         self
     }
 
     pub fn with_similarity_boost(mut self, similarity_boost: f32) -> Self {
-        self.similarity_boost = similarity_boost;
+        self.similarity_boost = Some(similarity_boost);
         self
     }
 
@@ -1031,20 +1071,6 @@ impl TTSConfig {
     ) -> Self {
         self.pronunciation_dictionary_locators = pronunciation_dictionary_locators;
         self
-    }
-}
-
-impl Default for TTSConfig {
-    fn default() -> Self {
-        TTSConfig {
-            model_id: ConvAIModel::ElevenTurboV2,
-            voice_id: DefaultVoice::default().into(),
-            agent_output_audio_format: ConvAIAudioFormat::Pcm16000hz,
-            optimize_streaming_latency: 3,
-            stability: 0.5,
-            similarity_boost: 0.8,
-            pronunciation_dictionary_locators: Vec::new(),
-        }
     }
 }
 
@@ -1080,7 +1106,8 @@ pub enum ConvAIModel {
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Turn {
-    pub turn_timeout: f32,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub turn_timeout: Option<f32>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub mode: Option<TurnMode>,
 }
@@ -1092,7 +1119,7 @@ impl Turn {
     }
 
     pub fn with_turn_timeout(mut self, turn_timeout: f32) -> Self {
-        self.turn_timeout = turn_timeout;
+        self.turn_timeout = Some(turn_timeout);
         self
     }
 }
@@ -1102,15 +1129,6 @@ impl Turn {
 pub enum TurnMode {
     Silence,
     Turn,
-}
-
-impl Default for Turn {
-    fn default() -> Self {
-        Turn {
-            turn_timeout: 7.0,
-            mode: None,
-        }
-    }
 }
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
@@ -1225,6 +1243,7 @@ pub struct CustomData {
     r#type: CustomDataType,
 }
 
+// TODO: not needed if `DataType` enum remains private and internally used for all
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "snake_case")]
 enum CustomDataType {
@@ -1266,21 +1285,21 @@ impl CustomData {
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 pub struct Evaluation {
-    pub criteria: Vec<Criteria>,
+    pub criteria: Vec<Criterion>,
 }
 
 impl Evaluation {
-    pub fn new(criteria: Vec<Criteria>) -> Self {
+    pub fn new(criteria: Vec<Criterion>) -> Self {
         Evaluation { criteria }
     }
 }
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
-pub struct Criteria {
+pub struct Criterion {
     pub id: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub name: Option<String>,
-    r#type: CriteriaType,
+    r#type: CriterionType,
     pub conversation_goal_prompt: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub use_knowledge_base: Option<bool>,
@@ -1288,17 +1307,17 @@ pub struct Criteria {
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 #[serde(rename_all = "snake_case")]
-enum CriteriaType {
+enum CriterionType {
     #[default]
     Prompt,
 }
 
-impl Criteria {
+impl Criterion {
     pub fn new(id: impl Into<String>, conversation_goal_prompt: impl Into<String>) -> Self {
-        Criteria {
+        Criterion {
             id: id.into(),
             name: None,
-            r#type: CriteriaType::Prompt,
+            r#type: CriterionType::Prompt,
             conversation_goal_prompt: conversation_goal_prompt.into(),
             use_knowledge_base: None,
         }
@@ -1497,11 +1516,11 @@ impl IVC {
         self
     }
 
-    pub fn with_matched_rule_ids<'a, I: IntoIterator<Item = &'a str>>(mut self, matched_rule_ids: I) -> Self {
-        let matched_rule_ids = matched_rule_ids
-            .into_iter()
-            .map(MatchedRule::new)
-            .collect();
+    pub fn with_matched_rule_ids<'a, I: IntoIterator<Item = &'a str>>(
+        mut self,
+        matched_rule_ids: I,
+    ) -> Self {
+        let matched_rule_ids = matched_rule_ids.into_iter().map(MatchedRule::new).collect();
 
         self.matched_rule_id = Some(matched_rule_ids);
         self
@@ -1536,16 +1555,15 @@ impl NonIVC {
         self
     }
 
-    pub fn with_matched_rule_ids<'a, I: IntoIterator<Item = &'a str>>(mut self, matched_rule_ids: I) -> Self {
-        let matched_rule_ids = matched_rule_ids
-            .into_iter()
-            .map(MatchedRule::new)
-            .collect();
+    pub fn with_matched_rule_ids<'a, I: IntoIterator<Item = &'a str>>(
+        mut self,
+        matched_rule_ids: I,
+    ) -> Self {
+        let matched_rule_ids = matched_rule_ids.into_iter().map(MatchedRule::new).collect();
 
         self.matched_rule_id = Some(matched_rule_ids);
         self
     }
-
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -1844,299 +1862,317 @@ impl Widget {
     }
 }
 
-///// see Elevenlabs' docs on [Get Agent](https://elevenlabs.io/docs/conversational-ai/api-reference/get-conversational-ai-agent)
-/////
-///// This endpoint retrieves an agent by its ID.
-//#[derive(Clone, Debug, Serialize)]
-//pub struct GetAgent {
-//    agent_id: AgentID,
-//}
-//
-//impl GetAgent {
-//    pub fn new(agent_id: impl Into<String>) -> Self {
-//        GetAgent {
-//            agent_id: AgentID(agent_id.into()),
-//        }
-//    }
-//}
-//
-//impl Endpoint for GetAgent {
-//    type ResponseBody = GetAgentResponse;
-//
-//    const METHOD: Method = Method::GET;
-//
-//    async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
-//        Ok(resp.json().await?)
-//    }
-//
-//    fn url(&self) -> Result<Url> {
-//        let mut url = BASE_URL.parse::<Url>().unwrap();
-//        url.set_path(&format!("{}/{}", AGENTS_PATH, self.agent_id));
-//        Ok(url)
-//    }
-//}
-//
-//#[derive(Clone, Debug, Deserialize, Serialize)]
-//pub struct GetAgentResponse {
-//    agent_id: String,
-//    name: String,
-//    conversation_config: ConversationConfig,
-//    platform_settings: Option<PlatformSettings>,
-//    metadata: Metadata,
-//    secrets: Vec<Secret>,
-//}
-//
-//#[derive(Clone, Debug, Default, Deserialize, Serialize)]
-//pub struct Metadata {
-//    created_at_unix_secs: u64,
-//}
-//impl Metadata {
-//    pub fn created_at(&self) -> u64 {
-//        self.created_at_unix_secs
-//    }
-//}
-//
-//impl GetAgentResponse {
-//    pub fn agent_id(&self) -> &str {
-//        self.agent_id.as_str()
-//    }
-//    pub fn name(&self) -> &str {
-//        self.name.as_str()
-//    }
-//    pub fn conversation_config(&self) -> &ConversationConfig {
-//        &self.conversation_config
-//    }
-//    pub fn platform_settings(&self) -> Option<&PlatformSettings> {
-//        self.platform_settings.as_ref()
-//    }
-//    pub fn metadata(&self) -> &Metadata {
-//        &self.metadata
-//    }
-//    pub fn secrets(&self) -> &[Secret] {
-//        self.secrets.as_slice()
-//    }
-//}
-//
-///// see Elevenlabs' docs on [Get Agents](https://elevenlabs.io/docs/conversational-ai/api-reference/get-conversational-ai-agents)
-/////
-///// This endpoint retrieves a list of agents that are available for use in the Conversational AI API.
-/////
-///// # Query Parameters
-/////
-///// - `search` (optional): A search term to filter agents by name.
-///// - `page_size` (optional): The number of agents to return per page. Can not exceed 100, default is 30.
-///// - `cursor` (optional): A cursor to paginate through the list of agents.
-/////
-///// # Response
-/////
-///// The response will contain a list of agents and metadata about the list.
-/////
-///// - `agents`: A `Vec<Agent>`.
-///// - `has_more`: A boolean indicating if there are more agents to retrieve.
-///// - `next_cursor`: A cursor to paginate to the next page of agents.
-/////
-///// # Example
-/////
-///// ```no_run
-///// use elevenlabs_rs::endpoints::convai::agents::{GetAgents, GetAgentsQuery};
-///// use elevenlabs_rs::{ElevenLabsClient, Result};
-/////
-///// #[tokio::main]
-///// async fn main() -> Result<()> {
-/////    let client = ElevenLabsClient::from_env()?;
-/////    let query = GetAgentsQuery::default();
-/////    let agents = client.hit(GetAgents::new(query)).await?;
-/////    for agent in agents {
-/////         println!("{:?}", agent);
-/////   }
-/////   Ok(())
-///// }
-///// ```
-//#[derive(Clone, Debug, Serialize)]
-//pub struct GetAgents {
-//    query: GetAgentsQuery,
-//}
-//
-//impl GetAgents {
-//    pub fn new(query: GetAgentsQuery) -> Self {
-//        GetAgents { query }
-//    }
-//}
-//
-//impl Endpoint for GetAgents {
-//    type ResponseBody = GetAgentsResponse;
-//
-//    const METHOD: Method = Method::GET;
-//
-//    async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
-//        Ok(resp.json().await?)
-//    }
-//
-//    // TODO: Validate Url
-//    fn url(&self) -> Result<Url> {
-//        let mut url = BASE_URL.parse::<Url>().unwrap();
-//        url.set_path(AGENTS_PATH);
-//        url.set_query(Some(&self.query.to_string()));
-//        Ok(url)
-//    }
-//}
-//
-//#[derive(Clone, Debug, Deserialize, Serialize)]
-//pub struct GetAgentsResponse {
-//    agents: Vec<Agent>,
-//    has_more: bool,
-//    next_cursor: Option<String>,
-//}
-//
-//impl GetAgentsResponse {
-//    pub fn agents(&self) -> &[Agent] {
-//        self.agents.as_slice()
-//    }
-//    pub fn has_more(&self) -> bool {
-//        self.has_more
-//    }
-//    pub fn cursor(&self) -> Option<&str> {
-//        self.next_cursor.as_deref()
-//    }
-//}
-//#[derive(Clone, Debug, Deserialize, Serialize)]
-//pub struct Agent {
-//    agent_id: String,
-//    name: String,
-//    created_at_unix_secs: u64,
-//}
-//
-//impl Agent {
-//    pub fn agent_id(&self) -> &str {
-//        self.agent_id.as_str()
-//    }
-//    pub fn name(&self) -> &str {
-//        self.name.as_str()
-//    }
-//    pub fn created_at(&self) -> u64 {
-//        self.created_at_unix_secs
-//    }
-//}
-//
-//#[derive(Clone, Debug, Default, Serialize)]
-//pub struct GetAgentsQuery {
-//    pub search: String,
-//    pub page_size: String,
-//    pub cursor: String,
-//}
-//
-//#[derive(Clone, Debug, Serialize)]
-//pub struct UpdateAgent {
-//    agent_id: AgentID,
-//    body: UpdateAgentBody,
-//}
-//
-//impl UpdateAgent {
-//    pub fn new(agent_id: &str, body: UpdateAgentBody) -> Self {
-//        UpdateAgent {
-//            agent_id: AgentID(agent_id.into()),
-//            body,
-//        }
-//    }
-//}
-//
-//#[derive(Clone, Debug, Default, Serialize)]
-//pub struct UpdateAgentBody {
-//    #[serde(skip_serializing_if = "Option::is_none")]
-//    conversation_config: Option<ConversationConfig>,
-//    #[serde(skip_serializing_if = "Option::is_none")]
-//    platform_settings: Option<PlatformSettings>,
-//    #[serde(skip_serializing_if = "Option::is_none")]
-//    name: Option<String>,
-//    #[serde(skip_serializing_if = "Option::is_none")]
-//    secrets: Option<Vec<Secret>>,
-//}
-//
-//impl UpdateAgentBody {
-//    pub fn with_conversation_config(mut self, conversation_config: ConversationConfig) -> Self {
-//        self.conversation_config = Some(conversation_config);
-//        self
-//    }
-//    pub fn with_platform_settings(mut self, platform_settings: PlatformSettings) -> Self {
-//        self.platform_settings = Some(platform_settings);
-//        self
-//    }
-//    pub fn with_name(mut self, name: impl Into<String>) -> Self {
-//        self.name = Some(name.into());
-//        self
-//    }
-//    /// Add a secret to the agent.
-//    ///
-//    /// # Example
-//    ///
-//    ///
-//    /// ```
-//    /// use elevenlabs_rs::endpoints::convai::agents::{UpdateAgent, UpdateAgentBody, Secret};
-//    ///
-//    /// let body = UpdateAgentBody::default().with_secrets(vec![
-//    ///     Secret::new("secret_name", "secret_value"),
-//    ///     Secret::new("other_secret_name", "other_secret_value"),
-//    /// ]);
-//    ///
-//    /// let endpoint = UpdateAgent::new("my_agent_id", body);
-//    ///
-//    /// ```
-//    pub fn with_secrets(mut self, secrets: Vec<Secret>) -> Self {
-//        self.secrets = Some(secrets);
-//        self
-//    }
-//}
-//
-//impl Endpoint for UpdateAgent {
-//    type ResponseBody = GetAgentResponse;
-//
-//    const METHOD: Method = Method::PATCH;
-//
-//    async fn request_body(&self) -> Result<RequestBody> {
-//        Ok(RequestBody::Json(serde_json::to_value(&self.body)?))
-//    }
-//
-//    async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
-//        Ok(resp.json().await?)
-//    }
-//
-//    fn url(&self) -> Result<Url> {
-//        let mut url = BASE_URL.parse::<Url>().unwrap();
-//        url.set_path(&format!("{}/{}", AGENTS_PATH, self.agent_id));
-//        Ok(url)
-//    }
-//}
-//
-//impl std::fmt::Display for GetAgentsQuery {
-//    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-//        let mut params = vec![];
-//        if !self.search.is_empty() {
-//            params.push(format!("search={}", self.search));
-//        }
-//        if !self.page_size.is_empty() {
-//            params.push(format!("page_size={}", self.page_size));
-//        }
-//        if !self.cursor.is_empty() {
-//            params.push(format!("cursor={}", self.cursor));
-//        }
-//        write!(f, "{}", params.join("&"))
-//    }
-//}
-//impl IntoIterator for GetAgentsResponse {
-//    type Item = Agent;
-//    type IntoIter = std::vec::IntoIter<Self::Item>;
-//
-//    fn into_iter(self) -> Self::IntoIter {
-//        self.agents.into_iter()
-//    }
-//}
-//
-//impl<'a> IntoIterator for &'a GetAgentsResponse {
-//    type Item = &'a Agent;
-//    type IntoIter = std::slice::Iter<'a, Agent>;
-//
-//    fn into_iter(self) -> Self::IntoIter {
-//        self.agents.iter()
-//    }
-//}
-//
+/// Retrieve config for an agent
+///
+/// # Example
+///
+/// ```no_run
+/// use elevenlabs_rs::endpoints::convai::agents::GetAgent;
+/// use elevenlabs_rs::{ElevenLabsClient, Result};
+///
+/// #[tokio::main]
+/// async fn main() -> Result<()> {
+///    let client = ElevenLabsClient::from_env()?;
+///    let resp = client.hit(GetAgent::new("agent_id")).await?;
+///    println!("{:?}", resp);
+/// Ok(())
+/// }
+/// ```
+///
+/// See [Get Agent API reference](https://elevenlabs.io/docs/conversational-ai/api-reference/agents/get-agent)
+#[derive(Clone, Debug, Serialize)]
+pub struct GetAgent {
+    agent_id: String,
+}
+
+impl GetAgent {
+    pub fn new(agent_id: impl Into<String>) -> Self {
+        GetAgent {
+            agent_id: agent_id.into(),
+        }
+    }
+}
+
+impl ElevenLabsEndpoint for GetAgent {
+    const PATH: &'static str = "/v1/convai/agents/:agent_id";
+
+    const METHOD: Method = Method::GET;
+
+    type ResponseBody = GetAgentResponse;
+
+    fn path_params(&self) -> Vec<(&'static str, &str)> {
+        vec![self.agent_id.and_param(AgentID)]
+    }
+
+    async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
+        Ok(resp.json().await?)
+    }
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct GetAgentResponse {
+    pub agent_id: String,
+    pub name: String,
+    pub conversation_config: ConversationConfig,
+    pub platform_settings: Option<PlatformSettings>,
+    pub metadata: Metadata,
+    pub secrets: Vec<Secret>,
+}
+
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+pub struct Metadata {
+    pub created_at_unix_secs: u64,
+}
+
+/// Returns a page of your agents and their metadata.
+///
+///
+///
+/// # Query Parameters
+///
+/// - `search` (optional): A search term to filter agents by name.
+/// - `page_size` (optional): The number of agents to return per page. Can not exceed 100, default is 30.
+/// - `cursor` (optional): A cursor to paginate through the list of agents.
+///
+/// # Response
+///
+/// The response will contain a list of agents and metadata about the list.
+///
+/// - `agents`: A `Vec<Agent>`.
+/// - `has_more`: A boolean indicating if there are more agents to retrieve.
+/// - `next_cursor`: A cursor to paginate to the next page of agents.
+///
+/// # Example
+///
+/// ```no_run
+/// use elevenlabs_rs::endpoints::convai::agents::{GetAgents, GetAgentsQuery};
+/// use elevenlabs_rs::{ElevenLabsClient, Result};
+///
+/// #[tokio::main]
+/// async fn main() -> Result<()> {
+///    let client = ElevenLabsClient::from_env()?;
+///    let query = GetAgentsQuery::default().with_page_size(3);
+///    let agents = client.hit(GetAgents::with_query(query)).await?;
+///    for agent in agents {
+///         println!("{:?}", agent);
+///   }
+///   Ok(())
+/// }
+/// ```
+/// See [Get Agents API reference](https://elevenlabs.io/docs/conversational-ai/api-reference/agents/get-agents)
+#[derive(Clone, Debug, Default, Serialize)]
+pub struct GetAgents {
+    query: Option<GetAgentsQuery>,
+}
+
+impl GetAgents {
+    pub fn with_query(query: GetAgentsQuery) -> Self {
+        GetAgents { query: Some(query) }
+    }
+}
+
+impl ElevenLabsEndpoint for GetAgents {
+    const PATH: &'static str = "/v1/convai/agents";
+
+    const METHOD: Method = Method::GET;
+
+    type ResponseBody = GetAgentsResponse;
+
+    fn query_params(&self) -> Option<QueryValues> {
+        self.query.as_ref().map(|q| q.params.clone())
+    }
+
+    async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
+        Ok(resp.json().await?)
+    }
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct GetAgentsResponse {
+    pub agents: Vec<Agent>,
+    pub has_more: bool,
+    pub next_cursor: Option<String>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct Agent {
+    pub agent_id: String,
+    pub name: String,
+    pub created_at_unix_secs: u64,
+    pub access_level: AccessLevel,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum AccessLevel {
+    Admin,
+    Editor,
+    Viewer,
+}
+
+#[derive(Clone, Debug, Default, Serialize)]
+pub struct GetAgentsQuery {
+    params: QueryValues,
+}
+
+impl GetAgentsQuery {
+    pub fn with_search(mut self, search: impl Into<String>) -> Self {
+        self.params.push(("search", search.into()));
+        self
+    }
+
+    pub fn with_page_size(mut self, page_size: u32) -> Self {
+        self.params.push(("page_size", page_size.to_string()));
+        self
+    }
+
+    pub fn with_cursor(mut self, cursor: impl Into<String>) -> Self {
+        self.params.push(("cursor", cursor.into()));
+        self
+    }
+}
+/// Patches an Agent settings
+///
+/// # Example
+///
+/// ```no_run
+/// use elevenlabs_rs::endpoints::convai::agents::*;
+/// use elevenlabs_rs::{DefaultVoice, ElevenLabsClient, Result};
+///
+/// #[tokio::main]
+/// async fn main() -> Result<()> {
+///     let client = ElevenLabsClient::from_env()?;
+///
+///     let new_secret = Secret::new("new_secret", "new_secret_value");
+///     let new_stored_secret = Secret::new("another_secret", "another_value");
+///     let secrets = vec![new_secret];
+///
+///     let updated_config = ConversationConfig::default()
+///         .with_agent_config(AgentConfig::default().with_first_message("updated first message"))
+///         .with_tts_config(TTSConfig::default().with_voice_id(DefaultVoice::Matilda))
+///         .with_conversation(Conversation::default().with_max_duration_seconds(60));
+///
+///     let body = UpdateAgentBody::default()
+///         .with_conversation_config(updated_config)
+///         .with_name("updated agent")
+///         .with_secrets(secrets);
+///
+///     let endpoint = UpdateAgent::new("agent_id", body);
+///
+///     let resp = client.hit(endpoint).await?;
+///
+///     println!("{:?}", resp);
+///
+///     Ok(())
+/// }
+/// ```
+/// See [Update Agent API reference](https://elevenlabs.io/docs/conversational-ai/api-reference/agents/update-agent)
+#[derive(Clone, Debug)]
+pub struct UpdateAgent {
+    agent_id: String,
+    body: UpdateAgentBody,
+}
+
+impl UpdateAgent {
+    pub fn new(agent_id: &str, body: UpdateAgentBody) -> Self {
+        UpdateAgent {
+            agent_id: agent_id.to_string(),
+            body,
+        }
+    }
+}
+
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+pub struct UpdateAgentBody {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    conversation_config: Option<ConversationConfig>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    platform_settings: Option<PlatformSettings>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    name: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    secrets: Option<Vec<Secret>>,
+}
+
+impl UpdateAgentBody {
+    pub fn with_conversation_config(mut self, conversation_config: ConversationConfig) -> Self {
+        self.conversation_config = Some(conversation_config);
+        self
+    }
+    pub fn with_platform_settings(mut self, platform_settings: PlatformSettings) -> Self {
+        self.platform_settings = Some(platform_settings);
+        self
+    }
+    pub fn with_name(mut self, name: impl Into<String>) -> Self {
+        self.name = Some(name.into());
+        self
+    }
+    /// Add a secret to the agent.
+    ///
+    /// # Example
+    ///
+    ///
+    /// ```
+    /// use elevenlabs_rs::endpoints::convai::agents::{UpdateAgent, UpdateAgentBody, Secret};
+    ///
+    /// let body = UpdateAgentBody::default().with_secrets(vec![
+    ///     Secret::new("secret_name", "secret_value"),
+    ///     Secret::new("other_secret_name", "other_secret_value"),
+    /// ]);
+    ///
+    /// let endpoint = UpdateAgent::new("my_agent_id", body);
+    ///
+    /// ```
+    pub fn with_secrets(mut self, secrets: Vec<Secret>) -> Self {
+        self.secrets = Some(secrets);
+        self
+    }
+}
+
+type UpdateAgentResponse = GetAgentResponse;
+
+impl ElevenLabsEndpoint for UpdateAgent {
+    const PATH: &'static str = "/v1/convai/agents/:agent_id";
+
+    const METHOD: Method = Method::PATCH;
+
+    type ResponseBody = UpdateAgentResponse;
+
+    fn path_params(&self) -> Vec<(&'static str, &str)> {
+        vec![self.agent_id.and_param(AgentID)]
+    }
+
+    async fn request_body(&self) -> Result<RequestBody> {
+        TryInto::try_into(&self.body)
+    }
+
+    async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
+        Ok(resp.json().await?)
+    }
+}
+
+impl TryInto<RequestBody> for &UpdateAgentBody {
+    type Error = Box<dyn std::error::Error + Send + Sync>;
+
+    fn try_into(self) -> Result<RequestBody> {
+        Ok(RequestBody::Json(serde_json::to_value(self)?))
+    }
+}
+
+impl IntoIterator for GetAgentsResponse {
+    type Item = Agent;
+    type IntoIter = std::vec::IntoIter<Self::Item>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.agents.into_iter()
+    }
+}
+
+impl<'a> IntoIterator for &'a GetAgentsResponse {
+    type Item = &'a Agent;
+    type IntoIter = std::slice::Iter<'a, Agent>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.agents.iter()
+    }
+}
