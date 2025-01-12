@@ -3,8 +3,8 @@
 use super::*;
 use crate::shared::Language;
 use std::collections::HashMap;
-// TODO: move this to a shared module
 use crate::endpoints::PathParam::AgentID;
+// TODO: move this to a shared module
 use crate::DictionaryLocator;
 
 /// Create an agent from a config object
@@ -106,53 +106,51 @@ impl TryFrom<&CreateAgentBody> for RequestBody {
 /// # Example
 ///
 /// ```no_run
-/// use elevenlabs_rs::endpoints::convai::agents::{DeleteAgent, GetAgentsQuery, GetAgents};
+/// use elevenlabs_rs::endpoints::convai::agents::DeleteAgent;
 /// use elevenlabs_rs::{ElevenLabsClient, Result};
 ///
 /// #[tokio::main]
 /// async fn main() -> Result<()> {
 ///    let client = ElevenLabsClient::from_env()?;
-///    let query = GetAgentsQuery { search: "Foo".into(), ..Default::default() };
-///    let agents_resp = client.hit(GetAgents::new(query)).await?;
-///    let Some(foo_agent) = agents_resp.agents().first() else {
-///         return Err("agent named Foo not found".into());
-///   };
-///    let endpoint = DeleteAgent::new(foo_agent.agent_id());
-///    let _ = client.hit(endpoint).await?;
+///    let endpoint = DeleteAgent::new("agent_id");
+///    let resp = client.hit(endpoint).await?;
+///    println!("{:?}", resp);
 ///    Ok(())
 /// }
 /// ```
-//#[derive(Clone, Debug)]
-//pub struct DeleteAgent {
-//    agent_id: AgentID,
-//}
-//
-//impl DeleteAgent {
-//    pub fn new(agent_id: impl Into<String>) -> Self {
-//        DeleteAgent {
-//            agent_id: AgentID(agent_id.into()),
-//        }
-//    }
-//}
-//
-//impl Endpoint for DeleteAgent {
-//    type ResponseBody = ();
-//
-//    const METHOD: Method = Method::DELETE;
-//
-//    async fn response_body(self, _: Response) -> Result<Self::ResponseBody> {
-//        Ok(())
-//    }
-//
-//    fn url(&self) -> Result<Url> {
-//        let mut url = BASE_URL.parse::<Url>().unwrap();
-//        url.set_path(&format!("{}/{}", AGENTS_PATH, self.agent_id));
-//        Ok(url)
-//    }
-//}
-//
-//
-//
+/// See [Delete Agent API reference](https://elevenlabs.io/docs/conversational-ai/api-reference/agents/delete-agent)
+#[derive(Clone, Debug)]
+pub struct DeleteAgent {
+    agent_id: String
+}
+
+impl DeleteAgent {
+    pub fn new(agent_id: impl Into<String>) -> Self {
+        DeleteAgent {
+            agent_id: agent_id.into()
+        }
+    }
+}
+
+impl ElevenLabsEndpoint for DeleteAgent {
+
+    const PATH: &'static str = "/v1/convai/agents/:agent_id";
+
+    const METHOD: Method = Method::DELETE;
+
+    type ResponseBody = StatusResponseBody;
+
+    fn path_params(&self) -> Vec<(&'static str, &str)> {
+        vec![self.agent_id.and_param(AgentID)]
+    }
+
+    async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
+        Ok(resp.json().await?)
+    }
+}
+
+
+
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 pub struct ConversationConfig {
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -598,48 +596,12 @@ pub struct ObjectJsonSchema {
     pub description: Option<String>,
 }
 
-//impl ObjectJsonSchema {
-//    pub fn new(properties: HashMap<String, Schema>) -> Self {
-//        ObjectJsonSchema {
-//            r#type: DataType::Object,
-//            properties: Some(properties),
-//            required: None,
-//            description: None,
-//        }
-//    }
-//
-//    pub fn with_required(mut self, required: Vec<String>) -> Self {
-//        self.required = Some(required);
-//        self
-//    }
-//
-//    pub fn with_description(mut self, description: impl Into<String>) -> Self {
-//        self.description = Some(description.into());
-//        self
-//    }
-//}
-
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct ArrayJsonSchema {
     r#type: DataType,
     items: Box<Schema>,
     pub description: Option<String>,
 }
-
-//impl ArrayJsonSchema {
-//    pub fn new(items: Schema) -> Self {
-//        ArrayJsonSchema {
-//            r#type: DataType::Array,
-//            items: Box::new(items),
-//            description: None,
-//        }
-//    }
-//
-//    pub fn with_description(mut self, description: impl Into<String>) -> Self {
-//        self.description = Some(description.into());
-//        self
-//    }
-//}
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct CustomLLM {
@@ -2157,6 +2119,77 @@ impl TryInto<RequestBody> for &UpdateAgentBody {
     fn try_into(self) -> Result<RequestBody> {
         Ok(RequestBody::Json(serde_json::to_value(self)?))
     }
+}
+
+
+
+/// Get the current link used to share the agent with others
+///
+/// # Example
+///
+/// ```no_run
+/// use elevenlabs_rs::endpoints::convai::agents::GetLink;
+/// use elevenlabs_rs::{ElevenLabsClient, Result};
+///
+/// #[tokio::main]
+/// async fn main() -> Result<()> {
+///    let client = ElevenLabsClient::from_env()?;
+///    let resp = client.hit(GetLink::new("agent_id")).await?;
+///    println!("{:?}", resp);
+///    Ok(())
+/// }
+/// ```
+/// See [Get Link API reference](https://elevenlabs.io/docs/conversational-ai/api-reference/agents/get-agent-link)
+#[derive(Clone, Debug)]
+pub struct GetLink {
+    agent_id: String,
+}
+
+
+impl GetLink {
+    pub fn new(agent_id: impl Into<String>) -> Self {
+        GetLink {
+            agent_id: agent_id.into(),
+        }
+    }
+}
+
+impl ElevenLabsEndpoint for GetLink {
+    const PATH: &'static str = "/v1/convai/agents/:agent_id/link";
+
+    const METHOD: Method = Method::GET;
+
+    type ResponseBody = GetLinkResponse;
+
+    fn path_params(&self) -> Vec<(&'static str, &str)> {
+        vec![self.agent_id.and_param(AgentID)]
+    }
+
+    async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
+        Ok(resp.json().await?)
+    }
+}
+
+
+#[derive(Clone, Debug, Deserialize)]
+pub struct GetLinkResponse {
+    pub agent_id: String,
+    pub token: Option<Token>
+}
+
+#[derive(Clone, Debug, Deserialize)]
+pub struct Token {
+    pub agent_id: String,
+    pub conversation_token: String,
+    pub expiration_time_unix_secs: Option<u64>,
+    pub purpose: Option<Purpose>,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum Purpose {
+    SignedUrl,
+    ShareableLink
 }
 
 impl IntoIterator for GetAgentsResponse {
