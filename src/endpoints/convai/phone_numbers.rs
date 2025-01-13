@@ -262,3 +262,51 @@ impl ElevenLabsEndpoint for UpdatePhoneNumber {
         Ok(resp.json().await?)
     }
 }
+
+/// Delete Phone Number by ID
+///
+///
+/// # Example
+///
+/// ```
+/// use elevenlabs_rs::endpoints::convai::phone_numbers::DeletePhoneNumber;
+/// use elevenlabs_rs::{ElevenLabsClient, Result};
+///
+/// #[tokio::main]
+/// async fn main() -> Result<()> {
+///   let client = ElevenLabsClient::from_env()?;
+///   let endpoint = DeletePhoneNumber::new("phone_number_id");
+///   let resp = client.hit(endpoint).await?;
+///   println!("{:?}", resp);
+///   Ok(())
+/// }
+/// ```
+/// See [Delete Phone Number API reference](https://elevenlabs.io/docs/conversational-ai/api-reference/phone-numbers/delete-phone-number)
+#[derive(Clone, Debug)]
+pub struct DeletePhoneNumber {
+    pub phone_number_id: String,
+}
+
+impl DeletePhoneNumber {
+    pub fn new(phone_number_id: impl Into<String>) -> Self {
+        Self {
+            phone_number_id: phone_number_id.into(),
+        }
+    }
+}
+
+impl ElevenLabsEndpoint for DeletePhoneNumber {
+    const PATH: &'static str = "/v1/convai/phone-numbers/:phone_number_id";
+
+    const METHOD: Method = Method::DELETE;
+
+    type ResponseBody = ();
+
+    fn path_params(&self) -> Vec<(&'static str, &str)> {
+        vec![self.phone_number_id.and_param(PathParam::PhoneNumberID)]
+    }
+
+    async fn response_body(self, _: Response) -> Result<Self::ResponseBody> {
+        Ok(())
+    }
+}
