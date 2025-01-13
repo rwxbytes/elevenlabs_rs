@@ -186,3 +186,79 @@ impl ElevenLabsEndpoint for GetPhoneNumber {
         Ok(resp.json().await?)
     }
 }
+
+/// Update Phone Number details by ID
+///
+///
+/// # Example
+///
+/// ```
+/// use elevenlabs_rs::endpoints::convai::phone_numbers::{UpdatePhoneNumber, UpdatePhoneNumberBody};
+/// use elevenlabs_rs::{ElevenLabsClient, Result};
+///
+/// #[tokio::main]
+/// async fn main() -> Result<()> {
+///   let client = ElevenLabsClient::from_env()?;
+///   let body = UpdatePhoneNumberBody::new("agent_id");
+///   let endpoint = UpdatePhoneNumber::new("phone_number_id", body);
+///   let resp = client.hit(endpoint).await?;
+///   println!("{:?}", resp);
+///   Ok(())
+/// }
+/// ```
+/// See [Update Phone Number API reference](https://elevenlabs.io/docs/conversational-ai/api-reference/phone-numbers/update-phone-number)
+#[derive(Clone, Debug)]
+pub struct UpdatePhoneNumber {
+    pub phone_number_id: String,
+    pub body: UpdatePhoneNumberBody,
+}
+
+impl UpdatePhoneNumber {
+    pub fn new(phone_number_id: impl Into<String>, body: UpdatePhoneNumberBody) -> Self {
+        Self {
+            phone_number_id: phone_number_id.into(),
+            body,
+        }
+    }
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct UpdatePhoneNumberBody {
+    pub agent_id: String,
+}
+
+impl UpdatePhoneNumberBody {
+    pub fn new(agent_id: impl Into<String>) -> Self {
+        Self {
+            agent_id: agent_id.into(),
+        }
+    }
+}
+
+impl TryFrom<&UpdatePhoneNumberBody> for RequestBody {
+    type Error = Box<dyn std::error::Error + Send + Sync>;
+
+    fn try_from(body: &UpdatePhoneNumberBody) -> Result<Self> {
+        Ok(RequestBody::Json(serde_json::to_value(body)?))
+    }
+}
+
+impl ElevenLabsEndpoint for UpdatePhoneNumber {
+    const PATH: &'static str = "/v1/convai/phone-numbers/:phone_number_id";
+
+    const METHOD: Method = Method::PATCH;
+
+    type ResponseBody = PhoneNumberResponse;
+
+    fn path_params(&self) -> Vec<(&'static str, &str)> {
+        vec![self.phone_number_id.and_param(PathParam::PhoneNumberID)]
+    }
+
+    async fn request_body(&self) -> Result<RequestBody> {
+        TryInto::try_into(&self.body)
+    }
+
+    async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
+        Ok(resp.json().await?)
+    }
+}

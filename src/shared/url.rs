@@ -19,5 +19,7 @@ pub(crate) enum PathParam {
     #[strum(serialize = ":conversation_id")]
     ConversationID,
     #[strum(serialize = ":documentation_id")]
-    DocumentationID
+    DocumentationID,
+    #[strum(serialize = ":phone_number_id")]
+    PhoneNumberID,
 }
