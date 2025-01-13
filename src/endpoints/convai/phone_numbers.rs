@@ -138,3 +138,51 @@ pub struct AssignedAgent {
     pub agent_id: String,
     pub agent_name: String,
 }
+
+/// Retrieve Phone Number details by ID
+///
+///
+/// # Example
+///
+/// ```
+/// use elevenlabs_rs::endpoints::convai::phone_numbers::GetPhoneNumber;
+/// use elevenlabs_rs::{ElevenLabsClient, Result};
+///
+/// #[tokio::main]
+/// async fn main() -> Result<()> {
+///   let client = ElevenLabsClient::from_env()?;
+///   let endpoint = GetPhoneNumber::new("phone_number_id");
+///   let resp = client.hit(endpoint).await?;
+///   println!("{:?}", resp);
+///   Ok(())
+/// }
+/// ```
+/// See [Get Phone Number API reference](https://elevenlabs.io/docs/conversational-ai/api-reference/phone-numbers/get-phone-number)
+#[derive(Clone, Debug)]
+pub struct GetPhoneNumber {
+    pub phone_number_id: String,
+}
+
+impl GetPhoneNumber {
+    pub fn new(phone_number_id: impl Into<String>) -> Self {
+        Self {
+            phone_number_id: phone_number_id.into(),
+        }
+    }
+}
+
+impl ElevenLabsEndpoint for GetPhoneNumber {
+    const PATH: &'static str = "/v1/convai/phone-numbers/:phone_number_id";
+
+    const METHOD: Method = Method::GET;
+
+    type ResponseBody = PhoneNumberResponse;
+
+    fn path_params(&self) -> Vec<(&'static str, &str)> {
+        vec![self.phone_number_id.and_param(PathParam::PhoneNumberID)]
+    }
+
+    async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
+        Ok(resp.json().await?)
+    }
+}
