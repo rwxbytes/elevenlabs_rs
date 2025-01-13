@@ -16,6 +16,8 @@ impl AndPathParam for String {
 pub(crate) enum PathParam {
     #[strum(serialize = ":agent_id")]
     AgentID,
+    #[strum(serialize = ":conversation_id")]
+    ConversationID,
     #[strum(serialize = ":documentation_id")]
     DocumentationID
 }
