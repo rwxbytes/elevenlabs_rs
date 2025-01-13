@@ -56,7 +56,7 @@ impl CreatePhoneNumberBody {
     }
 }
 
-#[derive(Clone, Debug, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "lowercase")]
 pub enum PhoneNumberProvider {
     Twilio,
@@ -89,4 +89,52 @@ impl ElevenLabsEndpoint for CreatePhoneNumber {
 #[derive(Clone, Debug, Deserialize)]
 pub struct CreatePhoneNumberResponse {
     pub phone_number_id: String,
+}
+
+/// Retrieve all Phone Numbers
+///
+///
+/// # Example
+///
+/// ```
+/// use elevenlabs_rs::endpoints::convai::phone_numbers::ListPhoneNumbers;
+/// use elevenlabs_rs::{ElevenLabsClient, Result};
+///
+/// #[tokio::main]
+/// async fn main() -> Result<()> {
+///    let client = ElevenLabsClient::from_env()?;
+///    let resp = client.hit(ListPhoneNumbers).await?;
+///    println!("{:?}", resp);
+///    Ok(())
+/// }
+/// ```
+/// See [List Phone Numbers API reference](https://elevenlabs.io/docs/conversational-ai/api-reference/phone-numbers/get-phone-numbers)
+#[derive(Clone, Debug)]
+pub struct ListPhoneNumbers;
+
+impl ElevenLabsEndpoint for ListPhoneNumbers {
+    const PATH: &'static str = "/v1/convai/phone-numbers";
+
+    const METHOD: Method = Method::GET;
+
+    type ResponseBody = Vec<PhoneNumberResponse>;
+
+    async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
+        Ok(resp.json().await?)
+    }
+}
+
+#[derive(Clone, Debug, Deserialize)]
+pub struct PhoneNumberResponse {
+    pub phone_number_id: String,
+    pub phone_number: String,
+    pub provider: PhoneNumberProvider,
+    pub label: String,
+    pub assigned_agent: Option<AssignedAgent>,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+pub struct AssignedAgent {
+    pub agent_id: String,
+    pub agent_name: String,
 }
