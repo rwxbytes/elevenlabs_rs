@@ -1612,6 +1612,14 @@ pub struct Widget {
     pub speaking_text: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub shareable_page_text: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub terms_text: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub terms_html: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub terms_keys: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub supported_language_overrides: Option<Vec<String>>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
