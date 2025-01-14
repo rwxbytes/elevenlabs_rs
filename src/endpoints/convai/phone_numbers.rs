@@ -7,7 +7,7 @@ use super::*;
 ///
 /// # Example
 ///
-/// ```
+/// ```no_run
 /// use elevenlabs_rs::endpoints::convai::phone_numbers::{CreatePhoneNumber, CreatePhoneNumberBody};
 /// use elevenlabs_rs::{ElevenLabsClient, Result};
 ///
@@ -96,7 +96,7 @@ pub struct CreatePhoneNumberResponse {
 ///
 /// # Example
 ///
-/// ```
+/// ```no_run
 /// use elevenlabs_rs::endpoints::convai::phone_numbers::ListPhoneNumbers;
 /// use elevenlabs_rs::{ElevenLabsClient, Result};
 ///
@@ -144,7 +144,7 @@ pub struct AssignedAgent {
 ///
 /// # Example
 ///
-/// ```
+/// ```no_run
 /// use elevenlabs_rs::endpoints::convai::phone_numbers::GetPhoneNumber;
 /// use elevenlabs_rs::{ElevenLabsClient, Result};
 ///
@@ -192,7 +192,7 @@ impl ElevenLabsEndpoint for GetPhoneNumber {
 ///
 /// # Example
 ///
-/// ```
+/// ```no_run
 /// use elevenlabs_rs::endpoints::convai::phone_numbers::{UpdatePhoneNumber, UpdatePhoneNumberBody};
 /// use elevenlabs_rs::{ElevenLabsClient, Result};
 ///
@@ -268,7 +268,7 @@ impl ElevenLabsEndpoint for UpdatePhoneNumber {
 ///
 /// # Example
 ///
-/// ```
+/// ```no_run
 /// use elevenlabs_rs::endpoints::convai::phone_numbers::DeletePhoneNumber;
 /// use elevenlabs_rs::{ElevenLabsClient, Result};
 ///
