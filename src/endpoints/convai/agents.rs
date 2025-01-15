@@ -1,11 +1,8 @@
 //! Agents endpoints
 
 use super::*;
-use crate::shared::Language;
-use std::collections::HashMap;
-use crate::endpoints::PathParam::AgentID;
-// TODO: move this to a shared module
 use crate::DictionaryLocator;
+use std::collections::HashMap;
 
 /// Create an agent from a config object
 ///
@@ -54,7 +51,8 @@ impl CreateAgentBody {
     pub fn new(prompt: impl Into<String>) -> Self {
         CreateAgentBody {
             conversation_config: ConversationConfig::default().with_agent_config(
-                AgentConfig::default().with_prompt(PromptConfig::default().with_prompt(prompt.into())),
+                AgentConfig::default()
+                    .with_prompt(PromptConfig::default().with_prompt(prompt.into())),
             ),
             platform_settings: None,
             name: None,
@@ -121,19 +119,18 @@ impl TryFrom<&CreateAgentBody> for RequestBody {
 /// See [Delete Agent API reference](https://elevenlabs.io/docs/conversational-ai/api-reference/agents/delete-agent)
 #[derive(Clone, Debug)]
 pub struct DeleteAgent {
-    agent_id: String
+    agent_id: String,
 }
 
 impl DeleteAgent {
     pub fn new(agent_id: impl Into<String>) -> Self {
         DeleteAgent {
-            agent_id: agent_id.into()
+            agent_id: agent_id.into(),
         }
     }
 }
 
 impl ElevenLabsEndpoint for DeleteAgent {
-
     const PATH: &'static str = "/v1/convai/agents/:agent_id";
 
     const METHOD: Method = Method::DELETE;
@@ -141,15 +138,13 @@ impl ElevenLabsEndpoint for DeleteAgent {
     type ResponseBody = StatusResponseBody;
 
     fn path_params(&self) -> Vec<(&'static str, &str)> {
-        vec![self.agent_id.and_param(AgentID)]
+        vec![self.agent_id.and_param(PathParam::AgentID)]
     }
 
     async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
         Ok(resp.json().await?)
     }
 }
-
-
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 pub struct ConversationConfig {
@@ -163,6 +158,8 @@ pub struct ConversationConfig {
     pub tts: Option<TTSConfig>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub turn: Option<Turn>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub language_presets: Option<HashMap<String, LanguagePreset>>,
 }
 
 impl ConversationConfig {
@@ -751,7 +748,7 @@ impl Secret {
         Secret::New {
             name: name.into(),
             value: value.into(),
-            r#type: SecretType::New
+            r#type: SecretType::New,
         }
     }
 
@@ -759,7 +756,7 @@ impl Secret {
         Secret::Stored {
             name: name.into(),
             secret_id: secret_id.into(),
-            r#type: SecretType::Stored
+            r#type: SecretType::Stored,
         }
     }
 }
@@ -874,8 +871,6 @@ pub enum ToolType {
     Webhook,
     Client,
 }
-
-
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 pub struct ASR {
@@ -1112,6 +1107,38 @@ pub enum TurnMode {
 }
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
+pub struct LanguagePreset {
+    pub overrides: ConversationConfigOverride,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub first_message_translation: Option<FirstMessageTranslation>,
+}
+
+impl LanguagePreset {
+    pub fn new(overrides: ConversationConfigOverride) -> Self {
+        LanguagePreset {
+            overrides,
+            first_message_translation: None,
+        }
+    }
+
+    pub fn with_first_message_translation(
+        mut self,
+        first_message_translation: FirstMessageTranslation,
+    ) -> Self {
+        self.first_message_translation = Some(first_message_translation);
+        self
+    }
+}
+
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+pub struct FirstMessageTranslation {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub source_hash: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub text: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
 pub struct PlatformSettings {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub auth: Option<Auth>,
@@ -1129,6 +1156,8 @@ pub struct PlatformSettings {
     pub safety: Option<Safety>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub privacy: Option<Privacy>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub call_limits: Option<CallLimits>,
 }
 
 impl PlatformSettings {
@@ -1203,7 +1232,7 @@ impl Auth {
 }
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
-struct AllowHost {
+pub struct AllowHost {
     hostname: String,
 }
 
@@ -1591,6 +1620,26 @@ impl Privacy {
 }
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
+pub struct CallLimits {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub agent_concurrency_limit: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub daily_limit: Option<u32>,
+}
+
+impl CallLimits {
+    pub fn with_agent_concurrency_limit(mut self, agent_concurrency_limit: u32) -> Self {
+        self.agent_concurrency_limit = Some(agent_concurrency_limit);
+        self
+    }
+
+    pub fn with_daily_limit(mut self, daily_limit: u32) -> Self {
+        self.daily_limit = Some(daily_limit);
+        self
+    }
+}
+
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
 pub struct Widget {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub variant: Option<WidgetVariant>,
@@ -1889,7 +1938,7 @@ impl ElevenLabsEndpoint for GetAgent {
     type ResponseBody = GetAgentResponse;
 
     fn path_params(&self) -> Vec<(&'static str, &str)> {
-        vec![self.agent_id.and_param(AgentID)]
+        vec![self.agent_id.and_param(PathParam::AgentID)]
     }
 
     async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
@@ -2127,7 +2176,7 @@ impl ElevenLabsEndpoint for UpdateAgent {
     type ResponseBody = UpdateAgentResponse;
 
     fn path_params(&self) -> Vec<(&'static str, &str)> {
-        vec![self.agent_id.and_param(AgentID)]
+        vec![self.agent_id.and_param(PathParam::AgentID)]
     }
 
     async fn request_body(&self) -> Result<RequestBody> {
@@ -2146,8 +2195,6 @@ impl TryInto<RequestBody> for &UpdateAgentBody {
         Ok(RequestBody::Json(serde_json::to_value(self)?))
     }
 }
-
-
 
 /// Get the current link used to share the agent with others
 ///
@@ -2171,7 +2218,6 @@ pub struct GetLink {
     agent_id: String,
 }
 
-
 impl GetLink {
     pub fn new(agent_id: impl Into<String>) -> Self {
         GetLink {
@@ -2188,7 +2234,7 @@ impl ElevenLabsEndpoint for GetLink {
     type ResponseBody = GetLinkResponse;
 
     fn path_params(&self) -> Vec<(&'static str, &str)> {
-        vec![self.agent_id.and_param(AgentID)]
+        vec![self.agent_id.and_param(PathParam::AgentID)]
     }
 
     async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
@@ -2196,11 +2242,10 @@ impl ElevenLabsEndpoint for GetLink {
     }
 }
 
-
 #[derive(Clone, Debug, Deserialize)]
 pub struct GetLinkResponse {
     pub agent_id: String,
-    pub token: Option<Token>
+    pub token: Option<Token>,
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -2215,7 +2260,7 @@ pub struct Token {
 #[serde(rename_all = "snake_case")]
 pub enum Purpose {
     SignedUrl,
-    ShareableLink
+    ShareableLink,
 }
 
 impl IntoIterator for GetAgentsResponse {
