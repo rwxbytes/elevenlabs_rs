@@ -43,3 +43,4 @@ pub mod endpoints;
 pub mod error;
 mod shared;
 pub mod utils;
+pub mod conversational_ai;
