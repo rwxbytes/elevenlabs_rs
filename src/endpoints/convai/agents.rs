@@ -54,7 +54,7 @@ impl CreateAgentBody {
     pub fn new(prompt: impl Into<String>) -> Self {
         CreateAgentBody {
             conversation_config: ConversationConfig::default().with_agent_config(
-                AgentConfig::default().with_prompt(Prompt::default().with_prompt(prompt.into())),
+                AgentConfig::default().with_prompt(PromptConfig::default().with_prompt(prompt.into())),
             ),
             platform_settings: None,
             name: None,
@@ -197,7 +197,7 @@ pub struct AgentConfig {
     //pub server: Option<ServerConfig>,
     /// The system prompt is used to determine the persona of the agent and the context of the conversation.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub prompt: Option<Prompt>,
+    pub prompt: Option<PromptConfig>,
     /// The first message the agent will say.
     ///
     /// If empty the agent will wait for the user to start the conversation.
@@ -212,7 +212,7 @@ pub struct AgentConfig {
 
 impl AgentConfig {
     pub fn new(
-        prompt: Prompt,
+        prompt: PromptConfig,
         first_message: impl Into<String>,
         language: impl Into<String>,
     ) -> Self {
@@ -228,7 +228,7 @@ impl AgentConfig {
     //    self
     //}
 
-    pub fn with_prompt(mut self, prompt: Prompt) -> Self {
+    pub fn with_prompt(mut self, prompt: PromptConfig) -> Self {
         self.prompt = Some(prompt);
         self
     }
@@ -263,7 +263,7 @@ impl AgentConfig {
 //}
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
-pub struct Prompt {
+pub struct PromptConfig {
     /// Provide the LLM with domain-specific information to help it answer questions more accurately.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub knowledge_base: Option<Vec<KnowledgeBase>>,
@@ -286,7 +286,7 @@ pub struct Prompt {
     pub custom_llm: Option<CustomLLM>,
 }
 
-impl Prompt {
+impl PromptConfig {
     pub fn with_knowledge_base(mut self, knowledge_base: Vec<KnowledgeBase>) -> Self {
         self.knowledge_base = Some(knowledge_base);
         self
@@ -335,6 +335,24 @@ pub struct KnowledgeBase {
 pub enum KnowledgeBaseType {
     File,
     Url,
+}
+
+impl KnowledgeBase {
+    pub fn new_file(id: impl Into<String>, name: impl Into<String>) -> Self {
+        KnowledgeBase {
+            id: id.into(),
+            name: name.into(),
+            r#type: KnowledgeBaseType::File,
+        }
+    }
+
+    pub fn new_url(id: impl Into<String>, name: impl Into<String>) -> Self {
+        KnowledgeBase {
+            id: id.into(),
+            name: name.into(),
+            r#type: KnowledgeBaseType::Url,
+        }
+    }
 }
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize)]
