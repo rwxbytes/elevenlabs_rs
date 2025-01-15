@@ -124,7 +124,7 @@ impl ElevenLabsConversationalClient {
                 .hit(GetSignedUrl::new(&self.agent_id))
                 .await
                 .expect("Failed to get signed URL");
-            Ok(signed_url.as_str().into())
+            Ok(signed_url.signed_url)
         } else {
             Ok(format!(
                 "{}/{}?agent_id={}",
