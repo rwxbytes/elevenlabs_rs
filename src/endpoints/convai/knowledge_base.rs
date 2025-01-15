@@ -1,7 +1,6 @@
 use super::*;
 use crate::error::Error;
 use std::path::Path;
-use crate::endpoints::PathParam::{Agent, Documentation};
 
 /// Get details about a specific documentation making up the agent’s knowledge base.
 ///
@@ -49,8 +48,8 @@ impl ElevenLabsEndpoint for GetKnowledgeBase {
 
     fn path_params(&self) -> Vec<(&'static str, &str)> {
         vec![
-            self.agent_id.and_param(Agent),
-            self.documentation_id.and_param(Documentation),
+            self.agent_id.and_param(PathParam::AgentID),
+            self.documentation_id.and_param(PathParam::DocumentationID),
         ]
     }
 
@@ -78,21 +77,37 @@ pub enum KnowledgeBaseType {
 ///
 /// ```no_run
 /// use elevenlabs_rs::{ElevenLabsClient, Result};
+/// use elevenlabs_rs::endpoints::convai::agents::*;
 /// use elevenlabs_rs::endpoints::convai::knowledge_base::{CreateKnowledgeBase, KnowledgeBaseDoc};
 ///
 /// #[tokio::main]
 /// async fn main() -> Result<()> {
-///   use elevenlabs_rs::endpoints::Url;
 ///   let client = ElevenLabsClient::from_env()?;
-///   let kb_file = KnowledgeBaseDoc::url("https://elevenlabs.io/blog");
-///   //let kb_file = KnowledgeBaseDoc::file("some_file.pdf");
-///   let endpoint = CreateKnowledgeBase::new("some_agent_id", kb_file);
+///   let kb = KnowledgeBaseDoc::url("https://elevenlabs.io/blog");
+///   // Or KnowledgeBaseDoc::file("some_file.pdf");
+///   let endpoint = CreateKnowledgeBase::new("agent_id", kb);
 ///   let resp = client.hit(endpoint).await?;
+///
+///   // You must now patch the agent to include the knowledge base
+///   let kb = KnowledgeBase::new_url(resp.id, "ElevenLabs' Blog");
+///
+///   let prompt_config = PromptConfig::default().with_knowledge_base(vec![kb]);
+///
+///   let agent_config = AgentConfig::default().with_prompt(prompt_config);
+///
+///   let config = ConversationConfig::default().with_agent_config(agent_config);
+///
+///   let body = UpdateAgentBody::default().with_conversation_config(config);
+///
+///   let endpoint = UpdateAgent::new("agent_id", body);
+///
+///   let resp = client.hit(endpoint).await?;
+///
 ///   println!("{:#?}", resp);
-/// Ok(())
+///   Ok(())
 /// }
 /// ```
-/// See the [Create Knowledge Base Document API reference](https://elevenlabs.io/docs/conversational-ai/api-reference/post-conversational-ai-knowledge-base-document).
+/// See [Create Knowledge Base Document API reference](https://elevenlabs.io/docs/conversational-ai/api-reference/post-conversational-ai-knowledge-base-document).
 #[derive(Debug, Clone)]
 pub struct CreateKnowledgeBase {
     agent_id: String,
@@ -115,7 +130,7 @@ impl ElevenLabsEndpoint for CreateKnowledgeBase {
     type ResponseBody = CreateKnowledgeBaseResponse;
 
     fn path_params(&self) -> Vec<(&'static str, &str)> {
-        vec![self.agent_id.and_param(Agent)]
+        vec![self.agent_id.and_param(PathParam::AgentID)]
     }
 
     async fn request_body(&self) -> Result<RequestBody> {
