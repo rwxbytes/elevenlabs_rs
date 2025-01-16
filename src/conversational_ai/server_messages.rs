@@ -1,5 +1,5 @@
 use super::*;
-use crate::conversational_ai::error::ElevenLabsConversationalError;
+use crate::conversational_ai::error::ConvAIError;
 
 /// See [Server Messages](https://elevenlabs.io/docs/conversational-ai/api-reference/websocket#server-to-client-messages)
 #[derive(Clone, Debug, Deserialize)]
@@ -13,6 +13,7 @@ pub enum ServerMessage {
     Interruption(Interruption),
     Ping(Ping),
     UserTranscript(UserTranscript),
+    NotDocumented(serde_json::Value),
 }
 
 impl ServerMessage {
@@ -122,7 +123,7 @@ impl ServerMessage {
 }
 
 impl TryFrom<&str> for ServerMessage {
-    type Error = ElevenLabsConversationalError;
+    type Error = ConvAIError;
 
     fn try_from(text: &str) -> std::result::Result<Self, Self::Error> {
         let response: ServerMessage = serde_json::from_str(text)?;
