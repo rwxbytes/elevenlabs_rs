@@ -4,17 +4,19 @@ use axum::{
     routing::{get, post},
     Router,
 };
+use elevenlabs_rs::conversational_ai::client::ElevenLabsAgentClient;
 use elevenlabs_rs::conversational_ai::server_messages::ServerMessage;
 use futures_util::{SinkExt, StreamExt};
 use serde::de::Error;
 use serde::{Deserialize, Serialize};
-use elevenlabs_rs::conversational_ai::client::ElevenLabsConversationalClient;
+use std::sync::Arc;
+use tokio::sync::Mutex;
 
 #[tokio::main]
 async fn main() {
     let app = Router::new()
-        .route("/call/incoming", post(twiml))
-        .route("/call/connection", get(handler));
+        .route("/inbound-call", post(twiml))
+        .route("/connection", get(ws_handler));
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
 
     println!("Listening on port 3000");
@@ -22,54 +24,46 @@ async fn main() {
     axum::serve(listener, app).await.unwrap();
 }
 
-async fn handler(ws: WebSocketUpgrade) -> Response {
+async fn ws_handler(ws: WebSocketUpgrade) -> Response {
     ws.on_upgrade(handle_socket)
 }
 
-async fn handle_socket(mut ws_stream: WebSocket) {
-    let mut client = ElevenLabsConversationalClient::from_env().expect("Failed to create ConvAIClient");
+async fn handle_socket(mut socket: WebSocket) {
+    let client = ElevenLabsAgentClient::from_env().unwrap();
+
+    let client = Arc::new(Mutex::new(client));
+    let client_2 = Arc::clone(&client);
 
     // Skip connected message
-    ws_stream.next().await;
+    socket.next().await;
 
-    // Get stream sid
-    let stream_sid = if let Some(msg_result) = ws_stream.next().await {
-        let msg = msg_result.unwrap();
-        let msg_json = msg.to_text().unwrap();
-        let start_msg = serde_json::from_str::<StartMessage>(msg_json).unwrap();
-        start_msg.stream_sid
-    } else {
-        panic!("no stream sid")
+    // Get stream_sid
+    let stream_sid = match socket.next().await {
+        Some(Ok(Message::Text(msg))) => {
+            let start_msg = serde_json::from_str::<StartMessage>(&msg).unwrap();
+            start_msg.stream_sid
+        }
+        _ => panic!("Expected start message with stream sid"),
     };
 
     let (twilio_payload_tx, rx) = tokio::sync::mpsc::unbounded_channel();
-    let twilio_encoded_audio_stream = tokio_stream::wrappers::UnboundedReceiverStream::new(rx);
+    let twilio_payload_rx = tokio_stream::wrappers::UnboundedReceiverStream::new(rx);
 
-    let (mut twilio_sink, mut twilio_stream) = ws_stream.split();
+    let (mut twilio_sink, mut twilio_stream) = socket.split();
 
     tokio::spawn(async move {
-        while let Some(msg_result) = twilio_stream.next().await {
-            let msg = msg_result.unwrap();
-            match msg {
-                Message::Close(_) => {
-                    break;
+        while let Some(Ok(msg)) = twilio_stream.next().await {
+            let txt = msg.to_text().expect("Expected text message");
+            let twilio_msg = TwilioMessage::try_from(txt).unwrap();
+            match twilio_msg {
+                TwilioMessage::Media(media_msg) => {
+                    let payload = media_msg.media.payload;
+                    twilio_payload_tx.send(payload).unwrap()
                 }
-                Message::Text(txt) => {
-                    let twilio_msg = TwilioMessage::try_from(txt.as_str()).unwrap();
-                    match twilio_msg {
-                        TwilioMessage::Media(media_msg) => {
-                            let payload = media_msg.media.payload().to_string();
-                            twilio_payload_tx.send(payload).unwrap()
-                        }
-                        TwilioMessage::Mark(mark_msg) => {
-                            println!("Mark: {:?}", mark_msg)
-                        }
-                        TwilioMessage::Stop(stop_msg) => {
-                            println!("Stop: {:?}", stop_msg);
-                            break;
-                        }
-                        _ => {}
-                    }
+                TwilioMessage::Stop(_) => {
+                    client_2.lock().await.stop_conversation().await.unwrap();
+                    println!("Caller hung up");
+                    break;
                 }
                 _ => {}
             }
@@ -78,36 +72,25 @@ async fn handle_socket(mut ws_stream: WebSocket) {
 
     tokio::spawn(async move {
         let mut convai_stream = client
-            .start_conversation(twilio_encoded_audio_stream)
+            .lock()
+            .await
+            .start_conversation(twilio_payload_rx)
             .await
             .unwrap();
 
-        while let Some(resp_result) = convai_stream.next().await {
-            let convai_msg = resp_result.unwrap(); // TODO: errs after max duration
-            match convai_msg {
+        while let Some(msg_result) = convai_stream.next().await {
+            let server_msg = msg_result.unwrap();
+            match server_msg {
                 ServerMessage::Audio(audio) => {
-                    let payload = audio.event().base_64();
-                    let media_msg = MediaMessage::new(&stream_sid, payload);
+                    let payload = audio.audio_event.audio_base_64;
+                    let media_msg = MediaMessage::new(&stream_sid, &payload);
                     let json = serde_json::to_string(&media_msg).unwrap();
-                    twilio_sink.send(Message::Text(json)).await.unwrap();
-
-
-                    let mark_msg = MarkMessage {
-                        event: "mark".to_string(),
-                        stream_sid: stream_sid.to_string(),
-                        sequence_number: None,
-                        mark: Mark {
-                            name: "elabs_audio".to_string(),
-                        },
-                    };
-                    let json = serde_json::to_string(&mark_msg).unwrap();
                     twilio_sink.send(Message::Text(json)).await.unwrap();
                 }
                 ServerMessage::Interruption(_) => {
                     let clear_msg = ClearMessage::new(&stream_sid);
                     let json = serde_json::to_string(&clear_msg).unwrap();
                     twilio_sink.send(Message::Text(json)).await.unwrap();
-                    println!("Sent clear message")
                 }
                 _ => {}
             }
@@ -120,7 +103,7 @@ async fn twiml() -> &'static str {
     r#"<?xml version="1.0" encoding="UTF-8"?>
     <Response>
         <Connect>
-            <Stream url="wss://.ngrok-free.app/call/connection" track="inbound_track" />
+            <Stream url="wss://your_domain.ngrok-free.app/connection" track="inbound_track" />
         </Connect>
     </Response>
     "#
@@ -149,41 +132,42 @@ impl TryFrom<&str> for TwilioMessage {
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct ConnectedMessage {
-    event: String,
-    protocol: String,
-    version: String,
+    pub event: String,
+    pub protocol: String,
+    pub version: String,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct StartMessage {
-    event: String,
-    sequence_number: String,
-    start: StartMetadata,
-    stream_sid: String,
+    pub event: String,
+    pub sequence_number: String,
+    pub start: StartMetadata,
+    pub stream_sid: String,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct StopMessage {
-    event: String,
-    stream_sid: String,
-    sequence_number: String,
-    stop: Stop,
+    pub event: String,
+    pub stream_sid: String,
+    pub sequence_number: String,
+    pub stop: Stop,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct Stop {
-    account_sid: String,
-    call_sid: String,
+    pub account_sid: String,
+    pub call_sid: String,
 }
 
+/// [Sending Clear Messages](https://www.twilio.com/docs/voice/media-streams/websocket-messages#send-a-clear-message)
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct ClearMessage {
-    event: String,
-    stream_sid: String,
+    pub event: String,
+    pub stream_sid: String,
 }
 
 impl ClearMessage {
@@ -195,39 +179,40 @@ impl ClearMessage {
     }
 }
 
+/// [Sending Mark Messages](https://www.twilio.com/docs/voice/media-streams/websocket-messages#send-a-mark-message)
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct MarkMessage {
-    event: String,
-    stream_sid: String,
+    pub event: String,
+    pub stream_sid: String,
     #[serde(skip_serializing_if = "Option::is_none")]
-    sequence_number: Option<String>,
-    mark: Mark,
+    pub sequence_number: Option<String>,
+    pub mark: Mark,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct Mark {
-    name: String,
+    pub name: String,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct StartMetadata {
-    stream_sid: String,
-    account_sid: String,
-    call_sid: String,
-    tracks: Vec<Track>,
-    custom_parameters: serde_json::Value,
-    media_format: MediaFormat,
+    pub stream_sid: String,
+    pub account_sid: String,
+    pub call_sid: String,
+    pub tracks: Vec<Track>,
+    pub custom_parameters: serde_json::Value,
+    pub media_format: MediaFormat,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct MediaFormat {
-    encoding: String,
-    sample_rate: u32,
-    channels: u32,
+    pub encoding: String,
+    pub sample_rate: u32,
+    pub channels: u32,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -238,24 +223,19 @@ pub enum Track {
     Outbound,
 }
 
+/// [Sending Media Messages](https://www.twilio.com/docs/voice/media-streams/websocket-messages#send-a-media-message)
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct MediaMessage {
-    event: String,
-    stream_sid: String,
-    media: Media,
+    pub event: String,
+    pub stream_sid: String,
+    pub media: Media,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct Media {
-    payload: String,
-}
-
-impl Media {
-    fn payload(&self) -> &str {
-        self.payload.as_str()
-    }
+    pub payload: String,
 }
 
 impl MediaMessage {
@@ -273,15 +253,15 @@ impl MediaMessage {
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct DtmfMessage {
-    event: String,
-    stream_sid: String,
-    sequence_number: u32,
-    dtmf: Dtmf,
+    pub event: String,
+    pub stream_sid: String,
+    pub sequence_number: u32,
+    pub dtmf: Dtmf,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct Dtmf {
-    digit: String,
-    track: Track,
+    pub digit: String,
+    pub track: Track,
 }
