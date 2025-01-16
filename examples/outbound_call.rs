@@ -1,23 +1,22 @@
-use crate::AppError::ConvAIError;
 use axum::{
     extract::ws::{Message, WebSocket, WebSocketUpgrade},
     response::Response,
     routing::{get, post},
     Router,
 };
-use elevenlabs_rs::conversational_ai::client::{ElevenLabsConversationalClient};
+use elevenlabs_rs::conversational_ai::client::ElevenLabsAgentClient;
+use elevenlabs_rs::conversational_ai::error::ConvAIError;
 use elevenlabs_rs::conversational_ai::server_messages::ServerMessage;
 use futures_util::stream::SplitSink;
 use futures_util::{SinkExt, StreamExt};
-use reqwest::Client;
-use serde::de::Error;
+use reqwest::{Client, Url};
 use serde::{Deserialize, Serialize};
+use std::env::var;
 use std::sync::Arc;
 use thiserror::Error;
 use tokio::sync::Mutex;
 use tokio::task::JoinHandle;
 use tracing::{error, info, instrument, span, Level};
-use elevenlabs_rs::conversational_ai::error::ElevenLabsConversationalError;
 
 #[derive(Error, Debug)]
 pub enum AppError {
@@ -46,7 +45,7 @@ pub enum AppError {
     TokioJoinError(#[from] tokio::task::JoinError),
 
     #[error("conversational_ai error: {0}")]
-    ConvAIError(#[from] ElevenLabsConversationalError),
+    ConversationalError(#[from] ConvAIError),
 
     #[error("send error: {0}")]
     SendError(#[from] tokio::sync::mpsc::error::SendError<String>),
@@ -66,17 +65,17 @@ struct Config {
 impl Config {
     fn from_env() -> Result<Config> {
         Ok(Config {
-            twilio_auth_token: std::env::var("TWILIO_AUTH_TOKEN")
+            twilio_auth_token: var("TWILIO_AUTH_TOKEN")
                 .map_err(|_| AppError::EnvVarError("TWILIO_AUTH_TOKEN not set".to_string()))?,
-            twilio_account_sid: std::env::var("TWILIO_ACCOUNT_SID")
+            twilio_account_sid: var("TWILIO_ACCOUNT_SID")
                 .map_err(|_| AppError::EnvVarError("TWILIO_ACCOUNT_SID not set".to_string()))?,
-            to: std::env::var("TWILIO_TO")
+            to: var("TWILIO_TO")
                 .map_err(|_| AppError::EnvVarError("TWILIO_TO not set".to_string()))?,
-            from: std::env::var("TWILIO_FROM")
+            from: var("TWILIO_FROM")
                 .map_err(|_| AppError::EnvVarError("TWILIO_FROM not set".to_string()))?,
-            ngrok_url: std::env::var("NGROK_URL")
-                // TODO: add your ngrok domain, properly set up, https and wss in params url and twiml fn
-                .unwrap_or_else(|_| "dc31-86-18-8-153.ngrok-free.app".to_string()),
+            ngrok_url: var("NGROK_URL")
+                // TODO: add your ngrok domain
+                .unwrap_or_else(|_| "https://yourdomain.ngrok-free.app".to_string()),
         })
     }
 }
@@ -87,13 +86,12 @@ async fn main() -> Result<()> {
 
     let config = Config::from_env()?;
 
-    // TODO: make sure ngrok is running
-
     let t = tokio::spawn(run_server(config.ngrok_url.clone()));
 
     make_twilio_call(&config).await?;
 
     let _ = t.await?;
+
     Ok(())
 }
 
@@ -109,6 +107,8 @@ async fn run_server(ngrok_url: String) -> Result<()> {
 }
 
 async fn twiml(ngrok_url: String) -> String {
+    let url = Url::parse(&ngrok_url).expect("Invalid ngrok URL");
+    let domain = url.domain().unwrap();
     format!(
         r#"<?xml version="1.0" encoding="UTF-8"?>
     <Response>
@@ -116,7 +116,7 @@ async fn twiml(ngrok_url: String) -> String {
             <Stream url="wss://{}/call/connection" track="inbound_track" />
         </Connect>
     </Response>"#,
-        ngrok_url
+        domain
     )
 }
 
@@ -124,7 +124,7 @@ async fn make_twilio_call(config: &Config) -> Result<()> {
     let mut params = std::collections::HashMap::new();
     params.insert("To", config.to.clone());
     params.insert("From", config.from.clone());
-    params.insert("Url", format!("https://{}/outbound-call", config.ngrok_url));
+    params.insert("Url", format!("{}/outbound-call", config.ngrok_url));
 
     let resp = Client::new()
         .post(format!(
@@ -135,15 +135,6 @@ async fn make_twilio_call(config: &Config) -> Result<()> {
         .form(&params)
         .send()
         .await?;
-
-    //if resp.status().is_success() {
-    //    let body = resp.text().await?;
-    //    //info!("Twilio response: {:#?}", body);
-    //} else {
-    //    error!("Twilio call failed: {:?}", resp.status());
-    //    let body = resp.text().await?;
-    //    error!("Twilio response: {:#?}", body);
-    //}
 
     if !resp.status().is_success() {
         error!("Twilio call failed: {:?}", resp.status());
@@ -158,45 +149,28 @@ async fn handler(ws: WebSocketUpgrade) -> Response {
     ws.on_upgrade(handle_socket)
 }
 
-#[instrument(skip(ws_stream))]
-async fn handle_socket(mut ws_stream: WebSocket) {
+#[instrument(skip(socket))]
+async fn handle_socket(socket: WebSocket) {
     let span = span!(Level::INFO, "handle_socket");
     let _enter = span.enter();
 
-    match process_socket(ws_stream).await {
+    match process_socket(socket).await {
         Ok(_) => info!("Connection closed"),
         Err(e) => error!("Error: {:?}", e),
     }
 }
 
-async fn process_socket(mut ws_stream: WebSocket) -> Result<()> {
-    let mut client = ElevenLabsConversationalClient::from_env()?;
-
-    //use elevenlabs_rs::conversational_ai::client_messages::{
-    //    ConversationInitiationClientData, ExtraBody, Overrides, AgentOverrides,};
-
-    //let overrides = Overrides {
-    //    agent: Some(AgentOverrides {
-    //        first_message: Some("In Rust we trust".to_string()),
-    //        ..AgentOverrides::default()
-    //    }),
-    //    ..Default::default()
-    //};
-
-    //client = client.with_conversation_initiation_client_data(
-    //    ConversationInitiationClientData::default()
-    //        .with_overrides(overrides),
-    //);
+async fn process_socket(mut socket: WebSocket) -> Result<()> {
+    let client = ElevenLabsAgentClient::from_env()?;
 
     let mut client = Arc::new(Mutex::new(client));
     let client_two = Arc::clone(&client);
 
     // Skip connected message
-    ws_stream.next().await;
-
+    socket.next().await;
 
     // Get stream sid
-    let stream_sid = match ws_stream.next().await {
+    let stream_sid = match socket.next().await {
         Some(Ok(Message::Text(msg))) => serde_json::from_str::<StartMessage>(&msg)?.stream_sid,
         _ => return Err(AppError::StreamSidNotFound),
     };
@@ -204,48 +178,43 @@ async fn process_socket(mut ws_stream: WebSocket) -> Result<()> {
     let (twilio_payload_tx, rx) = tokio::sync::mpsc::unbounded_channel();
     let twilio_payload_rx = tokio_stream::wrappers::UnboundedReceiverStream::new(rx);
 
-    let (mut twilio_sink, mut twilio_stream) = ws_stream.split();
+    let (mut twilio_sink, mut twilio_stream) = socket.split();
 
-    let stream_sid_clone = stream_sid.clone();
-    let twilio_handle: JoinHandle<Result<()>> = tokio::spawn(async move {
-        let span = span!(Level::INFO, "twilio_ws_connection", stream_sid_clone);
-        let _enter = span.enter();
+    let twilio_task: JoinHandle<Result<()>> = tokio::spawn(async move {
+        // TODO: learn how to use tracing correctly
+        //let span = span!(Level::INFO, "twilio_ws");
+        //let _enter = span.enter();
 
         while let Some(msg_result) = twilio_stream.next().await {
-            match msg_result {
-                Ok(Message::Close(_)) => {
-                    info!("Twilio stream closed");
+            let msg = msg_result?;
+            match msg {
+                Message::Close(_) => {
+                    //info!("Twilio stream closed");
                     break;
                 }
-                Ok(Message::Text(txt)) => match TwilioMessage::try_from(txt.as_str()) {
-                    Ok(TwilioMessage::Media(media_msg)) => {
-                        twilio_payload_tx.send(media_msg.media.payload().to_string())?;
+                Message::Text(txt) => {
+                    let twilio_msg = TwilioMessage::try_from(txt.as_str())?;
+                    match twilio_msg {
+                        TwilioMessage::Media(media_msg) => {
+                            twilio_payload_tx.send(media_msg.media.payload().to_string())?;
+                        }
+                        TwilioMessage::Stop(_) => {
+                            //info!("Stop message received from Twilio");
+                            client_two.lock().await.stop_conversation().await?;
+                            //info!("Elevenlabs' client stopped conversation");
+                            break;
+                        }
+                        _ => {}
                     }
-                    Ok(TwilioMessage::Mark(_mark_msg)) => {
-                        //info!("Mark: {:?}", mark_msg)
-                    }
-                    Ok(TwilioMessage::Stop(stop_msg)) => {
-                        info!("Stop: {:?}", stop_msg);
-                        client_two.lock().await.stop_conversation().await?;
-                        info!("Conversation stopped");
-                        break;
-                    }
-                    Ok(_) => {}
-                    Err(e) => {
-                        return Err(AppError::TwilioMessageParseError(e.to_string()));
-                    }
-                },
-                Ok(_) => {}
-                Err(e) => {
-                    return Err(AppError::WebSocketError(e));
                 }
+                _ => {}
             }
         }
         Ok(())
     });
 
-    let convai_handle: JoinHandle<Result<()>> = tokio::spawn(async move {
-        let span = span!(Level::INFO, "elevenlabs_ws_connection");
+    let el_task: JoinHandle<Result<()>> = tokio::spawn(async move {
+        let span = span!(Level::INFO, "elevenlabs_ws");
         let _enter = span.enter();
 
         let mut conversation_stream = client
@@ -253,54 +222,43 @@ async fn process_socket(mut ws_stream: WebSocket) -> Result<()> {
             .await
             .start_conversation(twilio_payload_rx)
             .await?;
+        info!("Conversation started");
 
-        while let Some(convai_msg_result) = conversation_stream.next().await {
-            match convai_msg_result {
-                Ok(ServerMessage::Audio(audio)) => {
-                    let payload = audio.event().base_64();
-                    let media_msg = MediaMessage::new(&stream_sid, payload);
+        while let Some(server_msg_result) = conversation_stream.next().await {
+            let server_msg = server_msg_result?;
+            match server_msg {
+                ServerMessage::Audio(audio) => {
+                    let payload = audio.audio_event.audio_base_64;
+                    let media_msg = MediaMessage::new(&stream_sid, &payload);
                     let json = serde_json::to_string(&media_msg)?;
                     twilio_sink.send(Message::Text(json)).await?;
-
-                    let mark_msg = MarkMessage {
-                        event: "mark".to_string(),
-                        stream_sid: stream_sid.to_string(),
-                        sequence_number: None,
-                        mark: Mark {
-                            name: "elabs_audio".to_string(),
-                        },
-                    };
-                    let json = serde_json::to_string(&mark_msg)?;
-                    twilio_sink.send(Message::Text(json)).await?;
                 }
-                Ok(ServerMessage::Interruption(interrupt)) => {
-                    info!("Interruption: {:?}", interrupt);
+                ServerMessage::Interruption(_) => {
+                    info!("Interruption event received from Elevenlabs");
                     let clear_msg = ClearMessage::new(&stream_sid);
                     let json = serde_json::to_string(&clear_msg)?;
                     twilio_sink.send(Message::Text(json)).await?;
-                    info!("Sent clear message: {:?}", clear_msg);
+                    info!("Clear message sent to Twilio");
                 }
-                Ok(_) => {}
-                Err(e) => {
-                    return Err(ConvAIError(e));
-                }
+                _ => {}
             }
         }
         Ok(())
     });
 
     tokio::select! {
-        res = twilio_handle => {
+        res = twilio_task => {
+            info!("Twilio task done");
             res??;
             Ok(())
         }
-        res = convai_handle => {
+        res = el_task => {
+            info!("Elevenlabs task done");
             res??;
             Ok(())
         }
     }
 }
-
 
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(untagged)]
