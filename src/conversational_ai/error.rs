@@ -2,7 +2,7 @@ use thiserror::Error;
 use tokio_tungstenite::tungstenite;
 
 #[derive(Debug, Error)]
-pub enum ElevenLabsConversationalError {
+pub enum ConvAIError {
     #[error("json deserialization error: {0}")]
     SerdeError(#[from] serde_json::Error),
 
@@ -21,7 +21,6 @@ pub enum ElevenLabsConversationalError {
     #[error("websocket connection closed without close frame")]
     ClosedWithoutCloseFrame,
 
-    // TODO: get UnexpectedMessageType value
     #[error("unexpected WebSocket message type")]
     UnexpectedMessageType,
 
@@ -30,4 +29,7 @@ pub enum ElevenLabsConversationalError {
 
     #[error("failed to cancel the operation")]
     CancellationError,
+
+    #[error("failed to get signed url")]
+    SignedUrlError,
 }

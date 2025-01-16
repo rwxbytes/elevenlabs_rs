@@ -33,7 +33,7 @@ impl UserAudioChunk {
 }
 
 impl TryFrom<UserAudioChunk> for Message {
-    type Error = ElevenLabsConversationalError;
+    type Error = ConvAIError;
     fn try_from(chunk: UserAudioChunk) -> Result<Self> {
         Ok(Message::Text(serde_json::to_string(&chunk)?))
     }
@@ -59,7 +59,7 @@ impl Pong {
 }
 
 impl TryFrom<Pong> for Message {
-    type Error = ElevenLabsConversationalError;
+    type Error = ConvAIError;
     fn try_from(pong: Pong) -> Result<Self> {
         Ok(Message::Text(serde_json::to_string(&pong)?))
     }
@@ -131,7 +131,7 @@ impl Default for ConversationInitiationClientData {
 }
 
 impl TryFrom<ConversationInitiationClientData> for Message {
-    type Error = ElevenLabsConversationalError;
+    type Error = ConvAIError;
     fn try_from(data: ConversationInitiationClientData) -> Result<Self> {
         Ok(Message::Text(serde_json::to_string(&data)?))
     }
