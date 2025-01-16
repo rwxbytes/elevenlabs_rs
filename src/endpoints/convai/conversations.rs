@@ -442,10 +442,16 @@ pub struct GetSignedUrlQuery {
 }
 
 impl ElevenLabsEndpoint for GetSignedUrl {
-    const PATH: &'static str = "/v1/convai/conversation/get_signed-url";
+    const PATH: &'static str = "/v1/convai/conversation/get_signed_url";
+
     const METHOD: Method = Method::GET;
 
     type ResponseBody = SignedUrlResponse;
+
+    fn query_params(&self) -> Option<QueryValues> {
+        Some(self.query.params.clone())
+
+    }
 
     async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
         Ok(resp.json().await?)
