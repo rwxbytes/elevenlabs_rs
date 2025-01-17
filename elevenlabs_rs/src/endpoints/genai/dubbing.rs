@@ -175,11 +175,11 @@ impl DubbingBody {
 /// See [Get Dubbing API reference](https://elevenlabs.io/docs/api-reference/dubbing/get-dubbing-project-metadata)
 #[derive(Clone, Debug)]
 pub struct GetDubbing {
-    dubbing_id: DubbingID,
+    dubbing_id: String,
 }
 
 impl GetDubbing {
-    pub fn new(dubbing_id: impl Into<DubbingID>) -> Self {
+    pub fn new(dubbing_id: impl Into<String>) -> Self {
         GetDubbing {
             dubbing_id: dubbing_id.into(),
         }
@@ -194,7 +194,7 @@ impl ElevenLabsEndpoint for GetDubbing {
     type ResponseBody = GetDubbingResponse;
 
     fn path_params(&self) -> Vec<(&'static str, &str)> {
-        vec![self.dubbing_id.as_path_param()]
+        vec![self.dubbing_id.and_param(PathParam::DubbingID)]
     }
 
     async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
@@ -235,14 +235,14 @@ pub struct GetDubbingResponse {
 /// See [Get Dubbed Audio API reference](https://elevenlabs.io/docs/api-reference/dubbing/get-dubbed-file)
 #[derive(Clone, Debug)]
 pub struct GetDubbedAudio {
-    dubbing_id: DubbingID,
-    language_code_id: LanguageCodeID,
+    dubbing_id: String,
+    language_code_id: String,
 }
 
 impl GetDubbedAudio {
     pub fn new(
-        dubbing_id: impl Into<DubbingID>,
-        language_code_id: impl Into<LanguageCodeID>,
+        dubbing_id: impl Into<String>,
+        language_code_id: impl Into<String>,
     ) -> Self {
         GetDubbedAudio {
             dubbing_id: dubbing_id.into(),
@@ -260,8 +260,8 @@ impl ElevenLabsEndpoint for GetDubbedAudio {
 
     fn path_params(&self) -> Vec<(&'static str, &str)> {
         vec![
-            self.dubbing_id.as_path_param(),
-            self.language_code_id.as_path_param(),
+            self.dubbing_id.and_param(PathParam::DubbingID),
+            self.language_code_id.and_param(PathParam::LanguageCodeID),
         ]
     }
 
@@ -292,11 +292,11 @@ impl ElevenLabsEndpoint for GetDubbedAudio {
 /// See [Delete Dubbing API reference](https://elevenlabs.io/docs/api-reference/dubbing/delete-dubbing-project)
 #[derive(Clone, Debug)]
 pub struct DeleteDubbing {
-    dubbing_id: DubbingID,
+    dubbing_id: String,
 }
 
 impl DeleteDubbing {
-    pub fn new(dubbing_id: impl Into<DubbingID>) -> Self {
+    pub fn new(dubbing_id: impl Into<String>) -> Self {
         DeleteDubbing {
             dubbing_id: dubbing_id.into(),
         }
@@ -311,7 +311,7 @@ impl ElevenLabsEndpoint for DeleteDubbing {
     type ResponseBody = StatusResponseBody;
 
     fn path_params(&self) -> Vec<(&'static str, &str)> {
-        vec![self.dubbing_id.as_path_param()]
+        vec![self.dubbing_id.and_param(PathParam::DubbingID)]
     }
 
     async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
@@ -345,15 +345,15 @@ impl ElevenLabsEndpoint for DeleteDubbing {
 /// See [Get Dubbed Transcript API reference](https://elevenlabs.io/docs/api-reference/dubbing/get-transcript-for-dub)
 #[derive(Clone, Debug)]
 pub struct GetDubbedTranscript {
-    dubbing_id: DubbingID,
-    language_code_id: LanguageCodeID,
+    dubbing_id: String,
+    language_code_id: String,
     query: Option<GetDubbedTranscriptQuery>,
 }
 
 impl GetDubbedTranscript {
     pub fn new(
-        dubbing_id: impl Into<DubbingID>,
-        language_code_id: impl Into<LanguageCodeID>,
+        dubbing_id: impl Into<String>,
+        language_code_id: impl Into<String>,
     ) -> Self {
         GetDubbedTranscript {
             dubbing_id: dubbing_id.into(),
@@ -390,8 +390,8 @@ impl ElevenLabsEndpoint for GetDubbedTranscript {
 
     fn path_params(&self) -> Vec<(&'static str, &str)> {
         vec![
-            self.dubbing_id.as_path_param(),
-            self.language_code_id.as_path_param(),
+            self.dubbing_id.and_param(PathParam::DubbingID),
+            self.language_code_id.and_param(PathParam::LanguageCodeID),
         ]
     }
 

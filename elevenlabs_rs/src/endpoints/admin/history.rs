@@ -52,14 +52,13 @@ impl HistoryQuery {
         self
     }
 
-    pub fn with_voice_id(mut self, voice_id: impl Into<VoiceID>) -> Self {
-        self.params.push(("voice_id", voice_id.into()._inner));
+    pub fn with_voice_id(mut self, voice_id: impl Into<String>) -> Self {
+        self.params.push(("voice_id", voice_id.into()));
         self
     }
 }
 
 impl ElevenLabsEndpoint for GetGeneratedItems {
-
     const PATH: &'static str = "/v1/history";
 
     const METHOD: Method = Method::GET;
@@ -101,11 +100,11 @@ pub struct GetGeneratedItemsResponse {
 /// See the [Get History Item API reference](https://elevenlabs.io/docs/api-reference/history/get)
 #[derive(Clone, Debug)]
 pub struct GetHistoryItem {
-    history_item_id: HistoryItemID,
+    history_item_id: String,
 }
 
 impl GetHistoryItem {
-    pub fn new(history_item_id: impl Into<HistoryItemID>) -> Self {
+    pub fn new(history_item_id: impl Into<String>) -> Self {
         Self {
             history_item_id: history_item_id.into(),
         }
@@ -113,7 +112,6 @@ impl GetHistoryItem {
 }
 
 impl ElevenLabsEndpoint for GetHistoryItem {
-
     const PATH: &'static str = "/v1/history/:history_item_id";
 
     const METHOD: Method = Method::GET;
@@ -121,7 +119,7 @@ impl ElevenLabsEndpoint for GetHistoryItem {
     type ResponseBody = GetHistoryItemResponse;
 
     fn path_params(&self) -> Vec<(&'static str, &str)> {
-        vec![self.history_item_id.as_path_param()]
+        vec![self.history_item_id.and_param(PathParam::HistoryItemID)]
     }
 
     async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
@@ -155,11 +153,11 @@ pub struct GetHistoryItemResponse {
 /// See the [Delete History Item API reference](https://elevenlabs.io/docs/api-reference/history/delete)
 #[derive(Clone, Debug)]
 pub struct DeleteHistoryItem {
-    history_item_id: HistoryItemID,
+    history_item_id: String,
 }
 
 impl DeleteHistoryItem {
-    pub fn new(history_item_id: impl Into<HistoryItemID>) -> Self {
+    pub fn new(history_item_id: impl Into<String>) -> Self {
         Self {
             history_item_id: history_item_id.into(),
         }
@@ -167,7 +165,6 @@ impl DeleteHistoryItem {
 }
 
 impl ElevenLabsEndpoint for DeleteHistoryItem {
-
     const PATH: &'static str = "/v1/history/:history_item_id";
 
     const METHOD: Method = Method::DELETE;
@@ -175,7 +172,7 @@ impl ElevenLabsEndpoint for DeleteHistoryItem {
     type ResponseBody = StatusResponseBody;
 
     fn path_params(&self) -> Vec<(&'static str, &str)> {
-        vec![self.history_item_id.as_path_param()]
+        vec![self.history_item_id.and_param(PathParam::HistoryItemID)]
     }
 
     async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
@@ -223,7 +220,6 @@ impl DownloadHistoryItems {
 }
 
 impl ElevenLabsEndpoint for DownloadHistoryItems {
-
     const PATH: &'static str = "/v1/history/download";
 
     const METHOD: Method = Method::POST;
@@ -281,11 +277,11 @@ impl DownloadBody {
 /// ```
 #[derive(Clone, Debug)]
 pub struct GetAudio {
-    history_item_id: HistoryItemID,
+    history_item_id: String,
 }
 
 impl GetAudio {
-    pub fn new(history_item_id: impl Into<HistoryItemID>) -> Self {
+    pub fn new(history_item_id: impl Into<String>) -> Self {
         Self {
             history_item_id: history_item_id.into(),
         }
@@ -293,7 +289,6 @@ impl GetAudio {
 }
 
 impl ElevenLabsEndpoint for GetAudio {
-
     const PATH: &'static str = "/v1/history/:history_item_id/audio";
 
     const METHOD: Method = Method::GET;
@@ -301,7 +296,7 @@ impl ElevenLabsEndpoint for GetAudio {
     type ResponseBody = Bytes;
 
     fn path_params(&self) -> Vec<(&'static str, &str)> {
-        vec![self.history_item_id.as_path_param()]
+        vec![self.history_item_id.and_param(PathParam::HistoryItemID)]
     }
 
     async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {

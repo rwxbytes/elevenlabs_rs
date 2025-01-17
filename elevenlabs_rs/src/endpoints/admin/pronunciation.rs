@@ -33,7 +33,6 @@ impl CreateDictionary {
 }
 
 impl ElevenLabsEndpoint for CreateDictionary {
-
     const PATH: &'static str = "/v1/pronunciation-dictionaries/add-from-file";
 
     const METHOD: Method = Method::POST;
@@ -144,12 +143,12 @@ pub struct CreateDictionaryResponse {
 /// See the [Add Rules API reference](https://elevenlabs.io/docs/api-reference/pronunciation-dictionary/add-rules)
 #[derive(Clone, Debug)]
 pub struct AddRules {
-    dictionary_id: DictionaryID,
+    dictionary_id: String,
     body: AddRulesBody,
 }
 
 impl AddRules {
-    pub fn new(dictionary_id: impl Into<DictionaryID>, body: AddRulesBody) -> Self {
+    pub fn new(dictionary_id: impl Into<String>, body: AddRulesBody) -> Self {
         Self {
             dictionary_id: dictionary_id.into(),
             body,
@@ -157,7 +156,6 @@ impl AddRules {
     }
 }
 impl ElevenLabsEndpoint for AddRules {
-
     const PATH: &'static str =
         "/v1/pronunciation-dictionaries/:pronunciation_dictionary_id/add-rules";
 
@@ -166,7 +164,9 @@ impl ElevenLabsEndpoint for AddRules {
     type ResponseBody = RulesResponse;
 
     fn path_params(&self) -> Vec<(&'static str, &str)> {
-        vec![self.dictionary_id.as_path_param()]
+        vec![self
+            .dictionary_id
+            .and_param(PathParam::PronunciationDictionaryID)]
     }
 
     async fn request_body(&self) -> Result<RequestBody> {
@@ -252,12 +252,12 @@ pub struct RulesResponse {
 /// See the [Remove Rules API reference](https://elevenlabs.io/docs/api-reference/pronunciation-dictionary/remove-rules)
 #[derive(Clone, Debug)]
 pub struct RemoveRules {
-    dictionary_id: DictionaryID,
+    dictionary_id: String,
     body: RemoveRulesBody,
 }
 
 impl RemoveRules {
-    pub fn new(dictionary_id: impl Into<DictionaryID>, body: RemoveRulesBody) -> Self {
+    pub fn new(dictionary_id: impl Into<String>, body: RemoveRulesBody) -> Self {
         Self {
             dictionary_id: dictionary_id.into(),
             body,
@@ -274,7 +274,7 @@ pub struct RemoveRulesBody {
 impl RemoveRulesBody {
     pub fn new<'a, I>(rules: I) -> Self
     where
-        I: IntoIterator<Item=&'a str>,
+        I: IntoIterator<Item = &'a str>,
     {
         Self {
             rule_strings: rules.into_iter().map(|s| s.to_string()).collect(),
@@ -283,7 +283,6 @@ impl RemoveRulesBody {
 }
 
 impl ElevenLabsEndpoint for RemoveRules {
-
     const PATH: &'static str =
         "/v1/pronunciation-dictionaries/:pronunciation_dictionary_id/remove-rules";
 
@@ -292,7 +291,7 @@ impl ElevenLabsEndpoint for RemoveRules {
     type ResponseBody = RulesResponse;
 
     fn path_params(&self) -> Vec<(&'static str, &str)> {
-        vec![self.dictionary_id.as_path_param()]
+        vec![self.dictionary_id.and_param(PathParam::PronunciationDictionaryID)]
     }
 
     async fn request_body(&self) -> Result<RequestBody> {
@@ -330,12 +329,12 @@ impl ElevenLabsEndpoint for RemoveRules {
 /// See the [Get PLS File API reference](https://elevenlabs.io/docs/api-reference/pronunciation-dictionary/download)
 #[derive(Clone, Debug)]
 pub struct GetPLSFile {
-    dictionary_id: DictionaryID,
-    version_id: VersionID,
+    dictionary_id: String,
+    version_id: String
 }
 
 impl GetPLSFile {
-    pub fn new(dictionary_id: impl Into<DictionaryID>, version_id: impl Into<VersionID>) -> Self {
+    pub fn new(dictionary_id: impl Into<String>, version_id: impl Into<String>) -> Self {
         Self {
             dictionary_id: dictionary_id.into(),
             version_id: version_id.into(),
@@ -344,7 +343,6 @@ impl GetPLSFile {
 }
 
 impl ElevenLabsEndpoint for GetPLSFile {
-
     const PATH: &'static str = "/v1/pronunciation-dictionaries/:dictionary_id/:version_id/download";
 
     const METHOD: Method = Method::GET;
@@ -353,8 +351,8 @@ impl ElevenLabsEndpoint for GetPLSFile {
 
     fn path_params(&self) -> Vec<(&'static str, &str)> {
         vec![
-            (":dictionary_id", self.dictionary_id.get_value()),
-            self.version_id.as_path_param(),
+            self.dictionary_id.and_param(PathParam::PronunciationDictionaryID),
+            self.version_id.and_param(PathParam::VersionID),
         ]
     }
 
@@ -381,17 +379,18 @@ impl ElevenLabsEndpoint for GetPLSFile {
 /// See the [Get Dictionary Metadata API reference](https://elevenlabs.io/docs/api-reference/pronunciation-dictionary/get)
 #[derive(Clone, Debug)]
 pub struct GetDictionaryMetaData {
-    dictionary_id: DictionaryID,
+    dictionary_id: String,
 }
 
 impl GetDictionaryMetaData {
-    pub fn new(dictionary_id: impl Into<DictionaryID>) -> Self {
-        Self { dictionary_id: dictionary_id.into() }
+    pub fn new(dictionary_id: impl Into<String>) -> Self {
+        Self {
+            dictionary_id: dictionary_id.into(),
+        }
     }
 }
 
 impl ElevenLabsEndpoint for GetDictionaryMetaData {
-
     const PATH: &'static str = "/v1/pronunciation-dictionaries/:pronunciation_dictionary_id";
 
     const METHOD: Method = Method::GET;
@@ -399,7 +398,7 @@ impl ElevenLabsEndpoint for GetDictionaryMetaData {
     type ResponseBody = DictionaryMetadataResponse;
 
     fn path_params(&self) -> Vec<(&'static str, &str)> {
-        vec![self.dictionary_id.as_path_param()]
+        vec![self.dictionary_id.and_param(PathParam::PronunciationDictionaryID)]
     }
 
     async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
@@ -455,11 +454,9 @@ impl GetDictionariesQuery {
         self.params.push(("cursor", cursor.to_string()));
         self
     }
-
 }
 
 impl ElevenLabsEndpoint for GetDictionaries {
-
     const PATH: &'static str = "/v1/pronunciation-dictionaries";
 
     const METHOD: Method = Method::GET;

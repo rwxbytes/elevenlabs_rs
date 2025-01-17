@@ -3,7 +3,7 @@
 use super::*;
 use std::collections::HashMap;
 use std::string::ToString;
-use strum_macros::Display;
+use strum::Display;
 
 /// Returns the credit usage metrics for the current user or the entire workspace they are part of.
 ///

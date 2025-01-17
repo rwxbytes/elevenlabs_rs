@@ -1,4 +1,3 @@
-#![allow(dead_code)]
 //! The voice endpoints
 use super::*;
 use crate::shared::{
@@ -37,13 +36,6 @@ impl GetVoices {
     }
 }
 
-/// # Query Parameters
-///
-/// `show_legacy` - bool
-///
-/// Default: false
-///
-/// If set to true, [`LegacyVoice`]s will be included in [`GetVoicesResponse`]
 #[derive(Clone, Debug, Default)]
 pub struct GetVoicesQuery {
     params: QueryValues,
@@ -89,11 +81,11 @@ impl ElevenLabsEndpoint for GetVoices {
 /// See the [Get Voice Settings API reference](https://elevenlabs.io/docs/api-reference/voices/get-settings)
 #[derive(Clone, Debug)]
 pub struct GetVoiceSettings {
-    voice_id: VoiceID,
+    voice_id: String,
 }
 
 impl GetVoiceSettings {
-    pub fn new(voice_id: impl Into<VoiceID>) -> Self {
+    pub fn new(voice_id: impl Into<String>) -> Self {
         GetVoiceSettings {
             voice_id: voice_id.into(),
         }
@@ -108,7 +100,7 @@ impl ElevenLabsEndpoint for GetVoiceSettings {
     type ResponseBody = VoiceSettings;
 
     fn path_params(&self) -> Vec<(&'static str, &str)> {
-        vec![self.voice_id.as_path_param()]
+        vec![self.voice_id.and_param(PathParam::VoiceID)]
     }
 
     async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
@@ -119,8 +111,8 @@ impl ElevenLabsEndpoint for GetVoiceSettings {
 /// Returns metadata about a specific voice.
 /// # Example
 /// ```no_run
-/// use elevenlabs_rs::{ElevenLabsClient, Result};
-/// use elevenlabs_rs::endpoints::admin::voice::{GetVoice, GetVoiceResponse, DefaultVoice};
+/// use elevenlabs_rs::{ElevenLabsClient, Result, DefaultVoice};
+/// use elevenlabs_rs::endpoints::admin::voice::{GetVoice, GetVoiceResponse};
 ///
 /// #[tokio::main]
 /// async fn main() -> Result<()> {
@@ -134,21 +126,21 @@ impl ElevenLabsEndpoint for GetVoiceSettings {
 /// See the [Get Voice API reference](https://elevenlabs.io/docs/api-reference/voices/get)
 #[derive(Clone, Debug)]
 pub struct GetVoice {
-    voice_id: VoiceID,
+    voice_id: String,
     query: Option<GetVoiceQuery>,
 }
 
 impl GetVoice {
-    pub fn new(voice_id: impl Into<VoiceID>) -> Self {
+    pub fn new(voice_id: impl Into<String>) -> Self {
         GetVoice {
             voice_id: voice_id.into(),
             query: None,
         }
     }
 
-    pub fn with_query(voice_id: VoiceID, query: GetVoiceQuery) -> Self {
+    pub fn with_query(voice_id: impl Into<String>, query: GetVoiceQuery) -> Self {
         GetVoice {
-            voice_id,
+            voice_id: voice_id.into(),
             query: Some(query),
         }
     }
@@ -185,7 +177,7 @@ impl ElevenLabsEndpoint for GetVoice {
     }
 
     fn path_params(&self) -> Vec<(&'static str, &str)> {
-        vec![self.voice_id.as_path_param()]
+        vec![self.voice_id.and_param(PathParam::VoiceID)]
     }
 
     async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
@@ -211,11 +203,11 @@ impl ElevenLabsEndpoint for GetVoice {
 /// See the [Delete Voice API reference](https://elevenlabs.io/docs/api-reference/voices/delete)
 #[derive(Clone, Debug)]
 pub struct DeleteVoice {
-    voice_id: VoiceID,
+    voice_id: String,
 }
 
 impl DeleteVoice {
-    pub fn new(voice_id: impl Into<VoiceID>) -> Self {
+    pub fn new(voice_id: impl Into<String>) -> Self {
         DeleteVoice {
             voice_id: voice_id.into(),
         }
@@ -230,7 +222,7 @@ impl ElevenLabsEndpoint for DeleteVoice {
     type ResponseBody = StatusResponseBody;
 
     fn path_params(&self) -> Vec<(&'static str, &str)> {
-        vec![self.voice_id.as_path_param()]
+        vec![self.voice_id.and_param(PathParam::VoiceID)]
     }
 
     async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
@@ -259,12 +251,12 @@ impl ElevenLabsEndpoint for DeleteVoice {
 /// See the [Edit Voice Settings API reference](https://elevenlabs.io/docs/api-reference/voices/edit-settings)
 #[derive(Clone, Debug)]
 pub struct EditVoiceSettings {
-    voice_id: VoiceID,
+    voice_id: String,
     body: EditVoiceSettingsBody,
 }
 
 impl EditVoiceSettings {
-    pub fn new(voice_id: impl Into<VoiceID>, body: EditVoiceSettingsBody) -> Self {
+    pub fn new(voice_id: impl Into<String>, body: EditVoiceSettingsBody) -> Self {
         EditVoiceSettings {
             voice_id: voice_id.into(),
             body,
@@ -280,7 +272,7 @@ impl ElevenLabsEndpoint for EditVoiceSettings {
     type ResponseBody = StatusResponseBody;
 
     fn path_params(&self) -> Vec<(&'static str, &str)> {
-        vec![self.voice_id.as_path_param()]
+        vec![self.voice_id.and_param(PathParam::VoiceID)]
     }
 
     async fn request_body(&self) -> Result<RequestBody> {
@@ -486,12 +478,12 @@ pub struct AddVoiceResponse {
 /// See the [Edit Voice API reference](https://elevenlabs.io/docs/api-reference/voices/edit)
 #[derive(Clone, Debug)]
 pub struct EditVoice {
-    voice_id: VoiceID,
+    voice_id: String,
     body: VoiceBody,
 }
 
 impl EditVoice {
-    pub fn new(voice_id: impl Into<VoiceID>, body: VoiceBody) -> Self {
+    pub fn new(voice_id: impl Into<String>, body: VoiceBody) -> Self {
         EditVoice {
             voice_id: voice_id.into(),
             body,
@@ -507,7 +499,7 @@ impl ElevenLabsEndpoint for EditVoice {
     type ResponseBody = StatusResponseBody;
 
     fn path_params(&self) -> Vec<(&'static str, &str)> {
-        vec![self.voice_id.as_path_param()]
+        vec![self.voice_id.and_param(PathParam::VoiceID)]
     }
 
     async fn request_body(&self) -> Result<RequestBody> {

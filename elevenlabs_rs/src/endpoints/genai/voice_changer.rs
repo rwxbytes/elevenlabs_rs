@@ -37,13 +37,13 @@ use std::pin::Pin;
 /// See [Voice Changer API reference](https://elevenlabs.io/docs/api-reference/speech-to-speech/convert)
 #[derive(Debug, Clone)]
 pub struct VoiceChanger {
-    voice_id: VoiceID,
+    voice_id: String,
     body: VoiceChangerBody,
     query: Option<VoiceChangerQuery>,
 }
 
 impl VoiceChanger {
-    pub fn new(voice_id: impl Into<VoiceID>, body: VoiceChangerBody) -> Self {
+    pub fn new(voice_id: impl Into<String>, body: VoiceChangerBody) -> Self {
         VoiceChanger {
             voice_id: voice_id.into(),
             body,
@@ -68,7 +68,7 @@ impl ElevenLabsEndpoint for VoiceChanger {
     }
 
     fn path_params(&self) -> Vec<(&'static str, &str)> {
-        vec![self.voice_id.as_path_param()]
+        vec![self.voice_id.and_param(PathParam::VoiceID)]
     }
 
     async fn request_body(&self) -> Result<RequestBody> {
@@ -101,7 +101,7 @@ impl VoiceChangerQuery {
 #[derive(Debug, Clone, Default)]
 pub struct VoiceChangerBody {
     audio: String,
-    model_id: Option<ModelID>,
+    model_id: Option<String>,
     voice_settings: Option<VoiceSettings>,
     seed: Option<u64>,
     remove_background_noise: Option<bool>,
@@ -114,7 +114,7 @@ impl VoiceChangerBody {
             ..Default::default()
         }
     }
-    pub fn with_model_id(mut self, model_id: impl Into<ModelID>) -> Self {
+    pub fn with_model_id(mut self, model_id: impl Into<String>) -> Self {
         self.model_id = Some(model_id.into());
         self
     }
@@ -167,13 +167,13 @@ impl VoiceChangerBody {
 /// See [Voice Changer Stream API reference](https://elevenlabs.io/docs/api-reference/speech-to-speech/convert-as-stream)
 #[derive(Clone, Debug)]
 pub struct VoiceChangerStream {
-    voice_id: VoiceID,
+    voice_id: String,
     body: VoiceChangerBody,
     query: Option<VoiceChangerQuery>,
 }
 
 impl VoiceChangerStream {
-    pub fn new(voice_id: impl Into<VoiceID>, body: VoiceChangerBody) -> Self {
+    pub fn new(voice_id: impl Into<String>, body: VoiceChangerBody) -> Self {
         VoiceChangerStream {
             voice_id: voice_id.into(),
             body,
@@ -198,7 +198,7 @@ impl ElevenLabsEndpoint for VoiceChangerStream {
     }
 
     fn path_params(&self) -> Vec<(&'static str, &str)> {
-        vec![self.voice_id.as_path_param()]
+        vec![self.voice_id.and_param(PathParam::VoiceID)]
     }
 
     async fn request_body(&self) -> Result<RequestBody> {
@@ -230,7 +230,7 @@ impl TryFrom<&VoiceChangerBody> for RequestBody {
         part = part.mime_str(&mime_type)?;
         let mut form = Form::new().part("audio", part);
         if let Some(model_id) = &body.model_id {
-            form = form.text("model_id", model_id._inner.clone());
+            form = form.text("model_id", model_id.clone());
         }
         if let Some(voice_settings) = &body.voice_settings {
             form = form.text("voice_settings", serde_json::to_string(voice_settings)?);

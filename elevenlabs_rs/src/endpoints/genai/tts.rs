@@ -35,13 +35,13 @@ use std::pin::Pin;
 /// See [Text To Speech API reference](https://elevenlabs.io/docs/api-reference/text-to-speech/convert)
 #[derive(Clone, Debug)]
 pub struct TextToSpeech {
-    voice_id: VoiceID,
+    voice_id: String,
     body: TextToSpeechBody,
     query: Option<TextToSpeechQuery>,
 }
 
 impl TextToSpeech {
-    pub fn new(voice_id: impl Into<VoiceID>, body: TextToSpeechBody) -> Self {
+    pub fn new(voice_id: impl Into<String>, body: TextToSpeechBody) -> Self {
         TextToSpeech {
             voice_id: voice_id.into(),
             body,
@@ -63,7 +63,7 @@ impl ElevenLabsEndpoint for TextToSpeech {
     type ResponseBody = Bytes;
 
     fn path_params(&self) -> Vec<(&'static str, &str)> {
-        vec![self.voice_id.as_path_param()]
+        vec![self.voice_id.and_param(PathParam::VoiceID)]
     }
 
     async fn request_body(&self) -> Result<RequestBody> {
@@ -260,13 +260,13 @@ impl TextToSpeechQuery {
 /// See [Text To Speech Stream API reference](https://elevenlabs.io/docs/api-reference/text-to-speech/convert-as-stream)
 #[derive(Clone, Debug)]
 pub struct TextToSpeechStream {
-    voice_id: VoiceID,
+    voice_id: String,
     body: TextToSpeechBody,
     query: Option<TextToSpeechQuery>,
 }
 
 impl TextToSpeechStream {
-    pub fn new(voice_id: impl Into<VoiceID>, body: TextToSpeechBody) -> Self {
+    pub fn new(voice_id: impl Into<String>, body: TextToSpeechBody) -> Self {
         TextToSpeechStream {
             voice_id: voice_id.into(),
             body,
@@ -292,7 +292,7 @@ impl ElevenLabsEndpoint for TextToSpeechStream {
     }
 
     fn path_params(&self) -> Vec<(&'static str, &str)> {
-        vec![self.voice_id.as_path_param()]
+        vec![self.voice_id.and_param(PathParam::VoiceID)]
     }
 
     async fn request_body(&self) -> Result<RequestBody> {
@@ -339,13 +339,13 @@ impl ElevenLabsEndpoint for TextToSpeechStream {
 /// See [Text To Speech with Timing API reference](https://elevenlabs.io/docs/api-reference/text-to-speech/convert-with-timestamps)
 #[derive(Clone, Debug)]
 pub struct TextToSpeechWithTimestamps {
-    voice_id: VoiceID,
+    voice_id: String,
     body: TextToSpeechBody,
     query: Option<TextToSpeechQuery>,
 }
 
 impl TextToSpeechWithTimestamps {
-    pub fn new(voice_id: impl Into<VoiceID>, body: TextToSpeechBody) -> Self {
+    pub fn new(voice_id: impl Into<String>, body: TextToSpeechBody) -> Self {
         TextToSpeechWithTimestamps {
             voice_id: voice_id.into(),
             body,
@@ -367,7 +367,7 @@ impl ElevenLabsEndpoint for TextToSpeechWithTimestamps {
     type ResponseBody = TextToSpeechWithTimestampsResponse;
 
     fn path_params(&self) -> Vec<(&'static str, &str)> {
-        vec![self.voice_id.as_path_param()]
+        vec![self.voice_id.and_param(PathParam::VoiceID)]
     }
     async fn request_body(&self) -> Result<RequestBody> {
         TryFrom::try_from(&self.body)
@@ -478,13 +478,13 @@ pub struct Alignment {
 /// See [Text To Speech Stream with Timestamps API reference](https://elevenlabs.io/docs/api-reference/text-to-speech/stream-with-timestamps)
 #[derive(Clone, Debug)]
 pub struct TextToSpeechStreamWithTimestamps {
-    voice_id: VoiceID,
+    voice_id: String,
     body: TextToSpeechBody,
     query: Option<TextToSpeechQuery>,
 }
 
 impl TextToSpeechStreamWithTimestamps {
-    pub fn new(voice_id: impl Into<VoiceID>, body: TextToSpeechBody) -> Self {
+    pub fn new(voice_id: impl Into<String>, body: TextToSpeechBody) -> Self {
         TextToSpeechStreamWithTimestamps {
             voice_id: voice_id.into(),
             body,
@@ -508,7 +508,7 @@ impl ElevenLabsEndpoint for TextToSpeechStreamWithTimestamps {
     type ResponseBody = TextToSpeechStreamWithTimestampsResponse;
 
     fn path_params(&self) -> Vec<(&'static str, &str)> {
-        vec![self.voice_id.as_path_param()]
+        vec![self.voice_id.and_param(PathParam::VoiceID)]
     }
 
     async fn request_body(&self) -> Result<RequestBody> {
@@ -593,7 +593,7 @@ pub mod ws {
     where
         S: Stream<Item = String> + Send + 'static,
     {
-        pub(crate) voice_id: VoiceID,
+        pub(crate) voice_id: String,
         pub(crate) body: WebSocketTTSBody<S>,
         pub(crate) query: Option<TTSWebSocketQuery>,
     }
@@ -602,7 +602,7 @@ pub mod ws {
     where
         S: Stream<Item = String> + Send + 'static,
     {
-        pub fn new(voice_id: impl Into<VoiceID>, body: WebSocketTTSBody<S>) -> Self {
+        pub fn new(voice_id: impl Into<String>, body: WebSocketTTSBody<S>) -> Self {
             WebSocketTTS {
                 voice_id: voice_id.into(),
                 body,
@@ -618,7 +618,7 @@ pub mod ws {
 
             let mut path = WS_PATH.to_string();
 
-            path = path.replace(":voice_id", &self.voice_id._inner);
+            path = path.replace(":voice_id", &self.voice_id.to_string());
 
             base_url.set_path(&path);
 
@@ -669,8 +669,8 @@ pub mod ws {
     }
 
     impl TTSWebSocketQuery {
-        pub fn with_model_id(mut self, model_id: impl Into<ModelID>) -> Self {
-            self.params.push(("model_id", model_id.into()._inner));
+        pub fn with_model_id(mut self, model_id: impl Into<String>) -> Self {
+            self.params.push(("model_id", model_id.into()));
             self
         }
 

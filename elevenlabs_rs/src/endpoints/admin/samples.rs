@@ -17,7 +17,7 @@ use super::*;
 ///
 ///     if let Some(samples) = voice_resp.samples {
 ///         let sample = samples.iter().next().unwrap();
-///         let sample_id = sample.sample_id.as_str();
+///         let sample_id = sample.sample_id.as_ref().unwrap();
 ///         let status = c
 ///             .hit(DeleteSample::new("voice_id", sample_id))
 ///             .await?;
@@ -29,12 +29,12 @@ use super::*;
 /// See the [Delete Sample API reference](https://elevenlabs.io/docs/api-reference/samples/delete)
 #[derive(Clone, Debug)]
 pub struct DeleteSample {
-    sample_id: SampleID,
-    voice_id: VoiceID,
+    sample_id: String,
+    voice_id: String,
 }
 
 impl DeleteSample {
-    pub fn new(voice_id: impl Into<VoiceID>, sample_id: impl Into<SampleID>) -> Self {
+    pub fn new(voice_id: impl Into<String>, sample_id: impl Into<String>) -> Self {
         Self {
             voice_id: voice_id.into(),
             sample_id: sample_id.into(),
@@ -51,8 +51,8 @@ impl ElevenLabsEndpoint for DeleteSample {
 
     fn path_params(&self) -> Vec<(&'static str, &str)> {
         vec![
-            self.voice_id.as_path_param(),
-            self.sample_id.as_path_param(),
+            self.voice_id.and_param(PathParam::VoiceID),
+            self.sample_id.and_param(PathParam::SampleID),
         ]
     }
 
@@ -84,7 +84,7 @@ impl ElevenLabsEndpoint for DeleteSample {
 ///
 ///    let samples = voice.samples.unwrap();
 ///    let sample = samples.first().unwrap();
-///    let sample_id = sample.sample_id.as_str();
+///    let sample_id = sample.sample_id.as_ref().unwrap();
 ///    let resp_bytes = c.hit(GetAudioFromSample::new(voice_id, sample_id)).await?;
 ///
 ///    play(resp_bytes)?;
@@ -95,12 +95,12 @@ impl ElevenLabsEndpoint for DeleteSample {
 /// See the [Get Audio from Sample API reference](https://elevenlabs.io/docs/api-reference/samples/get-audio)
 #[derive(Clone, Debug)]
 pub struct GetAudioFromSample {
-    sample_id: SampleID,
-    voice_id: VoiceID,
+    sample_id: String,
+    voice_id: String,
 }
 
 impl GetAudioFromSample {
-    pub fn new(voice_id: impl Into<VoiceID>, sample_id: impl Into<SampleID>) -> Self {
+    pub fn new(voice_id: impl Into<String>, sample_id: impl Into<String>) -> Self {
         Self {
             voice_id: voice_id.into(),
             sample_id: sample_id.into(),
@@ -117,8 +117,8 @@ impl ElevenLabsEndpoint for GetAudioFromSample {
 
     fn path_params(&self) -> Vec<(&'static str, &str)> {
         vec![
-            self.voice_id.as_path_param(),
-            self.sample_id.as_path_param(),
+            self.voice_id.and_param(PathParam::VoiceID),
+            self.sample_id.and_param(PathParam::SampleID),
         ]
     }
 

@@ -9,3 +9,5 @@ pub mod samples;
 pub mod user;
 pub mod voice;
 pub mod voice_library;
+pub mod usage;
+pub mod workspace;

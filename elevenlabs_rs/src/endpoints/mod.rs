@@ -1,5 +1,4 @@
 pub(crate) use crate::client::Result;
-pub(crate) use crate::shared::identifiers::*;
 pub(crate) use crate::shared::url::*;
 pub(crate) use crate::shared::query_params::*;
 pub(crate) use crate::shared::response_bodies::*;

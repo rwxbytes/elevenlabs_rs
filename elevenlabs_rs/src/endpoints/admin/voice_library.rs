@@ -261,15 +261,15 @@ impl std::fmt::Display for Gender {
 /// See [Add Sharing Voice API reference](https://elevenlabs.io/docs/api-reference/voice-library/add-sharing-voice)
 #[derive(Clone, Debug)]
 pub struct AddSharedVoice {
-    public_user_id: PublicUserID,
-    voice_id: VoiceID,
+    public_user_id: String,
+    voice_id: String,
     body: AddSharedVoiceBody,
 }
 
 impl AddSharedVoice {
     pub fn new(
-        public_user_id: impl Into<PublicUserID>,
-        voice_id: impl Into<VoiceID>,
+        public_user_id: impl Into<String>,
+        voice_id: impl Into<String>,
         new_name: &str,
     ) -> Self {
         let body = AddSharedVoiceBody::new(new_name);
@@ -290,8 +290,8 @@ impl ElevenLabsEndpoint for AddSharedVoice {
 
     fn path_params(&self) -> Vec<(&'static str, &str)> {
         vec![
-            self.public_user_id.as_path_param(),
-            self.voice_id.as_path_param(),
+            self.public_user_id.and_param(PathParam::PublicUserID),
+            self.voice_id.and_param(PathParam::VoiceID),
         ]
     }
 
