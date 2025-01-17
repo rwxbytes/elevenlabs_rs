@@ -14,40 +14,26 @@
 //!
 //! #[tokio::main]
 //! async fn main() -> Result<()> {
-//!     let client = ElevenLabsClient::default()?;
-//!     let body = TextToSpeechBody::new(
-//!         "This is the way the world ends, not with a bang but a whimper",
-//!         Model::ElevenMultilingualV2,
-//!     );
-//!     let endpoint = TextToSpeech::new(PreMadeVoiceID::Clyde, body);
+//!     let client = ElevenLabsClient::from_env()?;
+//!
+//!     let txt = "Hello! 你好! Hola! नमस्ते! Bonjour! \
+//!         こんにちは! مرحبا! 안녕하세요! Ciao! Cześć! Привіт! வணக்கம்!";
+//!
+//!     let body = TextToSpeechBody::new(txt)
+//!        .with_model_id(Model::ElevenMultilingualV2);
+//!
+//!     let endpoint = TextToSpeech::new(DefaultVoice::Brian, body);
+//!
 //!     let speech = client.hit(endpoint).await?;
+//!
 //!     play(speech)?;
 //!
 //!     Ok(())
 //! }
 //! ```
-
 pub use crate::client::{ElevenLabsClient, Result};
-#[cfg(feature = "dev")]
-pub use crate::convai_client::ConvAIClient;
-pub use crate::endpoints::audio_isolation::*;
-pub use crate::endpoints::audio_native::*;
-pub use crate::endpoints::dubbing::*;
-pub use crate::endpoints::history::*;
-pub use crate::endpoints::models::*;
-pub use crate::endpoints::projects::*;
-pub use crate::endpoints::pronunciation::*;
-pub use crate::endpoints::samples::*;
-pub use crate::endpoints::sound_generation::*;
-pub use crate::endpoints::sts::*;
-pub use crate::endpoints::tts::*;
-pub use crate::endpoints::tts::ws::*;
-pub use crate::endpoints::user::*;
-pub use crate::endpoints::voice::*;
-pub use crate::endpoints::voice_design::*;
-pub use crate::endpoints::voice_generation::*;
-pub use crate::endpoints::voice_library::*;
-pub use crate::shared::identifiers::{Model, PreMadeVoiceID};
+pub use crate::endpoints::genai::tts::*;
+pub use crate::shared::identifiers::*;
 pub use crate::shared::query_params::*;
 pub use bytes::Bytes;
 pub use futures_util::{pin_mut, StreamExt};
@@ -57,5 +43,4 @@ pub mod endpoints;
 pub mod error;
 mod shared;
 pub mod utils;
-#[cfg(feature = "dev")]
-mod convai_client;
+pub mod conversational_ai;

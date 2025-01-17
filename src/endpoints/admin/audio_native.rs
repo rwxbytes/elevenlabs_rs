@@ -1,17 +1,35 @@
-#![allow(dead_code)]
 //! The audio native endpoint
 use super::*;
 
-const AUDIO_NATIVE_PATH: &str = "/v1/audio-native";
 
-/// Audio Native endpoint
+/// Creates AudioNative enabled project, optionally starts conversion and returns project id and embeddable html snippet.
 #[derive(Debug, Clone)]
-pub struct AudioNative(AudioNativeBody);
+pub struct AudioNative {
+    body: AudioNativeBody,
+}
 
 impl AudioNative {
     pub fn new(body: AudioNativeBody) -> Self {
-        AudioNative(body)
+        AudioNative { body }
     }
+}
+
+impl ElevenLabsEndpoint for AudioNative {
+
+    const PATH: &'static str = "/v1/audio-native";
+
+    const METHOD: Method = Method::POST;
+
+    type ResponseBody = AudioNativeResponseBody;
+
+    async fn request_body(&self) -> Result<RequestBody> {
+        Ok(RequestBody::Multipart(self.body.clone().into()))
+    }
+
+    async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
+        Ok(resp.json().await?)
+    }
+
 }
 
 #[derive(Clone, Debug, Default)]
@@ -81,70 +99,52 @@ impl AudioNativeBody {
         self.auto_convert = Some(true);
         self
     }
-    fn to_form(self) -> Result<Form> {
-        let mut form = Form::new();
-        form = form.text("name", self.name);
-        if let Some(image) = self.image {
-            form = form.text("image", image);
-        }
-        if let Some(author) = self.author {
-            form = form.text("author", author);
-        }
-        if let Some(title) = self.title {
-            form = form.text("title", title);
-        }
-        if let Some(small) = self.small {
-            form = form.text("small", small.to_string());
-        }
-        if let Some(text_color) = self.text_color {
-            form = form.text("text_color", text_color);
-        }
-        if let Some(background_color) = self.background_color {
-            form = form.text("background_color", background_color);
-        }
-        if let Some(sessionization) = self.sessionization {
-            form = form.text("sessionization", sessionization.to_string());
-        }
-        if let Some(voice_id) = self.voice_id {
-            form = form.text("voice_id", voice_id);
-        }
-        if let Some(model_id) = self.model_id {
-            form = form.text("model_id", model_id);
-        }
-        if let Some(file) = self.file {
-            form = form.text("file", file);
-        }
-        if let Some(auto_convert) = self.auto_convert {
-            form = form.text("auto_convert", auto_convert.to_string());
-        }
-        Ok(form)
-    }
 }
 
-impl Endpoint for AudioNative {
-    type ResponseBody = AudioNativeResponseBody;
-
-    fn method(&self) -> Method {
-        Method::POST
-    }
-    fn request_body(&self) -> Result<RequestBody> {
-        Ok(RequestBody::Multipart(self.0.clone().to_form()?))
-    }
-
-    async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
-        Ok(resp.json().await?)
-    }
-
-    fn url(&self) -> Url {
-        let mut url = BASE_URL.parse::<Url>().unwrap();
-        url.set_path(AUDIO_NATIVE_PATH);
-        url
+impl From<AudioNativeBody> for Form {
+    fn from(body: AudioNativeBody) -> Self {
+        let mut form = Form::new();
+        form = form.text("name", body.name);
+        if let Some(image) = body.image {
+            form = form.text("image", image);
+        }
+        if let Some(author) = body.author {
+            form = form.text("author", author);
+        }
+        if let Some(title) = body.title {
+            form = form.text("title", title);
+        }
+        if let Some(small) = body.small {
+            form = form.text("small", small.to_string());
+        }
+        if let Some(text_color) = body.text_color {
+            form = form.text("text_color", text_color);
+        }
+        if let Some(background_color) = body.background_color {
+            form = form.text("background_color", background_color);
+        }
+        if let Some(sessionization) = body.sessionization {
+            form = form.text("sessionization", sessionization.to_string());
+        }
+        if let Some(voice_id) = body.voice_id {
+            form = form.text("voice_id", voice_id);
+        }
+        if let Some(model_id) = body.model_id {
+            form = form.text("model_id", model_id);
+        }
+        if let Some(file) = body.file {
+            form = form.text("file", file);
+        }
+        if let Some(auto_convert) = body.auto_convert {
+            form = form.text("auto_convert", auto_convert.to_string());
+        }
+        form
     }
 }
 
 #[derive(Clone, Debug, Deserialize)]
 pub struct AudioNativeResponseBody {
-    project_id: String,
-    converting: bool,
-    html_snippet: String,
+    pub project_id: String,
+    pub converting: bool,
+    pub html_snippet: String,
 }

@@ -1,4 +1,2 @@
 /target
 /Cargo.lock
-/.vscode
-src/history_voice_tts.rs

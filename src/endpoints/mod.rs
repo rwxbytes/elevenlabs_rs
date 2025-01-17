@@ -1,51 +1,79 @@
-pub use crate::client::{Result, BASE_URL};
+pub(crate) use crate::client::Result;
 pub(crate) use crate::shared::identifiers::*;
-pub(crate) use crate::shared::path_segments::*;
-pub use crate::shared::query_params::*;
-pub use crate::shared::response_bodies::*;
-pub use base64::prelude::{Engine, BASE64_STANDARD};
-pub use bytes::Bytes;
-pub use reqwest::{
+pub(crate) use crate::shared::url::*;
+pub(crate) use crate::shared::query_params::*;
+pub(crate) use crate::shared::response_bodies::*;
+pub(crate) use base64::prelude::{Engine, BASE64_STANDARD};
+pub(crate) use bytes::Bytes;
+pub(crate) use reqwest::{
     multipart::{Form, Part},
     Method, Response, Url,
 };
-pub use serde::{Deserialize, Serialize};
-pub use serde_json::Value;
+pub(crate) use serde::{Deserialize, Serialize};
+pub(crate) use serde_json::Value;
 
-pub mod audio_native;
-pub mod dubbing;
-pub mod history;
-pub mod models;
-pub mod projects;
-pub mod pronunciation;
-pub mod samples;
-pub mod sound_generation;
-pub mod sts;
-pub mod tts;
-pub mod user;
-pub mod voice;
-#[deprecated(since = "0.3.2 ", note = "Use `voice_design` instead")]
-pub mod voice_generation;
-pub mod voice_library;
-pub mod audio_isolation;
-#[cfg(feature = "dev")]
-pub mod conversational_ai;
-pub mod voice_design;
+#[cfg(feature = "admin")]
+pub mod admin;
+#[cfg(feature = "convai")]
+pub mod convai;
+#[cfg(feature = "genai")]
+pub mod genai;
 
-#[allow(async_fn_in_trait)]
-pub trait Endpoint {
-    type ResponseBody;
+type QueryValues = Vec<(&'static str, String)>;
 
-    fn method(&self) -> Method;
-    fn request_body(&self) -> Result<RequestBody> {
-        Ok(RequestBody::Empty)
-    }
-    async fn response_body(self, resp: Response) -> Result<Self::ResponseBody>;
-    fn url(&self) -> Url;
-}
-
+#[derive(Debug)]
 pub enum RequestBody {
     Json(Value),
     Multipart(Form),
     Empty,
+}
+
+#[allow(async_fn_in_trait)]
+pub trait ElevenLabsEndpoint {
+
+    const BASE_URL: &'static str = "https://api.elevenlabs.io";
+
+    const PATH: &'static str;
+
+    const METHOD: Method;
+
+    type ResponseBody;
+
+    fn query_params(&self) -> Option<QueryValues> {
+        None
+    }
+
+    fn path_params(&self) -> Vec<(&'static str, &str)> {
+        vec![]
+    }
+
+    async fn request_body(&self) -> Result<RequestBody> {
+        Ok(RequestBody::Empty)
+    }
+
+    async fn response_body(self, resp: Response) -> Result<Self::ResponseBody>;
+
+    fn url(&self) -> Url {
+        let mut url = Self::BASE_URL.parse::<Url>().unwrap();
+
+        let mut path = Self::PATH.to_string();
+
+        for (placeholder, id) in self.path_params() {
+            path = path.replace(placeholder, id);
+        }
+
+        url.set_path(&path);
+
+        if let Some(query_params) = self.query_params() {
+            let query_string = query_params
+                .into_iter()
+                .map(|(k, v)| format!("{}={}", k, v))
+                .collect::<Vec<_>>()
+                .join("&");
+
+            url.set_query(Some(&query_string))
+        }
+
+        url
+    }
 }
