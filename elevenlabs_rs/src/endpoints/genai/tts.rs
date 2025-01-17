@@ -2,7 +2,7 @@
 use super::*;
 use crate::endpoints::admin::pronunciation::GetDictionariesResponse;
 use crate::endpoints::ElevenLabsEndpoint;
-use crate::shared::VoiceSettings;
+use crate::shared::{DictionaryLocator, VoiceSettings};
 use async_stream::try_stream;
 use base64::{engine::general_purpose, Engine as _};
 use futures_util::{Stream, StreamExt};
@@ -13,6 +13,7 @@ use std::pin::Pin;
 /// # Example
 /// ```no_run
 /// use elevenlabs_rs::*;
+/// use elevenlabs_rs::endpoints::genai::tts::{TextToSpeech, TextToSpeechBody};
 ///
 /// use elevenlabs_rs::utils::play;
 ///
@@ -85,7 +86,7 @@ pub struct TextToSpeechBody {
     #[serde(skip_serializing_if = "Option::is_none")]
     voice_settings: Option<VoiceSettings>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pronunciation_dictionary_locators: Option<DictionaryLocators>,
+    pronunciation_dictionary_locators: Option<Vec<DictionaryLocator>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     seed: Option<u64>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -126,7 +127,8 @@ impl TextToSpeechBody {
         self
     }
     pub fn with_dictionary_locators(mut self, locators: DictionaryLocators) -> Self {
-        self.pronunciation_dictionary_locators = Some(locators);
+        let values = locators.0.into_iter().filter_map(|x| x).collect();
+        self.pronunciation_dictionary_locators = Some(values);
         self
     }
     pub fn with_voice_settings(mut self, voice_settings: VoiceSettings) -> Self {
@@ -171,9 +173,9 @@ impl TextToSpeechBody {
 /// let locators = DictionaryLocators::from(dictionaries);
 ///
 /// // Or push up to 3 locators into the locators array
-/// let mut locators = DictionaryLocators::new();
-/// locators.push(DictionaryLocator::default("id", "version_id"));
-/// locators.push(DictionaryLocator::default("id", "version_id"));
+/// let mut locators = DictionaryLocators::default();
+/// locators.push(DictionaryLocator::new("id", "version_id"));
+/// locators.push(DictionaryLocator::new("id", "version_id"));
 ///
 /// let body = TextToSpeechBody::new("txt")
 ///     .with_model_id(Model::ElevenMultilingualV2)
@@ -202,21 +204,6 @@ impl From<GetDictionariesResponse> for DictionaryLocators {
             locators.push(DictionaryLocator::new(&dict.id, &dict.latest_version_id));
         });
         locators
-    }
-}
-
-#[derive(Clone, Debug, Serialize, Deserialize)]
-pub struct DictionaryLocator {
-    pronunciation_dictionary_id: String,
-    version_id: String,
-}
-
-impl DictionaryLocator {
-    pub fn new(dictionary_id: &str, version_id: &str) -> Self {
-        DictionaryLocator {
-            pronunciation_dictionary_id: dictionary_id.to_string(),
-            version_id: version_id.to_string(),
-        }
     }
 }
 
@@ -249,8 +236,9 @@ impl TextToSpeechQuery {
 /// # Example
 ///
 /// ```no_run
-/// use elevenlabs_rs::utils::stream_audio;
 /// use elevenlabs_rs::*;
+/// use elevenlabs_rs::utils::stream_audio;
+/// use elevenlabs_rs::endpoints::genai::tts::{TextToSpeechStream, TextToSpeechBody};
 ///
 /// #[tokio::main]
 /// async fn main() -> Result<()> {
@@ -322,7 +310,8 @@ impl ElevenLabsEndpoint for TextToSpeechStream {
 ///
 /// # Example
 /// ```no_run
-/// use elevenlabs_rs::*;
+/// use elevenlabs_rs::{ElevenLabsClient, Result, Model, LegacyVoice};
+/// use elevenlabs_rs::endpoints::genai::tts::{TextToSpeechWithTimestamps, TextToSpeechBody};
 ///
 /// #[tokio::main]
 /// async fn main() -> Result<()> {
@@ -457,6 +446,7 @@ pub struct Alignment {
 /// # Example
 /// ```no_run
 /// use elevenlabs_rs::*;
+/// use elevenlabs_rs::endpoints::genai::tts::{TextToSpeechStreamWithTimestamps, TextToSpeechBody};
 ///
 /// #[tokio::main]
 /// async fn main() -> Result<()> {

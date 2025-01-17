@@ -9,7 +9,8 @@
 //! ## Text to Speech
 //!
 //! ```no_run
-//! use elevenlabs_rs::*;
+//! use elevenlabs_rs::{ElevenLabsClient, Result, DefaultVoice, Model};
+//! use elevenlabs_rs::endpoints::genai::tts::{TextToSpeech, TextToSpeechBody};
 //! use elevenlabs_rs::utils::play;
 //!
 //! #[tokio::main]
@@ -32,7 +33,6 @@
 //! }
 //! ```
 pub use crate::client::{ElevenLabsClient, Result};
-pub use crate::endpoints::genai::tts::*;
 pub use crate::shared::identifiers::*;
 pub use crate::shared::query_params::*;
 pub use bytes::Bytes;
@@ -43,4 +43,3 @@ pub mod endpoints;
 pub mod error;
 mod shared;
 pub mod utils;
-pub mod conversational_ai;

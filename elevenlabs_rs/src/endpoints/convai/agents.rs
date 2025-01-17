@@ -1,7 +1,7 @@
 //! Agents endpoints
 
 use super::*;
-use crate::DictionaryLocator;
+use crate::shared::DictionaryLocator;
 use std::collections::HashMap;
 
 /// Create an agent from a config object

@@ -6,7 +6,6 @@ use serde::{Deserialize, Serialize, Serializer};
 use std::string::ToString;
 use serde_json::Value;
 use strum::Display;
-use crate::PublicUserID;
 
 pub mod identifiers;
 pub(crate) mod url;
@@ -339,6 +338,22 @@ impl Age {
             Age::Young => "young",
             Age::MiddleAged => "middle_aged",
             Age::Old => "old",
+        }
+    }
+}
+
+/// Dictionary locator
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct DictionaryLocator {
+    pronunciation_dictionary_id: String,
+    version_id: String,
+}
+
+impl DictionaryLocator {
+    pub fn new(dictionary_id: &str, version_id: &str) -> Self {
+        DictionaryLocator {
+            pronunciation_dictionary_id: dictionary_id.to_string(),
+            version_id: version_id.to_string(),
         }
     }
 }

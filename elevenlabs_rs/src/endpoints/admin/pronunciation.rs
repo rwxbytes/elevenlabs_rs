@@ -2,6 +2,7 @@
 //!
 //! See an extensive example [here](https://www.github.com/rwxbytes/elevenlabs_rs/blob/master/examples/pronunciation_dictionaries.rs).
 use super::*;
+pub use crate::shared::DictionaryLocator;
 
 /// Creates a new pronunciation dictionary from a lexicon .PLS file
 ///

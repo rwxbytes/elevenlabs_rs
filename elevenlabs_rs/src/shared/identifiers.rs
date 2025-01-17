@@ -307,6 +307,8 @@ pub enum Model {
     ElevenTurboV2,
     ElevenTurboV2_5,
     ElevenMultilingualV2STS,
+    ElevenFlashV2,
+    ElevenFlashV2_5,
 }
 
 impl From<Model> for String {
@@ -319,6 +321,8 @@ impl From<Model> for String {
             Model::ElevenTurboV2 => "eleven_turbo_v2".to_string(),
             Model::ElevenTurboV2_5 => "eleven_turbo_v2_5".to_string(),
             Model::ElevenMultilingualV2STS => "eleven_multilingual_sts_v2".to_string(),
+            Model::ElevenFlashV2 => "eleven_flash_v2".to_string(),
+            Model::ElevenFlashV2_5 => "eleven_flash_v2_5".to_string(),
         }
     }
 }
