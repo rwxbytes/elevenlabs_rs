@@ -1,54 +1,60 @@
-//#![deny(missing_docs)]
 use super::{ElevenLabsClient, Message, Result};
 use crate::conversational_ai::client_messages::{
     ConversationInitiationClientData, Pong, UserAudioChunk,
 };
-use crate::conversational_ai::error::ElevenLabsConversationalError;
+use crate::conversational_ai::error::ConvAIError;
 use crate::conversational_ai::server_messages::ServerMessage;
 use crate::endpoints::convai::conversations::GetSignedUrl;
+use futures_util::stream::{SplitSink, SplitStream};
 use futures_util::{pin_mut, SinkExt, Stream, StreamExt};
 use reqwest;
-use tokio::sync::mpsc::{unbounded_channel, UnboundedSender};
+use std::borrow::Cow;
+use tokio::net::TcpStream;
+use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender};
 use tokio_stream::wrappers::UnboundedReceiverStream;
-use tokio_tungstenite::connect_async;
 use tokio_tungstenite::tungstenite::protocol::frame::coding::CloseCode;
+use tokio_tungstenite::tungstenite::protocol::CloseFrame;
+use tokio_tungstenite::{connect_async, MaybeTlsStream, WebSocketStream};
 
 const WS_BASE_URL: &str = "wss://api.elevenlabs.io";
 const WS_CONVAI_PATH: &str = "/v1/conversational_ai/conversation";
+const AGENT_ID_QUERY: &str = "agent_id";
 
 type ConversationStream = UnboundedReceiverStream<Result<ServerMessage>>;
+type WebSocketWriter = SplitSink<WebSocketStream<MaybeTlsStream<TcpStream>>, Message>;
+type WebSocketReader = SplitStream<WebSocketStream<MaybeTlsStream<TcpStream>>>;
 
 /// Represents a client for interacting with the ElevenLabs Conversational AI.
-#[derive(Clone)]
-pub struct ElevenLabsConversationalClient {
+#[derive(Debug)]
+pub struct ElevenLabsAgentClient {
     api_key: Option<String>,
     agent_id: String,
+    // TODO: Are we using this?
     conversation_id: Option<String>,
-    cancellation_sender: Option<UnboundedSender<()>>,
+    close_socket: Option<UnboundedSender<Message>>,
     conversation_initiation_client_data: Option<ConversationInitiationClientData>,
 }
 
-
-impl ElevenLabsConversationalClient {
-    /// Creates a new `ConvAIClient` from environment variables.
+impl ElevenLabsAgentClient {
+    /// Creates a new `ElevenLabsAgentClient` from environment variables.
     pub fn from_env() -> Result<Self> {
         Ok(Self {
             api_key: Some(std::env::var("ELEVENLABS_API_KEY")?),
             agent_id: std::env::var("ELEVENLABS_AGENT_ID")?,
             conversation_id: None,
-            cancellation_sender: None,
             conversation_initiation_client_data: None,
+            close_socket: None,
         })
     }
 
-    /// Creates a new `ElevenLabsConversationalClient` with the given API key and agent ID.
+    /// Creates a new `ElevenLabsAgentClient` with the given API key and agent ID.
     pub fn new<T: Into<String>>(api_key: T, agent_id: T) -> Self {
         Self {
             api_key: Some(api_key.into()),
             agent_id: agent_id.into(),
             conversation_id: None,
-            cancellation_sender: None,
             conversation_initiation_client_data: None,
+            close_socket: None,
         }
     }
     /// Sets initial data to be sent to the server when starting a conversation.
@@ -64,112 +70,101 @@ impl ElevenLabsConversationalClient {
     where
         S: Stream<Item = String> + Send + Sync + 'static,
     {
-        let url = self.get_signed_url().await?;
+        let url = self.get_url().await?;
 
-        let (ws_stream, _) = connect_async(url)
+        let (mut socket, _) = connect_async(url)
             .await
-            .map_err(ElevenLabsConversationalError::WebSocketError)?;
-        let (mut ws_writer, mut ws_reader) = ws_stream.split();
+            .map_err(ConvAIError::WebSocketError)?;
+        let (mut ws_writer, ws_reader) = socket.split();
 
         // Send the conversation initiation message to the server if it exists
         if let Some(data) = &self.conversation_initiation_client_data {
             ws_writer
                 .send(Message::try_from(data.clone())?)
                 .await
-                .map_err(ElevenLabsConversationalError::WebSocketError)?;
+                .map_err(ConvAIError::WebSocketError)?;
         }
 
-        let (tx_to_caller, rx_for_caller) = unbounded_channel::<Result<ServerMessage>>();
-        let (tx_to_writer_task, mut rx_in_writer_task) = unbounded_channel::<Message>();
-
-        // Cancellation channel
-        let (tx_to_cancellation, mut rx_for_cancellation) = unbounded_channel::<()>();
-        self.cancellation_sender = Some(tx_to_cancellation);
+        let (caller_tx, caller_rx) = unbounded_channel::<Result<ServerMessage>>();
+        let (writer_task_tx, writer_task_rx) = unbounded_channel::<Message>();
+        self.close_socket = Some(writer_task_tx.clone());
 
         // Writer task
-        let writer_tx = tx_to_writer_task.clone();
-        tokio::spawn(async move {
-            tokio::select! {
-                _ = Self::websocket_writer(rx_in_writer_task, &mut ws_writer) => {},
-                _ = rx_for_cancellation.recv() => {
-                    let _ = ws_writer.close().await;
-                }
-            }
-        });
+        tokio::spawn(Self::websocket_writer(writer_task_rx, ws_writer));
 
         // Reader task
         tokio::spawn(Self::websocket_reader(
             ws_reader,
-            tx_to_caller,
-            tx_to_writer_task.clone(),
+            caller_tx.clone(),
+            writer_task_tx.clone(),
         ));
 
         // Audio chunk sender task
-        tokio::spawn(Self::audio_chunk_sender(stream, tx_to_writer_task));
+        tokio::spawn(Self::audio_chunk_sender(stream, writer_task_tx));
 
-        Ok(UnboundedReceiverStream::new(rx_for_caller))
+        Ok(UnboundedReceiverStream::new(caller_rx))
     }
 
-    pub async fn stop_conversation(&self) -> Result<()> {
-        if let Some(tx) = &self.cancellation_sender {
-            tx.send(())
-                .map_err(|_| ElevenLabsConversationalError::CancellationError)?;
-        }
+    pub async fn stop_conversation(&mut self) -> Result<()> {
+        let close_frame = CloseFrame {
+            code: CloseCode::Normal,
+            reason: Cow::from("user stopped conversation"),
+        };
+
+        let close_message = Message::Close(Some(close_frame));
+
+        self.close_socket
+            .as_ref()
+            .unwrap()
+            .send(close_message)
+            .map_err(|_| ConvAIError::SendError)?;
+
         Ok(())
     }
 
-    async fn get_signed_url(&self) -> Result<String> {
+    async fn get_url(&self) -> Result<String> {
         if let Some(key) = &self.api_key {
             let signed_url = ElevenLabsClient::new(key)
                 .hit(GetSignedUrl::new(&self.agent_id))
                 .await
-                .expect("Failed to get signed URL");
+                .map_err(|_| ConvAIError::SignedUrlError)?;
             Ok(signed_url.signed_url)
         } else {
             Ok(format!(
-                "{}/{}?agent_id={}",
-                WS_BASE_URL, WS_CONVAI_PATH, &self.agent_id
+                "{}/{}?{}={}",
+                WS_BASE_URL, WS_CONVAI_PATH, AGENT_ID_QUERY, &self.agent_id
             ))
         }
     }
 
     /// Handles writing messages to the WebSocket.
     async fn websocket_writer(
-        mut rx: tokio::sync::mpsc::UnboundedReceiver<Message>,
-        ws_writer: &mut futures_util::stream::SplitSink<
-            tokio_tungstenite::WebSocketStream<
-                tokio_tungstenite::MaybeTlsStream<tokio::net::TcpStream>,
-            >,
-            Message,
-        >,
+        mut rx: UnboundedReceiver<Message>,
+        mut ws_writer: WebSocketWriter,
     ) -> Result<()> {
         while let Some(message) = rx.recv().await {
             ws_writer
                 .send(message)
                 .await
-                .map_err(ElevenLabsConversationalError::WebSocketError)?;
+                .map_err(ConvAIError::WebSocketError)?;
         }
         Ok(())
     }
 
     /// Handles reading messages from the WebSocket.
     async fn websocket_reader(
-        mut ws_reader: futures_util::stream::SplitStream<
-            tokio_tungstenite::WebSocketStream<
-                tokio_tungstenite::MaybeTlsStream<tokio::net::TcpStream>,
-            >,
-        >,
+        mut ws_reader: WebSocketReader,
         tx_to_caller: UnboundedSender<Result<ServerMessage>>,
         tx_to_writer: UnboundedSender<Message>,
     ) -> Result<()> {
         while let Some(message) = ws_reader.next().await {
-            let message = message.map_err(ElevenLabsConversationalError::WebSocketError)?;
+            let message = message.map_err(ConvAIError::WebSocketError)?;
             Self::process_websocket_message(message, &tx_to_caller, &tx_to_writer)?;
         }
         Ok(())
     }
 
-    /// Processes a single WebSocket message.
+    // Processes a single WebSocket message.
     fn process_websocket_message(
         message: Message,
         tx_to_caller: &UnboundedSender<Result<ServerMessage>>,
@@ -177,43 +172,41 @@ impl ElevenLabsConversationalClient {
     ) -> Result<()> {
         match message {
             Message::Text(text) => {
-                let response =
-                    ServerMessage::try_from(text.as_str())?;
-                if response.is_ping() {
-                    if let Some(ping) = response.as_ping() {
-                        tx_to_writer
-                            .send(Message::try_from(Pong::new(ping.id()))?)
-                            .map_err(|_| ElevenLabsConversationalError::SendError)?;
-                    }
+                let server_msg = ServerMessage::try_from(text.as_str())?;
+                if server_msg.is_ping() {
+                    let ping = server_msg.as_ping().unwrap();
+                    tx_to_writer
+                        .send(Message::try_from(Pong::new(ping.ping_event.event_id))?)
+                        .map_err(|_| ConvAIError::SendError)?;
                 }
                 tx_to_caller
-                    .send(Ok(response))
-                    .map_err(|_| ElevenLabsConversationalError::SendError)?;
+                    .send(Ok(server_msg))
+                    .map_err(|_| ConvAIError::SendError)?;
             }
             Message::Close(frame) => {
                 if let Some(close_frame) = frame {
                     if close_frame.code != CloseCode::Normal {
                         tx_to_caller
-                            .send(Err(ElevenLabsConversationalError::NonNormalCloseCode(
+                            .send(Err(ConvAIError::NonNormalCloseCode(
                                 close_frame.reason.into_owned(),
                             )))
-                            .map_err(|_| ElevenLabsConversationalError::SendError)?;
+                            .map_err(|_| ConvAIError::SendError)?;
                     }
                 } else {
                     tx_to_caller
-                        .send(Err(ElevenLabsConversationalError::ClosedWithoutCloseFrame))
-                        .map_err(|_| ElevenLabsConversationalError::SendError)?;
+                        .send(Err(ConvAIError::ClosedWithoutCloseFrame))
+                        .map_err(|_| ConvAIError::SendError)?;
                 }
             }
             Message::Ping(ping) => {
                 tx_to_writer
                     .send(Message::Pong(ping))
-                    .map_err(|_| ElevenLabsConversationalError::SendError)?;
+                    .map_err(|_| ConvAIError::SendError)?;
             }
             _ => {
                 tx_to_caller
-                    .send(Err(ElevenLabsConversationalError::UnexpectedMessageType))
-                    .map_err(|_| ElevenLabsConversationalError::SendError)?;
+                    .send(Err(ConvAIError::UnexpectedMessageType))
+                    .map_err(|_| ConvAIError::SendError)?;
             }
         }
         Ok(())
@@ -229,7 +222,7 @@ impl ElevenLabsConversationalClient {
             let chunk = UserAudioChunk::new(audio_chunk);
             tx_to_writer
                 .send(Message::try_from(chunk)?)
-                .map_err(|_| ElevenLabsConversationalError::SendError)?;
+                .map_err(|_| ConvAIError::SendError)?;
         }
         Ok(())
     }
