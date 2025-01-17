@@ -27,6 +27,7 @@ serde_json = "1.0.103"
 strum = { version = "0.26.3", features = ["derive"] }
 thiserror = "1.0.43"
 tokio = { version = "1.29.1", features = ["full"] }
+tokio-stream = "0.1.17"
 tokio-tungstenite = { version = "0.23.0", features = ["native-tls"] }
 
 [features]
@@ -40,11 +41,9 @@ incomplete = []
 
 [dev-dependencies]
 axum = { version = "0.7.5", features = ["ws"] }
-async-openai = "0.23.3"
-dasp = { version = "0.11.0", features = ["signal", "interpolate-linear", "interpolate", "slice"] }
-cpal = "0.15.3"
-tokio-stream = "0.1.16"
-bytemuck = "1.16.0"
+tracing = "0.1.41"
+tracing-subscriber = "0.3.19"
+surrealdb = { version = "2.1.4", features = ["kv-mem"] }
 
 [profile.release]
 lto = true

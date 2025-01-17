@@ -6,7 +6,7 @@ use axum::{
     routing::{get, post},
     Router,
 };
-use elevenlabs_rs::conversational_ai::client::ElevenLabsConversationalClient;
+use elevenlabs_rs::conversational_ai::client::ElevenLabsAgentClient;
 use elevenlabs_rs::conversational_ai::server_messages::ServerMessage;
 use futures_util::{SinkExt, StreamExt};
 use serde::de::Error;
@@ -48,14 +48,6 @@ struct Record {
     #[allow(dead_code)]
     id: RecordId,
 }
-
-//const DUMMY_TABLE_QUERY: &str = "CREATE |table:10| Content {
-//    capacity: rand::enum(2, 3, 4, 5, 6, 8),
-//    location: rand::enum('outdoor', 'indoor', 'window', 'bar'),
-//    is_available: rand::bool(),
-//    notes: Null
-//};";
-
 
 const DUMMY_DB_SETUP: &str = "BEGIN TRANSACTION;
 DEFINE TABLE customer;
@@ -150,24 +142,24 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     axum::serve(listener, app).await.unwrap();
     Ok(())
 }
-async fn check_availability(State(state): State<AppState>) -> Response {
-    let mut resp = state
-        .db
-        .query("SELECT * FROM type::table($table) WHERE is_available = true")
-        .bind(("table", "table"))
-        .await
-        .expect("Failed to query table");
-
-    //let table: Vec<Table> = resp.take(0).expect("Failed to take tables");
-
-    let builder = Response::builder();
-    let response = builder
-        .header("Content-Type", "application/json")
-        .body(())
-        //.body(Body::from(serde_json::to_string(&table).unwrap()))
-        .unwrap();
-    response
-}
+//async fn check_availability(State(state): State<AppState>) -> Response {
+//    let mut resp = state
+//        .db
+//        .query("SELECT * FROM type::table($table) WHERE is_available = true")
+//        .bind(("table", "table"))
+//        .await
+//        .expect("Failed to query table");
+//
+//    let table: Vec<Table> = resp.take(0).expect("Failed to take tables");
+//
+//    let builder = Response::builder();
+//    let response = builder
+//        .header("Content-Type", "application/json")
+//        //.body(())
+//        .body(Body::from(serde_json::to_string(&table).unwrap()))
+//        .unwrap();
+//    response
+//}
 
 async fn handler(ws: WebSocketUpgrade) -> Response {
     ws.on_upgrade(handle_socket)
@@ -175,7 +167,7 @@ async fn handler(ws: WebSocketUpgrade) -> Response {
 
 async fn handle_socket(mut ws_stream: WebSocket) {
     let mut client =
-        ElevenLabsConversationalClient::from_env().expect("Failed to create ConvAIClient");
+        ElevenLabsAgentClient::from_env().expect("Failed to create ConvAIClient");
     let client = Arc::new(Mutex::new(client));
     let client_two = Arc::clone(&client);
 
@@ -239,8 +231,8 @@ async fn handle_socket(mut ws_stream: WebSocket) {
             let convai_msg = resp_result.unwrap(); // TODO: errs after max duration
             match convai_msg {
                 ServerMessage::Audio(audio) => {
-                    let payload = audio.event().base_64();
-                    let media_msg = MediaMessage::new(&stream_sid, payload);
+                    let payload = audio.audio_event.audio_base_64;
+                    let media_msg = MediaMessage::new(&stream_sid, &payload);
                     let json = serde_json::to_string(&media_msg).unwrap();
                     twilio_sink.send(Message::Text(json)).await.unwrap();
 
