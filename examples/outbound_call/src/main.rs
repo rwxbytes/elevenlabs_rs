@@ -4,9 +4,9 @@ use axum::{
     routing::{get, post},
     Router,
 };
-use elevenlabs_rs::conversational_ai::client::ElevenLabsAgentClient;
-use elevenlabs_rs::conversational_ai::error::ConvAIError;
-use elevenlabs_rs::conversational_ai::server_messages::ServerMessage;
+use elevenlabs_convai::client::ElevenLabsAgentClient;
+use elevenlabs_convai::error::ConvAIError;
+use elevenlabs_convai::messages::server_messages::ServerMessage;
 use futures_util::stream::SplitSink;
 use futures_util::{SinkExt, StreamExt};
 use reqwest::{Client, Url};

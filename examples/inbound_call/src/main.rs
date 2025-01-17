@@ -4,8 +4,8 @@ use axum::{
     routing::{get, post},
     Router,
 };
-use elevenlabs_rs::conversational_ai::client::ElevenLabsAgentClient;
-use elevenlabs_rs::conversational_ai::server_messages::ServerMessage;
+use elevenlabs_convai::messages::server_messages::ServerMessage;
+use elevenlabs_convai::client::ElevenLabsAgentClient;
 use futures_util::{SinkExt, StreamExt};
 use serde::de::Error;
 use serde::{Deserialize, Serialize};

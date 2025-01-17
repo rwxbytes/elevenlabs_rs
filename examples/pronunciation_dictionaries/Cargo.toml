@@ -1,0 +1,9 @@
+[package]
+name = "pronunciation_dictionaries"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+elevenlabs_rs = { path = "../../elevenlabs_rs"}
+tokio = "1.42.0"
+
