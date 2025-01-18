@@ -6,7 +6,6 @@ use elevenlabs_rs::endpoints::convai::conversations::GetSignedUrl;
 use elevenlabs_rs::ElevenLabsClient;
 use futures_util::stream::{SplitSink, SplitStream};
 use futures_util::{pin_mut, SinkExt, Stream, StreamExt};
-//use reqwest;
 use std::borrow::Cow;
 use tokio::net::TcpStream;
 use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender};
@@ -28,8 +27,6 @@ type WebSocketReader = SplitStream<WebSocketStream<MaybeTlsStream<TcpStream>>>;
 pub struct ElevenLabsAgentClient {
     api_key: Option<String>,
     agent_id: String,
-    // TODO: Are we using this?
-    conversation_id: Option<String>,
     close_socket: Option<UnboundedSender<Message>>,
     conversation_initiation_client_data: Option<ConversationInitiationClientData>,
 }
@@ -40,7 +37,6 @@ impl ElevenLabsAgentClient {
         Ok(Self {
             api_key: Some(std::env::var("ELEVENLABS_API_KEY")?),
             agent_id: std::env::var("ELEVENLABS_AGENT_ID")?,
-            conversation_id: None,
             conversation_initiation_client_data: None,
             close_socket: None,
         })
@@ -51,7 +47,6 @@ impl ElevenLabsAgentClient {
         Self {
             api_key: Some(api_key.into()),
             agent_id: agent_id.into(),
-            conversation_id: None,
             conversation_initiation_client_data: None,
             close_socket: None,
         }
@@ -71,7 +66,7 @@ impl ElevenLabsAgentClient {
     {
         let url = self.get_url().await?;
 
-        let (mut socket, _) = connect_async(url)
+        let (socket, _) = connect_async(url)
             .await
             .map_err(ConvAIError::WebSocketError)?;
         let (mut ws_writer, ws_reader) = socket.split();

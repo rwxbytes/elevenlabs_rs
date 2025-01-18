@@ -1,5 +1,6 @@
 #![allow(deprecated)]
 #![allow(unused_imports)]
+#![allow(dead_code)]
 
 use std::collections::HashMap;
 use serde::{Deserialize, Serialize, Serializer};

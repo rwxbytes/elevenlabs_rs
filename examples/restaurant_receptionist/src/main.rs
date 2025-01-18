@@ -1,7 +1,5 @@
-use axum::body::Body;
 use axum::{
     extract::ws::{Message, WebSocket, WebSocketUpgrade},
-    extract::State,
     response::Response,
     routing::{get, post},
     Router,
@@ -9,7 +7,6 @@ use axum::{
 use elevenlabs_convai::client::ElevenLabsAgentClient;
 use elevenlabs_convai::messages::server_messages::ServerMessage;
 use futures_util::{SinkExt, StreamExt};
-use serde::de::Error;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use surrealdb::engine::local::Db;
@@ -17,6 +14,7 @@ use surrealdb::{engine::local::Mem, RecordId, Surreal};
 use surrealdb::sql::Thing;
 use tokio::sync::Mutex;
 
+#[allow(dead_code)]
 #[derive(Clone)]
 struct AppState {
     db: Surreal<Db>,
@@ -166,7 +164,7 @@ async fn handler(ws: WebSocketUpgrade) -> Response {
 }
 
 async fn handle_socket(mut ws_stream: WebSocket) {
-    let mut client =
+    let  client =
         ElevenLabsAgentClient::from_env().expect("Failed to create ConvAIClient");
     let client = Arc::new(Mutex::new(client));
     let client_two = Arc::clone(&client);

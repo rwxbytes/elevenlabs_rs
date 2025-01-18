@@ -1,4 +1,3 @@
-use serde::Deserialize;
 use serde_json::Value;
 use thiserror::Error;
 

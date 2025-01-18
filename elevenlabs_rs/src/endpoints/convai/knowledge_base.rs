@@ -173,7 +173,7 @@ impl TryFrom<&CreateKnowledgeBaseBody> for RequestBody {
 
                 let file_type = FileType::from_extension(ext)?;
 
-                let content = std::fs::read(&path)?;
+                let content = std::fs::read(path)?;
 
                 let part = Part::bytes(content)
                     .file_name(filename.to_string())

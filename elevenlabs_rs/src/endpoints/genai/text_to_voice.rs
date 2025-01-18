@@ -38,9 +38,10 @@
 use super::*;
 use crate::shared::{
     FineTuning, SafetyControl, Sharing, VoiceCategory, VoiceSample, VoiceSettings,
-    VoiceVerification,
+    VoiceVerification, query_params::OutputFormat,
 };
 use std::collections::HashMap;
+use base64::prelude::{Engine as _, BASE64_STANDARD};
 
 /// Generate voices from a single text prompt.
 ///

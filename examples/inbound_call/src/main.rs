@@ -7,7 +7,6 @@ use axum::{
 use elevenlabs_convai::messages::server_messages::ServerMessage;
 use elevenlabs_convai::client::ElevenLabsAgentClient;
 use futures_util::{SinkExt, StreamExt};
-use serde::de::Error;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use tokio::sync::Mutex;

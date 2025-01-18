@@ -1,10 +1,11 @@
+#![allow(unused_imports)]
 use crate::endpoints::{ElevenLabsEndpoint, RequestBody};
 use crate::error::Error::HttpError;
 use crate::error::WebSocketError;
-#[cfg(feature = "ws_tts")]
+#[cfg(feature = "ws")]
 use crate::endpoints::genai::tts::ws::*;
 use futures_util::{pin_mut, SinkExt, Stream, StreamExt};
-use reqwest::{header::CONTENT_TYPE, Method, Response};
+use reqwest::{header::CONTENT_TYPE, Method};
 use tokio::task::JoinHandle;
 use tokio_tungstenite::tungstenite::protocol::frame::coding::CloseCode;
 use tokio_tungstenite::{connect_async, tungstenite::protocol::Message};
@@ -62,12 +63,12 @@ impl ElevenLabsClient {
         endpoint.response_body(resp).await
     }
 
-    #[cfg(feature = "ws_tts")]
+    #[cfg(feature = "ws")]
     const FLUSH_JSON: &'static str = r#"{"text":" ","flush":true}"#;
-    #[cfg(feature = "ws_tts")]
+    #[cfg(feature = "ws")]
     const EOS_JSON: &'static str = r#"{"text":""}"#;
 
-    #[cfg(feature = "ws_tts")]
+    #[cfg(feature = "ws")]
     pub async fn hit_ws<S>(
         &self,
         mut endpoint: WebSocketTTS<S>,

@@ -51,19 +51,6 @@ impl ElevenLabsEndpoint for TextToSoundEffects {
     }
 }
 
-/// The request body for the text to sound effects endpoint.
-///
-/// - `text`: The text to convert to sound effects.
-///
-///
-/// - `duration_seconds`: The duration of the sound which will be generated in seconds.
-/// Must be at least 0.5 and at most 22.
-/// If set to None we will guess the optimal duration using the prompt. Defaults to None.
-///
-///
-/// - `prompt_influence`: A higher prompt influence makes your generation follow
-/// the prompt more closely while also making generations less variable.
-/// Must be a value between 0 and 1. Defaults to 0.3.
 #[derive(Debug, Clone, Serialize)]
 pub struct TextToSoundEffectsBody {
     text: String,

@@ -2,9 +2,9 @@
 use super::*;
 use crate::endpoints::admin::pronunciation::GetDictionariesResponse;
 use crate::endpoints::ElevenLabsEndpoint;
-use crate::shared::{DictionaryLocator, VoiceSettings};
+use crate::shared::{DictionaryLocator, VoiceSettings, query_params::OutputFormat};
 use async_stream::try_stream;
-use base64::{engine::general_purpose, Engine as _};
+use base64::{engine::general_purpose, Engine};
 use futures_util::{Stream, StreamExt};
 use std::pin::Pin;
 
@@ -127,7 +127,7 @@ impl TextToSpeechBody {
         self
     }
     pub fn with_dictionary_locators(mut self, locators: DictionaryLocators) -> Self {
-        let values = locators.0.into_iter().filter_map(|x| x).collect();
+        let values = locators.0.into_iter().flatten().collect();
         self.pronunciation_dictionary_locators = Some(values);
         self
     }
@@ -542,12 +542,13 @@ fn stream_chunks_to_json(
     }
 }
 
-#[cfg(feature = "ws_tts")]
+#[cfg(feature = "ws")]
 pub mod ws {
     //! Websocket Text to Speech endpoints
 
     use super::*;
     use tokio_tungstenite::tungstenite::Message;
+    use crate::OutputFormat;
 
     const WS_BASE_URL: &str = "wss://api.elevenlabs.io";
     const WS_PATH: &str = "/v1/text-to-speech/:voice_id/stream-input";
@@ -755,7 +756,7 @@ pub mod ws {
     }
 
     #[derive(Clone, Debug, Serialize)]
-    struct GenerationConfig {
+    pub struct GenerationConfig {
         chunk_length_schedule: [usize; 4],
     }
 

@@ -1,8 +1,6 @@
 pub(crate) use crate::client::Result;
 pub(crate) use crate::shared::url::*;
-pub(crate) use crate::shared::query_params::*;
 pub(crate) use crate::shared::response_bodies::*;
-pub(crate) use base64::prelude::{Engine, BASE64_STANDARD};
 pub(crate) use bytes::Bytes;
 pub(crate) use reqwest::{
     multipart::{Form, Part},

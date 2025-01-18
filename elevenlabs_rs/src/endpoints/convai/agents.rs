@@ -552,11 +552,8 @@ impl Schema {
     }
 
     pub fn with_required(mut self, required: Vec<String>) -> Self {
-        match &mut self {
-            Schema::Object(obj) => {
-                obj.required = Some(required);
-            }
-            _ => {}
+        if let Schema::Object(obj) = &mut self {
+            obj.required = Some(required);
         }
         self
     }
@@ -577,21 +574,15 @@ impl Schema {
     }
 
     pub fn with_properties(mut self, properties: HashMap<String, Schema>) -> Self {
-        match &mut self {
-            Schema::Object(obj) => {
-                obj.properties = Some(properties);
-            }
-            _ => {}
+        if let Schema::Object(obj) = &mut self {
+            obj.properties = Some(properties);
         }
         self
     }
 
     pub fn with_items(mut self, items: Schema) -> Self {
-        match &mut self {
-            Schema::Array(array) => {
-                array.items = Box::new(items);
-            }
-            _ => {}
+        if let Schema::Array(array) = &mut self {
+            array.items = Box::new(items);
         }
         self
     }
@@ -1739,47 +1730,29 @@ impl Avatar {
     }
 
     pub fn with_custom_url(mut self, custom_url: &str) -> Self {
-        match self {
-            Avatar::Image { ref mut url, .. } => {
-                *url = Some(custom_url.to_string());
-            }
-            _ => {}
+        if let Avatar::Image { ref mut url, .. } = self {
+            *url = Some(custom_url.to_string());
         }
         self
     }
 
     pub fn with_color_1(mut self, color: &str) -> Self {
-        match self {
-            Avatar::Orb {
-                ref mut color_1, ..
-            } => {
-                *color_1 = Some(color.to_string());
-            }
-            _ => {}
+        if let Avatar::Orb { ref mut color_1, .. } = self {
+            *color_1 = Some(color.to_string());
         }
         self
     }
 
     pub fn with_color_2(mut self, color: &str) -> Self {
-        match self {
-            Avatar::Orb {
-                ref mut color_2, ..
-            } => {
-                *color_2 = Some(color.to_string());
-            }
-            _ => {}
+        if let Avatar::Orb { ref mut color_2, .. } = self {
+            *color_2 = Some(color.to_string());
         }
         self
     }
 
     pub fn with_url(mut self, url: &str) -> Self {
-        match self {
-            Avatar::Url {
-                ref mut custom_url, ..
-            } => {
-                *custom_url = Some(url.to_string());
-            }
-            _ => {}
+        if let Avatar::Url { ref mut custom_url, .. } = self {
+            *custom_url = Some(url.to_string());
         }
         self
     }

@@ -34,7 +34,7 @@ where
             if buf.ends_with(&splitters) {
                 tx.send(format!("{} ", buf.as_str())).unwrap();
                 buf = text
-            } else if text.starts_with(&splitters) {
+            } else if text.starts_with(splitters) {
                 tx.send(format!(
                     "{}{} ",
                     buf.as_str(),

@@ -7,7 +7,6 @@ use axum::{
 use elevenlabs_convai::client::ElevenLabsAgentClient;
 use elevenlabs_convai::error::ConvAIError;
 use elevenlabs_convai::messages::server_messages::ServerMessage;
-use futures_util::stream::SplitSink;
 use futures_util::{SinkExt, StreamExt};
 use reqwest::{Client, Url};
 use serde::{Deserialize, Serialize};
@@ -163,7 +162,7 @@ async fn handle_socket(socket: WebSocket) {
 async fn process_socket(mut socket: WebSocket) -> Result<()> {
     let client = ElevenLabsAgentClient::from_env()?;
 
-    let mut client = Arc::new(Mutex::new(client));
+    let  client = Arc::new(Mutex::new(client));
     let client_two = Arc::clone(&client);
 
     // Skip connected message

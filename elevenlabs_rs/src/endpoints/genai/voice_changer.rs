@@ -1,7 +1,7 @@
 //! The voice changer endpoints
 use super::*;
 use crate::error::Error;
-pub use crate::shared::VoiceSettings;
+pub use crate::shared::{VoiceSettings, query_params::OutputFormat};
 use futures_util::{Stream, StreamExt};
 use std::pin::Pin;
 
