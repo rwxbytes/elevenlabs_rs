@@ -1,8 +1,8 @@
 //! An unofficial lib crate for ElevenLabs.
 //!
-//! ElevenLabs' web app: <https://elevenlabs.io/>
+//! [ElevenLabs' website](https://elevenlabs.io/)
 //!
-//! ElevenLabs' API documentation: <https://docs.elevenlabs.io/api-reference/quick-start/introduction>.
+//! [ElevenLabs' API reference](https://elevenlabs.io/docs/api-reference/introduction)
 //!
 //! # Example
 //!
