@@ -3,20 +3,26 @@ An unofficial lib crate for [ElevenLabs](https://elevenlabs.io/)
 ## Text-to-Speech
 
 ```rust
-use elevenlabs_rs::*;
-use elevenlabs_rs::utils::play;
+ use elevenlabs_rs::{ElevenLabsClient, Result, DefaultVoice, Model};
+ use elevenlabs_rs::endpoints::genai::tts::{TextToSpeech, TextToSpeechBody};
+ use elevenlabs_rs::utils::play;
 
-#[tokio::main]
-async fn main() -> Result<()> {
-    let client = ElevenLabsClient::default()?;
-    let body = TextToSpeechBody::new(
-        "This is the way the world ends, not with a bang but a whimper",
-        Model::ElevenMultilingualV2,
-    );
-    let endpoint = TextToSpeech::new(PreMadeVoiceID::Clyde, body);
-    let speech = client.hit(endpoint).await?;
-    play(speech)?;
+ #[tokio::main]
+ async fn main() -> Result<()> {
+     let client = ElevenLabsClient::from_env()?;
 
-    Ok(())
-}
+     let txt = "Hello! 你好! Hola! नमस्ते! Bonjour! \
+         こんにちは! مرحبا! 안녕하세요! Ciao! Cześć! Привіт! வணக்கம்!";
+
+     let body = TextToSpeechBody::new(txt)
+        .with_model_id(Model::ElevenMultilingualV2);
+
+     let endpoint = TextToSpeech::new(DefaultVoice::Brian, body);
+
+     let speech = client.hit(endpoint).await?;
+
+     play(speech)?;
+
+     Ok(())
+ }
  ```
