@@ -405,6 +405,8 @@ pub struct Tool {
     name: String,
     description: String,
     #[serde(skip_serializing_if = "Option::is_none")]
+    api_schema: Option<ApiSchema>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     expects_response: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
     parameters: Option<ClientToolParams>,
@@ -672,10 +674,18 @@ pub struct ApiSchema {
     #[serde(skip_serializing_if = "Option::is_none")]
     request_body_schema: Option<RequestBodySchema>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    request_headers: Option<RequestHeaders>,
+    request_headers: Option<HashMap<String, RequestHeaders>>,
 }
 
-pub type RequestHeaders = HashMap<String, ConvAIHeaderValue>;
+//pub type RequestHeaders = HashMap<String, ConvAIHeaderValue>;
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(untagged)]
+pub enum RequestHeaders {
+    SecretLocator { secret_id: String},
+    Value(String),
+}
+
 
 impl ApiSchema {
     pub fn new(url: &str) -> Self {
@@ -703,40 +713,45 @@ impl ApiSchema {
         self
     }
 
-    pub fn with_request_headers(mut self, request_headers: RequestHeaders) -> Self {
+    pub fn with_request_headers(mut self, request_headers: HashMap<String, RequestHeaders>) -> Self {
         self.request_headers = Some(request_headers);
         self
     }
-}
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
-#[serde(untagged)]
-pub enum ConvAIHeaderValue {
-    String(String),
-    Secret(Secret),
-}
-
-impl ConvAIHeaderValue {
-    pub fn new_string(value: &str) -> Self {
-        ConvAIHeaderValue::String(value.to_string())
-    }
-
-    //pub fn new_secret(secret_id: &str) -> Self {
-    //    ConvAIHeaderValue::Secret(Secret::new(secret_id))
+    //pub fn with_request_headers(mut self, request_headers: RequestHeaders) -> Self {
+    //    self.request_headers = Some(request_headers);
+    //    self
     //}
 }
 
-impl From<String> for ConvAIHeaderValue {
-    fn from(value: String) -> Self {
-        ConvAIHeaderValue::String(value)
-    }
-}
-
-impl From<Secret> for ConvAIHeaderValue {
-    fn from(secret: Secret) -> Self {
-        ConvAIHeaderValue::Secret(secret)
-    }
-}
+//#[derive(Clone, Debug, Deserialize, Serialize)]
+//#[serde(untagged)]
+//pub enum ConvAIHeaderValue {
+//    String(String),
+//    Secret(Secret),
+//}
+//
+//impl ConvAIHeaderValue {
+//    pub fn new_string(value: &str) -> Self {
+//        ConvAIHeaderValue::String(value.to_string())
+//    }
+//
+//    //pub fn new_secret(secret_id: &str) -> Self {
+//    //    ConvAIHeaderValue::Secret(Secret::new(secret_id))
+//    //}
+//}
+//
+//impl From<String> for ConvAIHeaderValue {
+//    fn from(value: String) -> Self {
+//        ConvAIHeaderValue::String(value)
+//    }
+//}
+//
+//impl From<Secret> for ConvAIHeaderValue {
+//    fn from(secret: Secret) -> Self {
+//        ConvAIHeaderValue::Secret(secret)
+//    }
+//}
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "lowercase")]
