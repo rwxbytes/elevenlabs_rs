@@ -44,7 +44,6 @@ impl AudioProcessor {
 
         while let Some(samples) = self.audio_rx.recv().await {
             buffer.extend(samples);
-            dbg!(buffer.len());
             if buffer.len() >= chunk_size {
                 let chunk = buffer.drain(..).collect::<Vec<i16>>();
                 if !chunk.is_empty() {
