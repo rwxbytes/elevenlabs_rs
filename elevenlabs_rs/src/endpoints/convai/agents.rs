@@ -382,12 +382,34 @@ pub enum LLM {
     CustomLLM,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
-#[serde(rename_all = "lowercase")]
-#[serde(untagged)]
-pub enum Tool {
-    WebHook(WebHook),
-    Client(ClientTool),
+// TODO: Implement a deserializer or find a different way to get Vec<Tool> from the API
+// because fields `type`, `name`, and `description` in the #[serde(untagged)] enum Tool
+// catches the other variants
+//
+//
+//
+//
+//
+//#[derive(Clone, Debug, Serialize, Deserialize)]
+//#[serde(rename_all = "lowercase")]
+//#[serde(untagged)]
+//pub enum Tool {
+//    WebHook(WebHook),
+//    System(SystemTool),
+//    Client(ClientTool),
+//}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct Tool {
+    r#type: ToolType,
+    name: String,
+    description: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    expects_response: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    parameters: Option<ClientToolParams>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    response_timeout_secs: Option<u32>,
 }
 
 /// A webhook tool is a tool that calls an external webhook from ElevenLabs' server
@@ -410,17 +432,17 @@ impl WebHook {
     }
 }
 
-impl From<WebHook> for Tool {
-    fn from(webhook: WebHook) -> Self {
-        Tool::WebHook(webhook)
-    }
-}
-
-impl From<ClientTool> for Tool {
-    fn from(client_tool: ClientTool) -> Self {
-        Tool::Client(client_tool)
-    }
-}
+//impl From<WebHook> for Tool {
+//    fn from(webhook: WebHook) -> Self {
+//        Tool::WebHook(webhook)
+//    }
+//}
+//
+//impl From<ClientTool> for Tool {
+//    fn from(client_tool: ClientTool) -> Self {
+//        Tool::Client(client_tool)
+//    }
+//}
 
 /// A client tool is one that sends an event to the user’s client to trigger something client side
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -857,10 +879,18 @@ pub struct RequestBodySchema {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct SystemTool {
+    description: String,
+    name: String,
+    r#type: ToolType,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "lowercase")]
 pub enum ToolType {
     Webhook,
     Client,
+    System,
 }
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
