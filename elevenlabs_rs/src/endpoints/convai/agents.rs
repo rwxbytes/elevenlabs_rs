@@ -1613,13 +1613,13 @@ impl Privacy {
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 pub struct CallLimits {
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub agent_concurrency_limit: Option<u32>,
+    pub agent_concurrency_limit: Option<i32>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub daily_limit: Option<u32>,
 }
 
 impl CallLimits {
-    pub fn with_agent_concurrency_limit(mut self, agent_concurrency_limit: u32) -> Self {
+    pub fn with_agent_concurrency_limit(mut self, agent_concurrency_limit: i32) -> Self {
         self.agent_concurrency_limit = Some(agent_concurrency_limit);
         self
     }
