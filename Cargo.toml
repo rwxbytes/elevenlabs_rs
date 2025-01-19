@@ -1,11 +1,7 @@
 [workspace]
 resolver = "2"
 
-members = [
-    "elevenlabs_rs",
-    "elevenlabs-convai",
-    "examples/*"
-]
+members = ["elevenlabs_rs", "elevenlabs-convai", "examples/*"]
 # Only check / build main crates by default (check all with `--workspace`)
 default-members = ["elevenlabs_rs", "elevenlabs-convai"]
 exclude = [
@@ -14,57 +10,6 @@ exclude = [
   "/src/utils/audio_helpers.rs",
   "/src/convai_client.rs",
 ]
-
-
-[dependencies]
-async-stream = "0.3.5"
-base64 = "0.22.1"
-bytes = "1.4.0"
-futures-channel = "0.3.30"
-futures-util = "0.3.28"
-reqwest = { version = "0.12.5", features = [
-  "stream",
-  "json",
-  "multipart",
-], default-features = false }
-rodio = { version = "0.17.1", optional = true }
-serde = { version = "1.0.173", features = ["derive"] }
-serde_json = "1.0.103"
-thiserror = "1.0.43"
-tokio = { version = "1.29.1", features = ["full"] }
-tokio-tungstenite = { version = "0.23.0" }
-
-[features]
-default = ["playback", "reqwest/default-tls", "tokio-tungstenite/native-tls"]
-playback = ["dep:rodio"]
-# Enable rustls for TLS support
-rustls = ["reqwest/rustls-tls-native-roots", "tokio-tungstenite/rustls"]
-# Enable rustls and webpki-roots
-rustls-webpki-roots = [
-  "reqwest/rustls-tls-webpki-roots",
-  "tokio-tungstenite/rustls",
-]
-# Enable native-tls for TLS support
-native-tls = ["reqwest/native-tls", "tokio-tungstenite/native-tls"]
-# Remove dependency on OpenSSL
-native-tls-vendored = [
-  "reqwest/native-tls-vendored",
-  "tokio-tungstenite/native-tls",
-]
-
-[dev-dependencies]
-twilio = "1.1.0"
-axum = { version = "0.7.5", features = ["ws"] }
-async-openai = "0.23.3"
-dasp = { version = "0.11.0", features = [
-  "signal",
-  "interpolate-linear",
-  "interpolate",
-  "slice",
-] }
-cpal = "0.15.3"
-tokio-stream = "0.1.16"
-bytemuck = "1.16.0"
 
 [profile.release]
 lto = true
