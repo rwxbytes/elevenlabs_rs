@@ -1,0 +1,16 @@
+[package]
+name = "restaurant_receptionist"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+tokio = "1.43.0"
+elevenlabs-convai = { path = "../../elevenlabs-convai"}
+elevenlabs_rs = { path = "../../elevenlabs_rs", default-features = false, features = ["convai"] }
+axum = { version = "0.7.5", features = ["ws"] }
+futures-util = "0.3.30"
+serde = { version = "1.0.217", features = ["derive"] }
+serde_json = "1.0.134"
+tokio-stream = "0.1.17"
+thiserror = "1.0.69"
