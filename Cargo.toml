@@ -1,13 +1,15 @@
 [workspace]
 resolver = "2"
 
-members = [
-    "elevenlabs_rs",
-    "elevenlabs-convai",
-    "examples/*"
-]
+members = ["elevenlabs_rs", "elevenlabs-convai", "examples/*"]
 # Only check / build main crates by default (check all with `--workspace`)
 default-members = ["elevenlabs_rs", "elevenlabs-convai"]
+exclude = [
+  ".idea",
+  "/src/endpoints/conversational_ai.rs",
+  "/src/utils/audio_helpers.rs",
+  "/src/convai_client.rs",
+]
 
 [profile.release]
 lto = true
