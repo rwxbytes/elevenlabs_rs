@@ -9,13 +9,21 @@ use std::collections::HashMap;
 /// # Example
 /// ```no_run
 /// use elevenlabs_rs::{ElevenLabsClient, Result};
-/// use elevenlabs_rs::endpoints::convai::agents::{CreateAgent, CreateAgentBody};
+/// use elevenlabs_rs::endpoints::convai::agents::{
+///     CreateAgent, CreateAgentBody, ConversationConfig, AgentConfig, PromptConfig};
 ///
 /// #[tokio::main]
 /// async fn main() -> Result<()> {
 ///     let client = ElevenLabsClient::from_env()?;
 ///
-///     let body = CreateAgentBody::new("some_system_prompt");
+///     let prompt_config = PromptConfig::default().with_prompt("some_prompt");
+///
+///     let agent_config = AgentConfig::default().with_prompt(prompt_config);
+///
+///     let convo_config = ConversationConfig::default()
+///      .with_agent_config(agent_config);
+///
+///     let body = CreateAgentBody::new(convo_config);
 ///
 ///     let endpoint = CreateAgent::new(body);
 ///
@@ -48,22 +56,13 @@ pub struct CreateAgentBody {
 }
 
 impl CreateAgentBody {
-    pub fn new(prompt: impl Into<String>) -> Self {
+    pub fn new(conversation_config: ConversationConfig) -> Self {
         CreateAgentBody {
-            conversation_config: ConversationConfig::default().with_agent_config(
-                AgentConfig::default()
-                    .with_prompt(PromptConfig::default().with_prompt(prompt.into())),
-            ),
+            conversation_config,
             platform_settings: None,
             name: None,
         }
     }
-
-    pub fn with_conversation_config(mut self, conversation_config: ConversationConfig) -> Self {
-        self.conversation_config = conversation_config;
-        self
-    }
-
     pub fn with_platform_settings(mut self, platform_settings: PlatformSettings) -> Self {
         self.platform_settings = Some(platform_settings);
         self
