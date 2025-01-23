@@ -413,6 +413,32 @@ pub struct Tool {
     response_timeout_secs: Option<u32>,
 }
 
+impl Tool {
+    pub fn new_webhook(webhook: WebHook) -> Self {
+        Tool {
+            r#type: ToolType::Webhook,
+            name: webhook.name,
+            description: webhook.description,
+            api_schema: Some(webhook.api_schema),
+            expects_response: None,
+            parameters: None,
+            response_timeout_secs: None,
+        }
+    }
+
+    pub fn new_client(client_tool: ClientTool) -> Self {
+        Tool {
+            r#type: ToolType::Client,
+            name: client_tool.name,
+            description: client_tool.description,
+            api_schema: None,
+            expects_response: client_tool.expects_response,
+            parameters: client_tool.parameters,
+            response_timeout_secs: client_tool.response_timeout_secs,
+        }
+    }
+}
+
 /// A webhook tool is a tool that calls an external webhook from ElevenLabs' server
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct WebHook {
@@ -433,17 +459,17 @@ impl WebHook {
     }
 }
 
-//impl From<WebHook> for Tool {
-//    fn from(webhook: WebHook) -> Self {
-//        Tool::WebHook(webhook)
-//    }
-//}
-//
-//impl From<ClientTool> for Tool {
-//    fn from(client_tool: ClientTool) -> Self {
-//        Tool::Client(client_tool)
-//    }
-//}
+impl From<WebHook> for Tool {
+    fn from(webhook: WebHook) -> Self {
+        Tool::new_webhook(webhook)
+    }
+}
+
+impl From<ClientTool> for Tool {
+    fn from(client_tool: ClientTool) -> Self {
+        Tool::new_client(client_tool)
+    }
+}
 
 /// A client tool is one that sends an event to the user’s client to trigger something client side
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -885,11 +911,33 @@ impl QueryParamsSchema {
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct RequestBodySchema {
     r#type: DataType,
-    properties: HashMap<String, Value>,
+    properties: HashMap<String, Schema>,
     #[serde(skip_serializing_if = "Option::is_none")]
     required: Option<Vec<String>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     description: Option<String>,
+}
+
+impl RequestBodySchema {
+    pub fn new(properties: HashMap<String, Schema>) -> Self {
+        RequestBodySchema {
+            r#type: DataType::Object,
+            properties,
+            required: None,
+            description: None,
+        }
+    }
+
+
+    pub fn with_required(mut self, required: Vec<String>) -> Self {
+        self.required = Some(required);
+        self
+    }
+
+    pub fn with_description(mut self, description: impl Into<String>) -> Self {
+        self.description = Some(description.into());
+        self
+    }
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
