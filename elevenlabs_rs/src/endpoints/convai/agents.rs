@@ -204,7 +204,52 @@ pub struct AgentConfig {
     /// The agent will use English as the default language.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub language: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    /// See [Dynamic Variables](https://elevenlabs.io/docs/conversational-ai/customization/dynamic-variables)
+    pub dynamic_variables: Option<DynamicVariables>
 }
+
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+pub struct DynamicVariables {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub dynamic_variable_placeholder: Option<HashMap<String, DynamicVar>>
+}
+
+impl DynamicVariables {
+    pub fn new(placeholders: HashMap<String, DynamicVar>) -> Self {
+        DynamicVariables {
+            dynamic_variable_placeholder: Some(placeholders)
+        }
+    }
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub enum DynamicVar {
+    String(String),
+    Int(i32),
+    Double(f64),
+    Bool(bool),
+}
+
+impl DynamicVar {
+    pub fn new_string(value: impl Into<String>) -> Self {
+        DynamicVar::String(value.into())
+    }
+
+    pub fn new_int(value: i32) -> Self {
+        DynamicVar::Int(value)
+    }
+
+    pub fn new_double(value: f64) -> Self {
+        DynamicVar::Double(value)
+    }
+
+    pub fn new_bool(value: bool) -> Self {
+        DynamicVar::Bool(value)
+    }
+}
+
+
 
 impl AgentConfig {
     pub fn new(
@@ -216,6 +261,7 @@ impl AgentConfig {
             prompt: Some(prompt),
             first_message: Some(first_message.into()),
             language: Some(language.into()),
+            dynamic_variables: None,
         }
     }
 
@@ -236,6 +282,11 @@ impl AgentConfig {
 
     pub fn with_language(mut self, language: impl Into<String>) -> Self {
         self.language = Some(language.into());
+        self
+    }
+
+    pub fn with_dynamic_variables(mut self, dynamic_variables: DynamicVariables) -> Self {
+        self.dynamic_variables = Some(dynamic_variables);
         self
     }
 }
@@ -380,23 +431,6 @@ pub enum LLM {
     #[serde(rename = "custom-llm")]
     CustomLLM,
 }
-
-// TODO: Implement a deserializer or find a different way to get Vec<Tool> from the API
-// because fields `type`, `name`, and `description` in the #[serde(untagged)] enum Tool
-// catches the other variants
-//
-//
-//
-//
-//
-//#[derive(Clone, Debug, Serialize, Deserialize)]
-//#[serde(rename_all = "lowercase")]
-//#[serde(untagged)]
-//pub enum Tool {
-//    WebHook(WebHook),
-//    System(SystemTool),
-//    Client(ClientTool),
-//}
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Tool {
@@ -559,6 +593,7 @@ impl Schema {
         Schema::Literal(LiteralJsonSchema {
             r#type: DataType::Boolean,
             description: description.into(),
+            dynamic_variable: None,
         })
     }
 
@@ -566,6 +601,7 @@ impl Schema {
         Schema::Literal(LiteralJsonSchema {
             r#type: DataType::Integer,
             description: description.into(),
+            dynamic_variable: None,
         })
     }
 
@@ -573,6 +609,7 @@ impl Schema {
         Schema::Literal(LiteralJsonSchema {
             r#type: DataType::Number,
             description: description.into(),
+            dynamic_variable: None,
         })
     }
 
@@ -580,6 +617,7 @@ impl Schema {
         Schema::Literal(LiteralJsonSchema {
             r#type: DataType::String,
             description: description.into(),
+            dynamic_variable: None,
         })
     }
 
@@ -635,12 +673,21 @@ impl Schema {
         }
         self
     }
+
+    pub fn with_dynamic_variable(mut self, dynamic_variable: impl Into<String>) -> Self {
+        if let Schema::Literal(literal) = &mut self {
+            literal.dynamic_variable = Some(dynamic_variable.into());
+        }
+        self
+    }
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct LiteralJsonSchema {
     pub r#type: DataType,
     pub description: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub dynamic_variable: Option<String>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -843,36 +890,47 @@ pub enum ApiMethod {
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct ParamSchema {
     description: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    dynamic_variable: Option<String>,
     r#type: DataType,
 }
 
 impl ParamSchema {
-    pub fn new_bool(description: &str) -> Self {
+    pub fn new_bool(description: impl Into<String>) -> Self {
         ParamSchema {
-            description: description.to_string(),
+            description: description.into(),
+            dynamic_variable: None,
             r#type: DataType::Boolean,
         }
     }
 
-    pub fn new_integer(description: &str) -> Self {
+    pub fn new_integer(description: impl Into<String>) -> Self {
         ParamSchema {
-            description: description.to_string(),
+            description: description.into(),
+            dynamic_variable: None,
             r#type: DataType::Integer,
         }
     }
 
-    pub fn new_number(description: &str) -> Self {
+    pub fn new_number(description: impl Into<String>) -> Self {
         ParamSchema {
-            description: description.to_string(),
+            description: description.into(),
+            dynamic_variable: None,
             r#type: DataType::Number,
         }
     }
 
-    pub fn new_string(description: &str) -> Self {
+    pub fn new_string(description: impl Into<String>) -> Self {
         ParamSchema {
-            description: description.to_string(),
+            description: description.into(),
+            dynamic_variable: None,
             r#type: DataType::String,
         }
+    }
+
+    pub fn with_dynamic_variable(mut self, dynamic_variable: impl Into<String>) -> Self {
+        self.dynamic_variable = Some(dynamic_variable.into());
+        self
     }
 }
 
@@ -1455,6 +1513,8 @@ pub struct ConversationConfigOverride {
     pub agent: Option<AgentOverride>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tts: Option<TTSOverride>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub dynamic_variables: Option<HashMap<String, DynamicVar>>
 }
 
 impl ConversationConfigOverride {
@@ -1465,6 +1525,11 @@ impl ConversationConfigOverride {
 
     pub fn with_tts_override(mut self, tts: TTSOverride) -> Self {
         self.tts = Some(tts);
+        self
+    }
+
+    pub fn with_dynamic_variables(mut self, dynamic_variables: HashMap<String, DynamicVar>) -> Self {
+        self.dynamic_variables = Some(dynamic_variables);
         self
     }
 }
