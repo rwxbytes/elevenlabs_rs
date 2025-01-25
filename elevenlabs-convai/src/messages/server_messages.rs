@@ -7,7 +7,6 @@ pub enum ServerMessage {
     AgentResponse(AgentResponse),
     Audio(Audio),
     ClientToolCall(ClientToolCall),
-    ClientToolResult(ClientToolResult),
     ConversationInitiationMetadata(ConversationInitiationMetadata),
     Interruption(Interruption),
     Ping(Ping),
@@ -51,19 +50,6 @@ impl ServerMessage {
     pub fn as_client_tool_call(&self) -> Option<&ClientToolCall> {
         match self {
             ServerMessage::ClientToolCall(client_tool_call) => Some(client_tool_call),
-            _ => None,
-        }
-    }
-
-    /// Indicates if the message is a client tool result response
-    pub fn is_client_tool_result(&self) -> bool {
-        matches!(*self, ServerMessage::ClientToolResult(_))
-    }
-
-    /// If the `ServerMessage` is a `ClientToolResult`, then it returns it, otherwise it returns `None`
-    pub fn as_client_tool_result(&self) -> Option<&ClientToolResult> {
-        match self {
-            ServerMessage::ClientToolResult(client_tool_result) => Some(client_tool_result),
             _ => None,
         }
     }
@@ -166,14 +152,6 @@ pub struct ClientTool {
     pub tool_name: String,
     pub tool_call_id: String,
     pub parameters: serde_json::Value,
-}
-
-#[derive(Clone, Debug, Deserialize, Serialize)]
-pub struct ClientToolResult {
-    pub r#type: String,
-    pub client_tool_id: String,
-    pub result: String,
-    pub is_error: bool,
 }
 
 /// See [Conversation Initiation Metadata API reference](https://elevenlabs.io/docs/conversational-ai/api-reference/websocket#conversation_initiation_metadata)

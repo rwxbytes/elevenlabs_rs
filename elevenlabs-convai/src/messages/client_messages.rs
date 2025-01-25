@@ -1,9 +1,9 @@
 use super::*;
-//use elevenlabs_rs::conversational_ai::*;
 use elevenlabs_rs::endpoints::convai::agents::Overrides;
 
 const PONG: &str = "pong";
 const CONVERSATION_INITIATION_CLIENT_DATA: &str = "conversation_initiation_client_data";
+const CLIENT_TOOL_RESULT: &str = "client_tool_result";
 
 /// An enum for new types of individual client messages.
 #[derive(Clone, Debug)]
@@ -14,6 +14,8 @@ pub enum ClientMessage {
     Pong(Pong),
     /// A new type of `ConversationInitiationClientData`
     ConversationInitiationClientData(ConversationInitiationClientData),
+    /// A new type of `ClientToolResult`
+    ClientToolResult(ClientToolResult),
 }
 
 /// See [User Audio Chunks API reference](https://elevenlabs.io/docs/conversational-ai/api-reference/websocket#user-audio-chunk)
@@ -130,6 +132,42 @@ impl Default for ConversationInitiationClientData {
         }
     }
 }
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct ClientToolResult {
+    r#type: String,
+    pub client_tool_id: Option<String>,
+    pub result: Option<String>,
+    pub is_error: Option<bool>
+}
+
+impl Default for ClientToolResult {
+    fn default() -> Self {
+        ClientToolResult {
+            r#type: CLIENT_TOOL_RESULT.to_string(),
+            client_tool_id: None,
+            result: None,
+            is_error: None
+        }
+    }
+}
+
+impl ClientToolResult {
+    pub fn with_client_tool_id(mut self, client_tool_id: String) -> Self {
+        self.client_tool_id = Some(client_tool_id);
+        self
+    }
+    pub fn with_result(mut self, result: String) -> Self {
+        self.result = Some(result);
+        self
+    }
+    pub fn with_is_error(mut self, is_error: bool) -> Self {
+        self.is_error = Some(is_error);
+        self
+    }
+}
+
+
 
 impl TryFrom<ConversationInitiationClientData> for Message {
     type Error = ConvAIError;
