@@ -471,6 +471,18 @@ impl Tool {
             response_timeout_secs: client_tool.response_timeout_secs,
         }
     }
+
+    pub fn new_system(system_tool: SystemTool) -> Self {
+        Tool {
+            r#type: ToolType::System,
+            name: system_tool.name,
+            description: system_tool.description.unwrap_or_default(),
+            api_schema: None,
+            expects_response: None,
+            parameters: None,
+            response_timeout_secs: None,
+        }
+    }
 }
 
 /// A webhook tool is a tool that calls an external webhook from ElevenLabs' server
@@ -1000,9 +1012,25 @@ impl RequestBodySchema {
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct SystemTool {
-    description: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    description: Option<String>,
     name: String,
     r#type: ToolType,
+}
+
+impl SystemTool {
+    pub fn end_call() -> Self {
+        SystemTool {
+            description: None,
+            name: "end_call".to_string(),
+            r#type: ToolType::System,
+        }
+    }
+
+    pub fn with_description(mut self, description: impl Into<String>) -> Self {
+        self.description = Some(description.into());
+        self
+    }
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -1220,7 +1248,7 @@ pub enum ConvAIModel {
     ElevenFlashV2_5,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
 pub struct Turn {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub turn_timeout: Option<f32>,
