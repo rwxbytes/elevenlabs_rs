@@ -53,11 +53,10 @@ impl ElevenLabsAgentClient {
     }
     /// Sets initial data to be sent to the server when starting a conversation.
     pub fn with_conversation_initiation_client_data(
-        mut self,
+        &mut self,
         data: ConversationInitiationClientData,
-    ) -> Self {
+    ) {
         self.conversation_initiation_client_data = Some(data);
-        self
     }
 
     pub async fn start_conversation<S>(&mut self, stream: S) -> Result<ConversationStream>
