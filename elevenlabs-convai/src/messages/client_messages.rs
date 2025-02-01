@@ -1,5 +1,6 @@
 use super::*;
-use elevenlabs_rs::endpoints::convai::agents::Overrides;
+use elevenlabs_rs::endpoints::convai::agents::DynamicVar;
+use std::collections::HashMap;
 
 const PONG: &str = "pong";
 const CONVERSATION_INITIATION_CLIENT_DATA: &str = "conversation_initiation_client_data";
@@ -76,9 +77,116 @@ impl TryFrom<Pong> for Message {
 pub struct ConversationInitiationClientData {
     r#type: String,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub conversation_config_override: Option<Overrides>,
+    pub conversation_config_override: Option<OverrideData>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub custom_llm_extra_body: Option<ExtraBody>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub dynamic_variables: Option<HashMap<String, DynamicVar>>,
+}
+
+impl ConversationInitiationClientData {
+    /// Sets the `OverrideData` of the `ConversationInitiationClientData`.
+    pub fn with_override_data(mut self, overrides: OverrideData) -> Self {
+        self.conversation_config_override = Some(overrides);
+        self
+    }
+    /// Sets the `ExtraBody` of the `ConversationInitiationClientData`.
+    pub fn with_custom_llm_extra_body(mut self, extra_body: ExtraBody) -> Self {
+        self.custom_llm_extra_body = Some(extra_body);
+        self
+    }
+
+    pub fn with_dynamic_variables(
+        mut self,
+        dynamic_variables: HashMap<String, DynamicVar>,
+    ) -> Self {
+        self.dynamic_variables = Some(dynamic_variables);
+        self
+    }
+}
+
+impl Default for ConversationInitiationClientData {
+    fn default() -> Self {
+        ConversationInitiationClientData {
+            r#type: CONVERSATION_INITIATION_CLIENT_DATA.to_string(),
+            conversation_config_override: None,
+            custom_llm_extra_body: None,
+            dynamic_variables: None,
+        }
+    }
+}
+
+#[derive(Clone, Debug, Default, Serialize)]
+pub struct OverrideData {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub agent: Option<AgentOverrideData>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tts: Option<TTSOverrideData>,
+}
+
+impl OverrideData {
+    pub fn with_agent_override_data(mut self, agent: AgentOverrideData) -> Self {
+        self.agent = Some(agent);
+        self
+    }
+
+    pub fn with_tts_override_data(mut self, tts: TTSOverrideData) -> Self {
+        self.tts = Some(tts);
+        self
+    }
+}
+
+#[derive(Clone, Debug, Default, Serialize)]
+pub struct AgentOverrideData {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub prompt: Option<PromptOverrideData>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub first_message: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub language: Option<String>,
+}
+
+impl AgentOverrideData {
+    pub fn with_prompt_override_data(mut self, prompt: PromptOverrideData) -> Self {
+        self.prompt = Some(prompt);
+        self
+    }
+
+    pub fn override_first_message(mut self, first_message: impl Into<String>) -> Self {
+        self.first_message = Some(first_message.into());
+        self
+    }
+
+    pub fn override_language(mut self, language: impl Into<String>) -> Self {
+        self.language = Some(language.into());
+        self
+    }
+}
+
+#[derive(Clone, Debug, Default, Serialize)]
+pub struct PromptOverrideData {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub prompt: Option<String>,
+}
+
+impl PromptOverrideData {
+    pub fn override_prompt(mut self, prompt: impl Into<String>) -> Self {
+        self.prompt = Some(prompt.into());
+        self
+    }
+}
+
+#[derive(Clone, Debug, Default, Serialize)]
+pub struct TTSOverrideData {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub voice_id: Option<String>,
+}
+
+impl TTSOverrideData {
+    pub fn override_voice_id(mut self, voice_id: impl Into<String>) -> Self {
+        self.voice_id = Some(voice_id.into());
+        self
+    }
 }
 
 /// Additional LLM configuration parameters
@@ -110,35 +218,12 @@ impl ExtraBody {
     }
 }
 
-impl ConversationInitiationClientData {
-    /// Sets the `Overrides` of the `ConversationInitiationClientData`.
-    pub fn with_overrides(mut self, overrides: Overrides) -> Self {
-        self.conversation_config_override = Some(overrides);
-        self
-    }
-    /// Sets the `ExtraBody` of the `ConversationInitiationClientData`.
-    pub fn with_custom_llm_extra_body(mut self, extra_body: ExtraBody) -> Self {
-        self.custom_llm_extra_body = Some(extra_body);
-        self
-    }
-}
-
-impl Default for ConversationInitiationClientData {
-    fn default() -> Self {
-        ConversationInitiationClientData {
-            r#type: CONVERSATION_INITIATION_CLIENT_DATA.to_string(),
-            conversation_config_override: None,
-            custom_llm_extra_body: None,
-        }
-    }
-}
-
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct ClientToolResult {
     r#type: String,
     pub client_tool_id: Option<String>,
     pub result: Option<String>,
-    pub is_error: Option<bool>
+    pub is_error: Option<bool>,
 }
 
 impl Default for ClientToolResult {
@@ -147,7 +232,7 @@ impl Default for ClientToolResult {
             r#type: CLIENT_TOOL_RESULT.to_string(),
             client_tool_id: None,
             result: None,
-            is_error: None
+            is_error: None,
         }
     }
 }
@@ -166,8 +251,6 @@ impl ClientToolResult {
         self
     }
 }
-
-
 
 impl TryFrom<ConversationInitiationClientData> for Message {
     type Error = ConvAIError;
