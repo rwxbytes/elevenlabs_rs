@@ -224,6 +224,7 @@ impl DynamicVariables {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(untagged)]
 pub enum DynamicVar {
     String(String),
     Int(i32),
@@ -1541,8 +1542,6 @@ pub struct ConversationConfigOverride {
     pub agent: Option<AgentOverride>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tts: Option<TTSOverride>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub dynamic_variables: Option<HashMap<String, DynamicVar>>
 }
 
 impl ConversationConfigOverride {
@@ -1553,11 +1552,6 @@ impl ConversationConfigOverride {
 
     pub fn with_tts_override(mut self, tts: TTSOverride) -> Self {
         self.tts = Some(tts);
-        self
-    }
-
-    pub fn with_dynamic_variables(mut self, dynamic_variables: HashMap<String, DynamicVar>) -> Self {
-        self.dynamic_variables = Some(dynamic_variables);
         self
     }
 }
