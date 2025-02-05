@@ -4,24 +4,40 @@ use super::*;
 #[derive(Clone, Debug, Deserialize)]
 #[serde(untagged)]
 pub enum ServerMessage {
+    AgentCorrection(AgentCorrection),
     AgentResponse(AgentResponse),
     Audio(Audio),
     ClientToolCall(ClientToolCall),
     ConversationInitiationMetadata(ConversationInitiationMetadata),
     Interruption(Interruption),
     Ping(Ping),
+    TentativeAgent(TentativeAgentResponse),
+    TurnProbability(TurnProbability),
     UserTranscript(UserTranscript),
-    NotDocumented(serde_json::Value),
+    VadScore(VadScore),
 }
 
 impl ServerMessage {
+    /// Indicates if the message is an agent correction response
+    pub fn is_agent_correction(&self) -> bool {
+        matches!(*self, ServerMessage::AgentCorrection(_))
+    }
+
+    /// If the `ServerMessage` is an `AgentCorrection`, then it returns it, otherwise it returns `None`
+    pub fn as_agent_correction(&self) -> Option<&AgentCorrection> {
+        match self {
+            ServerMessage::AgentCorrection(agent_correction) => Some(agent_correction),
+            _ => None,
+        }
+    }
+
     /// Indicates if the message is an agent response
-    pub fn is_agent(&self) -> bool {
+    pub fn is_agent_response(&self) -> bool {
         matches!(*self, ServerMessage::AgentResponse(_))
     }
 
     /// If the `ServerMessage` is an `AgentResponse`, then it returns it, otherwise it returns `None`
-    pub fn as_agent(&self) -> Option<&AgentResponse> {
+    pub fn as_agent_response(&self) -> Option<&AgentResponse> {
         match self {
             ServerMessage::AgentResponse(agent) => Some(agent),
             _ => None,
@@ -93,19 +109,59 @@ impl ServerMessage {
         }
     }
 
+    /// Indicates if the message is a tentative agent response
+    pub fn is_tentative_agent(&self) -> bool {
+        matches!(*self, ServerMessage::TentativeAgent(_))
+    }
+
+    /// If the `ServerMessage` is a `TentativeAgentResponse`, then it returns it, otherwise it returns `None`
+    pub fn as_tentative_agent(&self) -> Option<&TentativeAgentResponse> {
+        match self {
+            ServerMessage::TentativeAgent(tentative_agent) => Some(tentative_agent),
+            _ => None,
+        }
+    }
+
+    /// Indicates if the message is a Turn Probability response
+    pub fn is_turn_probability(&self) -> bool {
+        matches!(*self, ServerMessage::TurnProbability(_))
+    }
+
+    /// If the `ServerMessage` is a `TurnProbability`, then it returns it, otherwise it returns `None`
+    pub fn as_turn_probability(&self) -> Option<&TurnProbability> {
+        match self {
+            ServerMessage::TurnProbability(turn_probability) => Some(turn_probability),
+            _ => None,
+        }
+    }
+
     /// Indicates if the message is a user transcription response
-    pub fn is_transcription(&self) -> bool {
+    pub fn is_user_transcript(&self) -> bool {
         matches!(*self, ServerMessage::UserTranscript(_))
     }
 
     /// If the `ServerMessage` is a `UserTranscript`, then it returns it, otherwise it returns `None`
-    pub fn as_transcription(&self) -> Option<&UserTranscript> {
+    pub fn as_user_transcript(&self) -> Option<&UserTranscript> {
         match self {
             ServerMessage::UserTranscript(transcription) => Some(transcription),
             _ => None,
         }
     }
+
+    /// Indicates if the message is a VAD Score response
+    pub fn is_vad_score(&self) -> bool {
+        matches!(*self, ServerMessage::VadScore(_))
+    }
+
+    /// If the `ServerMessage` is a `VadScore`, then it returns it, otherwise it returns `None`
+    pub fn as_vad_score(&self) -> Option<&VadScore> {
+        match self {
+            ServerMessage::VadScore(vad_score) => Some(vad_score),
+            _ => None,
+        }
+    }
 }
+
 
 impl TryFrom<&str> for ServerMessage {
     type Error = ConvAIError;
@@ -117,12 +173,22 @@ impl TryFrom<&str> for ServerMessage {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct AgentCorrection {
+    pub r#type: String,
+    pub agent_response_correction_event: AgentResponseCorrectionEvent,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct AgentResponseCorrectionEvent {
+    pub corrected_agent_response: String,
+    pub original_agent_response: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct AgentResponse {
     pub r#type: String,
     pub agent_response_event: AgentResponseEvent,
 }
-
-
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct AgentResponseEvent {
@@ -191,6 +257,28 @@ pub struct PingEvent {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct TentativeAgentResponse {
+    pub r#type: String,
+    pub tentative_agent_response_internal_event: TentativeAgentResponseInternalEvent,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct TentativeAgentResponseInternalEvent {
+    pub tentative_agent_response: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct TurnProbability {
+    pub r#type: String,
+    pub turn_probability_internal_event: TurnProbabilityInternalEvent,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct TurnProbabilityInternalEvent {
+    pub turn_probability: f32,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct UserTranscript {
     pub r#type: String,
     pub user_transcription_event: UserTranscriptionEvent,
@@ -199,4 +287,15 @@ pub struct UserTranscript {
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct UserTranscriptionEvent {
     pub user_transcript: String,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct VadScore {
+    pub r#type: String,
+    pub vad_score_internal_event: VadScoreInternalEvent,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct VadScoreInternalEvent {
+    pub vad_score: f32,
 }
