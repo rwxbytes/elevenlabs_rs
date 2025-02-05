@@ -423,6 +423,8 @@ pub enum LLM {
     Gemini1_5Flash,
     #[serde(rename = "gemini-1.0-pro")]
     Gemini1_0Pro,
+    #[serde(rename = "gemini-2.0-flash-exp")]
+    Gemini2_0FlashExp,
     #[serde(rename = "claude-3-5-sonnet")]
     Claude3_5Sonnet,
     #[serde(rename = "claude-3-haiku")]
