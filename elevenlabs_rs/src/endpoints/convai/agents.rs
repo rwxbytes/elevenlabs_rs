@@ -161,6 +161,8 @@ pub struct ConversationConfig {
     pub language_presets: Option<HashMap<String, LanguagePreset>>,
 }
 
+
+
 impl ConversationConfig {
     pub fn with_agent_config(mut self, agent_config: AgentConfig) -> Self {
         self.agent = Some(agent_config);
@@ -332,6 +334,8 @@ pub struct PromptConfig {
     pub tools: Option<Vec<Tool>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub custom_llm: Option<CustomLLM>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub used_tools: Option<Vec<UsedTool>>,
 }
 
 impl PromptConfig {
@@ -1308,6 +1312,11 @@ pub struct FirstMessageTranslation {
     pub source_hash: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub text: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+pub struct UsedTool {
+    pub id: String,
 }
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
