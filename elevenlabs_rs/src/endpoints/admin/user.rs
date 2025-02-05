@@ -53,6 +53,7 @@ pub struct GetUserSubscriptionInfoResponse {
     pub character_refresh_period: Option<BillingPeriod>,
     pub next_invoice: Option<NextInvoice>,
     pub has_open_invoices: Option<bool>,
+    pub voice_slots_used: Option<i64>,
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -132,4 +133,5 @@ pub struct GetUserInfoResponse {
     pub xi_api_key_preview: Option<String>,
     pub referral_link_code: Option<String>,
     pub partnerstack_partner_default_link: Option<String>,
+    pub user_id: String,
 }
