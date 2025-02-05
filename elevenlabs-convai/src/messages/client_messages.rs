@@ -86,14 +86,12 @@ pub struct ConversationInitiationClientData {
 
 impl ConversationInitiationClientData {
     /// Sets the `OverrideData` of the `ConversationInitiationClientData`.
-    pub fn with_override_data(mut self, overrides: OverrideData) -> Self {
+    pub fn with_override_data(&mut self, overrides: OverrideData) {
         self.conversation_config_override = Some(overrides);
-        self
     }
     /// Sets the `ExtraBody` of the `ConversationInitiationClientData`.
-    pub fn with_custom_llm_extra_body(mut self, extra_body: ExtraBody) -> Self {
+    pub fn with_custom_llm_extra_body(&mut self, extra_body: ExtraBody) {
         self.custom_llm_extra_body = Some(extra_body);
-        self
     }
 
     pub fn with_dynamic_variables(
