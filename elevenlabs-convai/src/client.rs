@@ -59,6 +59,11 @@ impl ElevenLabsAgentClient {
         self.conversation_initiation_client_data = Some(data);
     }
 
+    /// Get mutable reference to the `conversation_initiation_client_data` field.
+    pub fn init_data_mut(&mut self) -> Option<&mut ConversationInitiationClientData> {
+        self.conversation_initiation_client_data.as_mut()
+    }
+
     pub async fn start_conversation<S>(&mut self, stream: S) -> Result<ConversationStream>
     where
         S: Stream<Item = String> + Send + Sync + 'static,
