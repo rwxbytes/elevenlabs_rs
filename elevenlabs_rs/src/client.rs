@@ -92,7 +92,6 @@ impl ElevenLabsClient {
                 let msg = msg_result?;
                 match msg {
                     Message::Text(text) => {
-                        dbg!(&text);
                         let response: WebSocketTTSResponse = serde_json::from_str(&text)?;
                         tx_to_caller.unbounded_send(Ok(response))?;
                     }
