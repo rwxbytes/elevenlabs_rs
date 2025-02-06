@@ -1431,6 +1431,7 @@ pub type DataCollection = HashMap<String, CustomData>;
 pub struct CustomData {
     description: String,
     r#type: CustomDataType,
+    dynamic_variable: Option<String>,
 }
 
 // TODO: not needed if `DataType` enum remains private and internally used for all
@@ -1448,6 +1449,7 @@ impl CustomData {
         CustomData {
             description: description.into(),
             r#type: CustomDataType::Boolean,
+            dynamic_variable: None,
         }
     }
 
@@ -1455,6 +1457,7 @@ impl CustomData {
         CustomData {
             description: description.into(),
             r#type: CustomDataType::Integer,
+            dynamic_variable: None,
         }
     }
 
@@ -1462,6 +1465,7 @@ impl CustomData {
         CustomData {
             description: description.into(),
             r#type: CustomDataType::Number,
+            dynamic_variable: None,
         }
     }
 
@@ -1469,7 +1473,13 @@ impl CustomData {
         CustomData {
             description: description.into(),
             r#type: CustomDataType::String,
+            dynamic_variable: None,
         }
+    }
+
+    pub fn with_dynamic_variable(mut self, dynamic_variable: impl Into<String>) -> Self {
+        self.dynamic_variable = Some(dynamic_variable.into());
+        self
     }
 }
 
