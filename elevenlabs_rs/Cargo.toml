@@ -1,6 +1,6 @@
 [package]
 name = "elevenlabs_rs"
-version = "0.4.0"
+version = "0.4.1"
 description = "A lib crate for ElevenLabs"
 authors = ["rwxbytes <rwxbytes@proton.me>"]
 license = "MIT"
@@ -55,4 +55,7 @@ native-tls-vendored = [
   "reqwest/native-tls-vendored",
   "tokio-tungstenite/native-tls",
 ]
+
+[package.metadata.docs.rs]
+all-features = true
 
