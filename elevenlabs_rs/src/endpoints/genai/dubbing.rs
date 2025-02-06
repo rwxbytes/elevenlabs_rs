@@ -208,7 +208,14 @@ pub struct GetDubbingResponse {
     pub name: String,
     pub status: String,
     pub target_languages: Vec<String>,
+    pub media_metadata: MediaMetadata,
     pub error: Option<String>,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+pub struct MediaMetadata {
+    pub content_type: String,
+    pub duration: f32,
 }
 
 /// Returns dubbed file as a streamed file.
