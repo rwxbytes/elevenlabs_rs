@@ -1791,6 +1791,14 @@ impl MatchedRule {
 pub struct Privacy {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub record_voice: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub retention_days: Option<i32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub delete_transcript_and_pii: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub delete_audio: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub apply_to_existing_conversations: Option<bool>,
 }
 
 impl Privacy {
