@@ -1,13 +1,13 @@
 [package]
 name = "elevenlabs_rs"
-version = "0.3.2"
+version = "0.4.0"
 description = "A lib crate for ElevenLabs"
 authors = ["rwxbytes <rwxbytes@proton.me>"]
 license = "MIT"
 edition = "2021"
 readme = "README.md"
 repository = "https://github.com/rwxbytes/elevenlabs_rs"
-keywords = ["elevenlabs", "genai", "convai", "ai", "ai-agent"]
+keywords = ["elevenlabs", "genai", "tts", "AI", "AI-audio"]
 
 [dependencies]
 async-stream = "0.3.5"
