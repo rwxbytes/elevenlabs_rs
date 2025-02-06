@@ -232,9 +232,20 @@ pub struct Metadata {
     pub start_time_unix_secs: u64,
     pub call_duration_secs: u32,
     pub cost: Option<u32>,
+    pub deletion_settings: Option<DeletionSettings>,
     pub feedback: Option<ConvoMetadataFeedback>,
     pub authorization_method: Option<AuthorizationMethod>,
     pub charging: Option<Charging>,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+pub struct DeletionSettings {
+    pub deletion_time_unix_secs: Option<u64>,
+    pub deleted_logs_at_time_unix_secs: Option<u64>,
+    pub deleted_audio_at_time_unix_secs: Option<u64>,
+    pub deleted_transcript_at_time_unix_secs: Option<u64>,
+    pub delete_transcript_and_pii: Option<bool>,
+    pub delete_audio: Option<bool>,
 }
 
 #[derive(Clone, Debug, Deserialize)]
