@@ -1,7 +1,7 @@
 //! Conversations endpoints
 
 use super::*;
-use crate::endpoints::convai::agents::{ConversationConfigOverride, LiteralJsonSchema};
+use crate::endpoints::convai::agents::{DynamicVar, LiteralJsonSchema};
 use std::collections::HashMap;
 use std::string::ToString;
 use strum::Display;
@@ -201,7 +201,7 @@ pub struct GetConversationDetailsResponse {
     pub transcript: Vec<Transcript>,
     pub metadata: Metadata,
     pub analysis: Option<Analysis>,
-    pub conversation_initiation_client_data: Option<ConvoInitData>,
+    pub conversation_initiation_client_data: Option<ConvoInitClientData>,
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -317,11 +317,37 @@ pub enum Score {
     Dislike,
 }
 
-#[derive(Clone, Debug, Deserialize)]
-pub struct ConvoInitData {
-    pub conversation_config_override: Option<ConversationConfigOverride>,
+#[derive(Debug, Clone, Deserialize)]
+pub struct ConvoInitClientData {
+    pub conversation_config_override: Option<ConfigOverrideData>,
     pub custom_llm_extra_body: Option<HashMap<String, Value>>,
+    pub dynamic_variables: Option<HashMap<String, DynamicVar>>,
 }
+
+#[derive(Clone, Debug, Default, Deserialize)]
+pub struct ConfigOverrideData {
+    pub agent: Option<AgentOverrideData>,
+    pub tts: Option<TTSOverrideData>,
+}
+
+#[derive(Clone, Debug, Default, Deserialize)]
+pub struct AgentOverrideData {
+    pub prompt: Option<PromptOverrideData>,
+    pub first_message: Option<String>,
+    pub language: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, Deserialize)]
+pub struct PromptOverrideData {
+    pub prompt: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, Deserialize)]
+pub struct TTSOverrideData {
+    pub voice_id: Option<String>,
+}
+
+
 
 /// Delete a particular conversation
 ///
