@@ -1,4 +1,5 @@
 use super::*;
+use crate::endpoints::convai::agents::AccessLevel;
 use crate::error::Error;
 use std::path::Path;
 
@@ -14,7 +15,7 @@ use std::path::Path;
 /// async fn main() -> Result<()> {
 ///    let client = ElevenLabsClient::from_env()?;
 ///
-///    let endpoint = GetKnowledgeBase::new("agent_id", "documentation_id");
+///    let endpoint = GetKnowledgeBase::new("documentation_id");
 ///
 ///    let resp = client.hit(endpoint).await?;
 ///
@@ -23,34 +24,29 @@ use std::path::Path;
 ///    Ok(())
 /// }
 /// ```
-/// See [Get Knowledge Base Document API reference](https://elevenlabs.io/docs/conversational-ai/api-reference/get-conversational-ai-knowledge-base-document).
+/// See [Get Knowledge Base Document API reference](https://elevenlabs.io/docs/api-reference/knowledge-base/get-knowledge-base-document-by-id).
 #[derive(Debug, Clone)]
 pub struct GetKnowledgeBase {
-    agent_id: String,
     documentation_id: String,
 }
 
 impl GetKnowledgeBase {
-    pub fn new<T: Into<String>>(agent_id: T, documentation_id: T) -> Self {
+    pub fn new(documentation_id: impl Into<String>) -> Self {
         Self {
-            agent_id: agent_id.into(),
             documentation_id: documentation_id.into(),
         }
     }
 }
 
 impl ElevenLabsEndpoint for GetKnowledgeBase {
-    const PATH: &'static str = "v1/convai/agents/:agent_id/knowledge-base/:documentation_id";
+    const PATH: &'static str = "v1/convai/knowledge-base/:documentation_id";
 
     const METHOD: Method = Method::GET;
 
     type ResponseBody = GetKnowledgeBaseResponse;
 
     fn path_params(&self) -> Vec<(&'static str, &str)> {
-        vec![
-            self.agent_id.and_param(PathParam::AgentID),
-            self.documentation_id.and_param(PathParam::DocumentationID),
-        ]
+        vec![self.documentation_id.and_param(PathParam::DocumentationID)]
     }
 
     async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
@@ -63,6 +59,16 @@ pub struct GetKnowledgeBaseResponse {
     pub id: String,
     pub r#type: KnowledgeBaseType,
     pub extracted_inner_html: String,
+    pub dependent_agents: Vec<DependentAgent>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct DependentAgent {
+    pub id: String,
+    pub name: String,
+    pub r#type: String,
+    pub created_at_unix_secs: u64,
+    pub access_level: AccessLevel,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -85,7 +91,7 @@ pub enum KnowledgeBaseType {
 ///   let client = ElevenLabsClient::from_env()?;
 ///   let kb = KnowledgeBaseDoc::url("https://elevenlabs.io/blog");
 ///   // Or KnowledgeBaseDoc::file("some_file.pdf");
-///   let endpoint = CreateKnowledgeBase::new("agent_id", kb);
+///   let endpoint = CreateKnowledgeBase::new(kb);
 ///   let resp = client.hit(endpoint).await?;
 ///
 ///   // You must now patch the agent to include the knowledge base
@@ -107,31 +113,23 @@ pub enum KnowledgeBaseType {
 ///   Ok(())
 /// }
 /// ```
-/// See [Create Knowledge Base Document API reference](https://elevenlabs.io/docs/conversational-ai/api-reference/post-conversational-ai-knowledge-base-document).
+/// See [Create Knowledge Base Document API reference](https://elevenlabs.io/docs/api-reference/knowledge-base/add-to-knowledge-base).
 #[derive(Debug, Clone)]
 pub struct CreateKnowledgeBase {
-    agent_id: String,
     body: CreateKnowledgeBaseBody,
 }
 
 impl CreateKnowledgeBase {
-    pub fn new(agent_id: impl Into<String>, body: impl Into<CreateKnowledgeBaseBody>) -> Self {
-        Self {
-            agent_id: agent_id.into(),
-            body: body.into(),
-        }
+    pub fn new(body: impl Into<CreateKnowledgeBaseBody>) -> Self {
+        Self { body: body.into() }
     }
 }
 impl ElevenLabsEndpoint for CreateKnowledgeBase {
-    const PATH: &'static str = "v1/convai/agents/:agent_id/add-to-knowledge-base";
+    const PATH: &'static str = "v1/convai/knowledge-base";
 
     const METHOD: Method = Method::POST;
 
     type ResponseBody = CreateKnowledgeBaseResponse;
-
-    fn path_params(&self) -> Vec<(&'static str, &str)> {
-        vec![self.agent_id.and_param(PathParam::AgentID)]
-    }
 
     async fn request_body(&self) -> Result<RequestBody> {
         TryInto::try_into(&self.body)
