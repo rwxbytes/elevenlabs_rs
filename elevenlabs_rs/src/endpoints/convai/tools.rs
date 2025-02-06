@@ -55,7 +55,7 @@ pub struct ListToolsResponse {
 ///    Ok(())
 /// }
 /// ```
-/// # See [Get Tool API reference](https://elevenlabs.io/docs/api-reference/tools/get-tool).
+/// See [Get Tool API reference](https://elevenlabs.io/docs/api-reference/tools/get-tool).
 pub struct GetTool {
     tool_id: String,
 }
@@ -84,9 +84,53 @@ impl ElevenLabsEndpoint for GetTool {
     }
 }
 
+/// Response from the GetTool endpoint
 #[derive(Clone, Debug, Deserialize)]
 pub struct GetToolResponse {
     pub id: String,
     pub tool_config: Tool,
     pub dependent_agents: Vec<DependentAgent>,
 }
+
+///// Add a new tool to the available tools in the workspace.
+//#[derive(Clone, Debug)]
+//pub struct CreateTool {
+//    body: CreateToolBody,
+//}
+//
+//impl CreateTool {
+//    pub fn new(body: impl Into<CreateToolBody>) -> Self {
+//        Self { body: body.into() }
+//    }
+//}
+//
+//#[derive(Clone, Debug, Serialize)]
+//pub struct CreateToolBody {
+//    pub tool_config: Tool,
+//}
+//
+//impl CreateToolBody {
+//    pub fn new(tool_config: Tool) -> Self {
+//        Self { tool_config }
+//    }
+//}
+//
+//
+//impl ElevenLabsEndpoint for CreateTool {
+//    const PATH: &'static str = "/v1/convai/add-tool";
+//
+//    const METHOD: Method = Method::POST;
+//
+//    type ResponseBody = CreateToolResponse;
+//
+//    async fn request_body(&self) -> Result<RequestBody> {
+//        Ok(RequestBody::Json(serde_json::to_value(&self.body)?))
+//
+//    }
+//
+//    async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
+//        Ok(resp.json().await?)
+//    }
+//}
+//
+//type CreateToolResponse = GetToolResponse;
