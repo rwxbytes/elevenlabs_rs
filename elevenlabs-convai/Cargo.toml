@@ -2,6 +2,11 @@
 name = "elevenlabs-convai"
 version = "0.1.0"
 edition = "2021"
+description = "A lib crate for ElevenLabs' conversational AI"
+readme = "README.md"
+license = "MIT"
+repository = "https://github.com/rwxbytes/elevenlabs_rs/tree/master/elevenlabs-convai"
+keywords = ["elevenlabs", "convai", "AI", "conversational-AI", "AI-agent"]
 
 [dependencies]
 elevenlabs_rs = { path = "../elevenlabs_rs", default-features = false, features = ["convai"] }
