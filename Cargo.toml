@@ -1,7 +1,7 @@
 [workspace]
 resolver = "2"
 
-members = ["elevenlabs_rs", "elevenlabs-convai", "examples/*"]
+members = ["elevenlabs_rs", "elevenlabs-convai", "examples/*", "integrations/twilio"]
 # Only check / build main crates by default (check all with `--workspace`)
 default-members = ["elevenlabs_rs", "elevenlabs-convai"]
 

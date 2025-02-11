@@ -1,0 +1,11 @@
+[package]
+name = "elevenlabs_twilio"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+repository = "https://github.com/rwxbytes/elevenlabs_rs"
+description = "A lib crate for ElevenLabs' Twilio integration"
+
+[dependencies]
+elevenlabs-convai = {path = "../../elevenlabs-convai"}
+rusty_twilio = {path = "../../../rusty_twilio"}
