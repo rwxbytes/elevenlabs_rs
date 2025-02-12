@@ -1,7 +1,7 @@
 //! Tools endpoints
 
 use super::*;
-use crate::endpoints::convai::agents::Tool;
+use crate::endpoints::convai::agents::{ClientTool, SystemTool, Tool, WebHook};
 use crate::endpoints::convai::knowledge_base::DependentAgent;
 
 /// Get all available tools available in the workspace.
@@ -92,45 +92,68 @@ pub struct GetToolResponse {
     pub dependent_agents: Vec<DependentAgent>,
 }
 
-///// Add a new tool to the available tools in the workspace.
-//#[derive(Clone, Debug)]
-//pub struct CreateTool {
-//    body: CreateToolBody,
-//}
-//
-//impl CreateTool {
-//    pub fn new(body: impl Into<CreateToolBody>) -> Self {
-//        Self { body: body.into() }
-//    }
-//}
-//
-//#[derive(Clone, Debug, Serialize)]
-//pub struct CreateToolBody {
-//    pub tool_config: Tool,
-//}
-//
-//impl CreateToolBody {
-//    pub fn new(tool_config: Tool) -> Self {
-//        Self { tool_config }
-//    }
-//}
-//
-//
-//impl ElevenLabsEndpoint for CreateTool {
-//    const PATH: &'static str = "/v1/convai/add-tool";
-//
-//    const METHOD: Method = Method::POST;
-//
-//    type ResponseBody = CreateToolResponse;
-//
-//    async fn request_body(&self) -> Result<RequestBody> {
-//        Ok(RequestBody::Json(serde_json::to_value(&self.body)?))
-//
-//    }
-//
-//    async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
-//        Ok(resp.json().await?)
-//    }
-//}
-//
-//type CreateToolResponse = GetToolResponse;
+/// Add a new tool to the available tools in the workspace.
+#[derive(Clone, Debug)]
+pub struct CreateTool {
+    body: CreateToolBody,
+}
+
+impl CreateTool {
+    pub fn new(body: impl Into<CreateToolBody>) -> Self {
+        Self { body: body.into() }
+    }
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct CreateToolBody {
+    pub tool_config: Tool,
+}
+
+impl CreateToolBody {
+    pub fn new(tool_config: Tool) -> Self {
+        Self { tool_config }
+    }
+}
+
+impl From<Tool> for CreateToolBody {
+    fn from(tool_config: Tool) -> Self {
+        Self::new(tool_config)
+    }
+}
+
+impl From<WebHook> for CreateToolBody {
+    fn from(webhook: WebHook) -> Self {
+        Self::new(Tool::new_webhook(webhook))
+    }
+}
+
+impl From<ClientTool> for CreateToolBody {
+    fn from(client_tool: ClientTool) -> Self {
+        Self::new(Tool::new_client(client_tool))
+    }
+}
+
+impl From<SystemTool> for CreateToolBody {
+    fn from(system_tool: SystemTool) -> Self {
+        Self::new(Tool::new_system(system_tool))
+    }
+}
+
+type CreateToolResponse = GetToolResponse;
+
+impl ElevenLabsEndpoint for CreateTool {
+    const PATH: &'static str = "/v1/convai/tools";
+
+    const METHOD: Method = Method::POST;
+
+    type ResponseBody = CreateToolResponse;
+
+    async fn request_body(&self) -> Result<RequestBody> {
+        Ok(RequestBody::Json(serde_json::to_value(&self.body)?))
+    }
+
+    async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
+        Ok(resp.json().await?)
+    }
+}
+
