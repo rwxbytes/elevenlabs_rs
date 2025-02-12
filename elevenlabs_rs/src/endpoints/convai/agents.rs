@@ -161,8 +161,6 @@ pub struct ConversationConfig {
     pub language_presets: Option<HashMap<String, LanguagePreset>>,
 }
 
-
-
 impl ConversationConfig {
     pub fn with_agent_config(mut self, agent_config: AgentConfig) -> Self {
         self.agent = Some(agent_config);
@@ -208,19 +206,19 @@ pub struct AgentConfig {
     pub language: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     /// See [Dynamic Variables](https://elevenlabs.io/docs/conversational-ai/customization/dynamic-variables)
-    pub dynamic_variables: Option<DynamicVariables>
+    pub dynamic_variables: Option<DynamicVariables>,
 }
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 pub struct DynamicVariables {
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub dynamic_variable_placeholder: Option<HashMap<String, DynamicVar>>
+    pub dynamic_variable_placeholder: Option<HashMap<String, DynamicVar>>,
 }
 
 impl DynamicVariables {
     pub fn new(placeholders: HashMap<String, DynamicVar>) -> Self {
         DynamicVariables {
-            dynamic_variable_placeholder: Some(placeholders)
+            dynamic_variable_placeholder: Some(placeholders),
         }
     }
 }
@@ -251,8 +249,6 @@ impl DynamicVar {
         DynamicVar::Bool(value)
     }
 }
-
-
 
 impl AgentConfig {
     pub fn new(
@@ -775,10 +771,9 @@ pub struct ApiSchema {
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(untagged)]
 pub enum RequestHeaders {
-    SecretLocator { secret_id: String},
+    SecretLocator { secret_id: String },
     Value(String),
 }
-
 
 impl ApiSchema {
     pub fn new(url: &str) -> Self {
@@ -806,7 +801,10 @@ impl ApiSchema {
         self
     }
 
-    pub fn with_request_headers(mut self, request_headers: HashMap<String, RequestHeaders>) -> Self {
+    pub fn with_request_headers(
+        mut self,
+        request_headers: HashMap<String, RequestHeaders>,
+    ) -> Self {
         self.request_headers = Some(request_headers);
         self
     }
@@ -1006,7 +1004,6 @@ impl RequestBodySchema {
             description: None,
         }
     }
-
 
     pub fn with_required(mut self, required: Vec<String>) -> Self {
         self.required = Some(required);
@@ -1316,7 +1313,6 @@ pub struct FirstMessageTranslation {
     pub text: Option<String>,
 }
 
-
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 pub struct PlatformSettings {
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -1538,6 +1534,8 @@ pub struct Overrides {
     pub conversation_config_override: Option<ConversationConfigOverride>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub custom_llm_extra_body: Option<bool>,
+    //#[serde(skip_serializing_if = "Option::is_none")]
+    //pub enable_conversation_initiation_client_data_from_webhook: Option<bool>,
 }
 
 impl Overrides {
@@ -1553,6 +1551,14 @@ impl Overrides {
         self.custom_llm_extra_body = Some(custom_llm_extra_body);
         self
     }
+
+    //pub fn enable_conversation_initiation_client_data_from_webhook(
+    //    mut self,
+    //    boolean: bool,
+    //) -> Self {
+    //    self.enable_conversation_initiation_client_data_from_webhook = Some(boolean);
+    //    self
+    //}
 }
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
@@ -1943,21 +1949,30 @@ impl Avatar {
     }
 
     pub fn with_color_1(mut self, color: &str) -> Self {
-        if let Avatar::Orb { ref mut color_1, .. } = self {
+        if let Avatar::Orb {
+            ref mut color_1, ..
+        } = self
+        {
             *color_1 = Some(color.to_string());
         }
         self
     }
 
     pub fn with_color_2(mut self, color: &str) -> Self {
-        if let Avatar::Orb { ref mut color_2, .. } = self {
+        if let Avatar::Orb {
+            ref mut color_2, ..
+        } = self
+        {
             *color_2 = Some(color.to_string());
         }
         self
     }
 
     pub fn with_url(mut self, url: &str) -> Self {
-        if let Avatar::Url { ref mut custom_url, .. } = self {
+        if let Avatar::Url {
+            ref mut custom_url, ..
+        } = self
+        {
             *custom_url = Some(url.to_string());
         }
         self
