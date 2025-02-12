@@ -280,3 +280,39 @@ impl ElevenLabsEndpoint for DeleteTool {
         Ok(())
     }
 }
+
+impl IntoIterator for ListToolsResponse {
+    type Item = GetToolResponse;
+    type IntoIter = std::vec::IntoIter<Self::Item>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.tools.into_iter()
+    }
+}
+
+impl<'a> IntoIterator for &'a ListToolsResponse {
+    type Item = &'a GetToolResponse;
+    type IntoIter = std::slice::Iter<'a, GetToolResponse>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.tools.iter()
+    }
+}
+
+impl IntoIterator for GetToolResponse {
+    type Item = DependentAgent;
+    type IntoIter = std::vec::IntoIter<Self::Item>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.dependent_agents.into_iter()
+    }
+}
+
+impl<'a> IntoIterator for &'a GetToolResponse {
+    type Item = &'a DependentAgent;
+    type IntoIter = std::slice::Iter<'a, DependentAgent>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.dependent_agents.iter()
+    }
+}
