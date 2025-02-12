@@ -102,18 +102,18 @@ pub struct GetToolResponse {
 ///
 /// #[tokio::main]
 /// async fn main() -> Result<()> {
-///     let c = ElevenLabsClient::from_env()?;
-///     let api_schema = ApiSchema::new("https://example.com");
-///     let webhook = WebHook::new("name", "description", api_schema);
-///     let resp = c.hit(CreateTool::new(webhook)).await?;
-///     println!("{:#?}", resp);
-///     Ok(())
+///    let c = ElevenLabsClient::from_env()?;
+///    let api_schema = ApiSchema::new("https://example.com");
+///    let webhook = WebHook::new("name", "description", api_schema);
+///    let resp = c.hit(CreateTool::new(webhook)).await?;
+///    println!("{:#?}", resp);
+///    Ok(())
 /// }
 /// ```
 /// See [Create Tool API reference](https://elevenlabs.io/docs/api-reference/tools/add-tool).
 #[derive(Clone, Debug)]
 pub struct CreateTool {
-   body: CreateToolBody,
+    body: CreateToolBody,
 }
 
 impl CreateTool {
@@ -157,7 +157,7 @@ impl From<SystemTool> for CreateToolBody {
     }
 }
 
-type CreateToolResponse = GetToolResponse;
+pub type CreateToolResponse = GetToolResponse;
 
 impl ElevenLabsEndpoint for CreateTool {
     const PATH: &'static str = "/v1/convai/tools";
@@ -175,3 +175,61 @@ impl ElevenLabsEndpoint for CreateTool {
     }
 }
 
+/// Update tool that is available in the workspace.
+///
+/// # Example
+///
+/// ```no_run
+/// use elevenlabs_rs::{ElevenLabsClient, Result};
+/// use elevenlabs_rs::endpoints::convai::tools::UpdateTool;
+/// use elevenlabs_rs::endpoints::convai::agents::{ApiSchema, WebHook};
+///
+/// #[tokio::main]
+/// async fn main() -> Result<()> {
+///    let c = ElevenLabsClient::from_env()?;
+///    let api_schema = ApiSchema::new("https://example.com/api/update");
+///    let webhook = WebHook::new("name", "description", api_schema);
+///    let resp = c.hit(UpdateTool::new("tool_id", webhook)).await?;
+///    println!("{:#?}", resp);
+///    Ok(())
+/// }
+/// ```
+/// See [Update Tool API reference](https://elevenlabs.io/docs/api-reference/tools/update-tool).
+#[derive(Clone, Debug)]
+pub struct UpdateTool {
+    tool_id: String,
+    body: UpdateToolBody,
+}
+
+pub type UpdateToolBody = CreateToolBody;
+
+impl UpdateTool {
+    pub fn new(tool_id: impl Into<String>, body: impl Into<UpdateToolBody>) -> Self {
+        Self {
+            tool_id: tool_id.into(),
+            body: body.into(),
+        }
+    }
+}
+
+pub type UpdateToolResponse = GetToolResponse;
+
+impl ElevenLabsEndpoint for UpdateTool {
+    const PATH: &'static str = "/v1/convai/tools/:tool_id";
+
+    const METHOD: Method = Method::PATCH;
+
+    type ResponseBody = UpdateToolResponse;
+
+    fn path_params(&self) -> Vec<(&'static str, &str)> {
+        vec![self.tool_id.and_param(PathParam::ToolID)]
+    }
+
+    async fn request_body(&self) -> Result<RequestBody> {
+        Ok(RequestBody::Json(serde_json::to_value(&self.body)?))
+    }
+
+    async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
+        Ok(resp.json().await?)
+    }
+}

@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - `ListTools` to list all tools
     - `GetTool` to get a specific tool
     - `CreateTool` to create a new tool
+    - `UpdateTool` to update an existing tool
 ### Changed
 ### Deprecated
 ### Removed
