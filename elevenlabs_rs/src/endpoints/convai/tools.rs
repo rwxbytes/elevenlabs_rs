@@ -233,3 +233,50 @@ impl ElevenLabsEndpoint for UpdateTool {
         Ok(resp.json().await?)
     }
 }
+
+/// Delete tool from the workspace.
+///
+/// # Example
+///
+/// ```no_run
+/// use elevenlabs_rs::{ElevenLabsClient, Result};
+/// use elevenlabs_rs::endpoints::convai::tools::DeleteTool;
+///
+/// #[tokio::main]
+/// async fn main() -> Result<()> {
+///    let c = ElevenLabsClient::from_env()?;
+///    let resp = c.hit(DeleteTool::new("tool_id")).await?;
+///    println!("{:#?}", resp);
+///    Ok(())
+///
+/// }
+/// ```
+/// See [Delete Tool API reference](https://elevenlabs.io/docs/api-reference/tools/remove-tool).
+#[derive(Clone, Debug)]
+pub struct DeleteTool {
+    tool_id: String,
+}
+
+impl DeleteTool {
+    pub fn new(tool_id: impl Into<String>) -> Self {
+        Self {
+            tool_id: tool_id.into(),
+        }
+    }
+}
+
+impl ElevenLabsEndpoint for DeleteTool {
+    const PATH: &'static str = "/v1/convai/tools/:tool_id";
+
+    const METHOD: Method = Method::DELETE;
+
+    type ResponseBody = ();
+
+    fn path_params(&self) -> Vec<(&'static str, &str)> {
+        vec![self.tool_id.and_param(PathParam::ToolID)]
+    }
+
+    async fn response_body(self, _resp: Response) -> Result<Self::ResponseBody> {
+        Ok(())
+    }
+}
