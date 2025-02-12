@@ -335,7 +335,7 @@ pub struct PromptConfig {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub custom_llm: Option<CustomLLM>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub used_tools: Option<Vec<UsedTool>>,
+    pub tool_ids: Option<Vec<String>>,
 }
 
 impl PromptConfig {
@@ -1314,10 +1314,6 @@ pub struct FirstMessageTranslation {
     pub text: Option<String>,
 }
 
-#[derive(Clone, Debug, Default, Deserialize, Serialize)]
-pub struct UsedTool {
-    pub id: String,
-}
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 pub struct PlatformSettings {

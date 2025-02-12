@@ -15,8 +15,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - `DeleteTool` to delete an existing tool
 ### Changed
 - **Breaking**: The `ResponseBody` of `DeleteAgent` now returns a `()` instead of a `StatusResponseBody`
+- **Breaking**: The `used_tools` field name to `tool_ids` of the `PromptConfig` and its type `Option<Vec<UsedTool>>` 
+  has been changed to `Option<Vec<String>>`. 
 ### Deprecated
 ### Removed
+- The `UsedTool` struct
 ### Fixed
 ### Security
 
