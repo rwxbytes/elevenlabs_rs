@@ -93,9 +93,27 @@ pub struct GetToolResponse {
 }
 
 /// Add a new tool to the available tools in the workspace.
+///
+/// # Example
+/// ```no_run
+/// use elevenlabs_rs::{ElevenLabsClient, Result};
+/// use elevenlabs_rs::endpoints::convai::agents::{ApiSchema, WebHook};
+/// use elevenlabs_rs::endpoints::convai::tools::CreateTool;
+///
+/// #[tokio::main]
+/// async fn main() -> Result<()> {
+///     let c = ElevenLabsClient::from_env()?;
+///     let api_schema = ApiSchema::new("https://example.com");
+///     let webhook = WebHook::new("name", "description", api_schema);
+///     let resp = c.hit(CreateTool::new(webhook)).await?;
+///     println!("{:#?}", resp);
+///     Ok(())
+/// }
+/// ```
+/// See [Create Tool API reference](https://elevenlabs.io/docs/api-reference/tools/add-tool).
 #[derive(Clone, Debug)]
 pub struct CreateTool {
-    body: CreateToolBody,
+   body: CreateToolBody,
 }
 
 impl CreateTool {
