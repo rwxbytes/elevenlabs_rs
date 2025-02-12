@@ -66,9 +66,17 @@ pub struct GetKnowledgeBaseResponse {
 pub struct DependentAgent {
     pub id: String,
     pub name: String,
-    pub r#type: String,
+    pub r#type: DependentAgentType,
     pub created_at_unix_secs: u64,
     pub access_level: AccessLevel,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum DependentAgentType {
+    Available,
+    /// A model that represents an agent dependent on a knowledge base/tools to which the user has no direct access.
+    Unknown,
 }
 
 #[derive(Debug, Clone, Deserialize)]
