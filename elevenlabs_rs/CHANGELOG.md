@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - `UpdateTool` to update an existing tool
     - `DeleteTool` to delete an existing tool
 ### Changed
+- **Breaking**: The `ResponseBody` of `DeleteAgent` now returns a `()` instead of a `StatusResponseBody`
 ### Deprecated
 ### Removed
 ### Fixed

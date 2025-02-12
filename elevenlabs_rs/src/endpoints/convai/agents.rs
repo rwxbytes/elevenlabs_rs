@@ -134,14 +134,14 @@ impl ElevenLabsEndpoint for DeleteAgent {
 
     const METHOD: Method = Method::DELETE;
 
-    type ResponseBody = StatusResponseBody;
+    type ResponseBody = ();
 
     fn path_params(&self) -> Vec<(&'static str, &str)> {
         vec![self.agent_id.and_param(PathParam::AgentID)]
     }
 
-    async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
-        Ok(resp.json().await?)
+    async fn response_body(self, _resp: Response) -> Result<Self::ResponseBody> {
+        Ok(())
     }
 }
 
