@@ -7,5 +7,11 @@ repository = "https://github.com/rwxbytes/elevenlabs_rs"
 description = "A lib crate for ElevenLabs' Twilio integration"
 
 [dependencies]
+axum = { version = "0.8.1", features = ["ws"] }
 elevenlabs-convai = {path = "../../elevenlabs-convai"}
 rusty_twilio = {path = "../../../rusty_twilio"}
+serde = { version = "1.0.217", features = ["derive"] }
+serde_json = "1.0.138"
+tokio = "1.43.0"
+tokio-stream = "0.1.17"
+futures-util = "0.3.30"

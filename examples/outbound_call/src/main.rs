@@ -4,9 +4,6 @@ use axum::{
     routing::{get, post},
     Router,
 };
-use elevenlabs_convai::client::ElevenLabsAgentClient;
-use elevenlabs_convai::error::ConvAIError;
-use elevenlabs_convai::messages::server_messages::ServerMessage;
 use futures_util::{SinkExt, StreamExt};
 use reqwest::{Client, Url};
 use serde::{Deserialize, Serialize};
@@ -16,6 +13,7 @@ use thiserror::Error;
 use tokio::sync::Mutex;
 use tokio::task::JoinHandle;
 use tracing::{error, info, instrument, span, Level};
+use elevenlabs_twilio::{CreateCall, CreateCallBody, ElevenLabsOutboundCallAgent, ElevenLabsTelephonyAgent};
 
 #[derive(Error, Debug)]
 pub enum AppError {
@@ -24,9 +22,6 @@ pub enum AppError {
 
     #[error("reqwest error: {0}")]
     ReqwestError(#[from] reqwest::Error),
-
-    #[error("serde json error: {0}")]
-    SerdeJsonError(#[from] serde_json::Error),
 
     #[error("websocket error: {0}")]
     WebSocketError(#[from] axum::Error),
@@ -43,8 +38,8 @@ pub enum AppError {
     #[error("tokio join error: {0}")]
     TokioJoinError(#[from] tokio::task::JoinError),
 
-    #[error("conversational_ai error: {0}")]
-    ConversationalError(#[from] ConvAIError),
+    //#[error("conversational_ai error: {0}")]
+    //ConversationalError(#[from] ConvAIError),
 
     #[error("send error: {0}")]
     SendError(#[from] tokio::sync::mpsc::error::SendError<String>),
@@ -83,9 +78,24 @@ impl Config {
 async fn main() -> Result<()> {
     tracing_subscriber::fmt().init();
 
-    let config = Config::from_env()?;
+    //let body = CreateCallBody::new("to", "from", "url");
+    //let endpoint = CreateCall::new(body);
+
+    let agent = ElevenLabsOutboundCallAgent::from_env()?;
+    //let e =  agent.twilio_client.hit(agent.create_call_endpoint).await?;
+    let _ = agent.ring("to").await?;
+
+    //let config = Config::from_env()?;
 
     let t = tokio::spawn(run_server(config.ngrok_url.clone()));
+
+    let app = Router::new()
+        .route("/outbound-call", post(move || twiml(ngrok_url)))
+        .route("/ws", get(handler));
+
+    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await?;
+    info!("Listening on {}", listener.local_addr()?);
+    axum::serve(listener, app).await?;
 
     make_twilio_call(&config).await?;
 
@@ -97,7 +107,7 @@ async fn main() -> Result<()> {
 async fn run_server(ngrok_url: String) -> Result<()> {
     let app = Router::new()
         .route("/outbound-call", post(move || twiml(ngrok_url)))
-        .route("/call/connection", get(handler));
+        .route("/ws", get(handler));
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await?;
     info!("Listening on {}", listener.local_addr()?);
@@ -112,7 +122,7 @@ async fn twiml(ngrok_url: String) -> String {
         r#"<?xml version="1.0" encoding="UTF-8"?>
     <Response>
         <Connect>
-            <Stream url="wss://{}/call/connection" track="inbound_track" />
+            <Stream url="wss://{}/ws" track="inbound_track" />
         </Connect>
     </Response>"#,
         domain
@@ -160,262 +170,21 @@ async fn handle_socket(socket: WebSocket) {
 }
 
 async fn process_socket(mut socket: WebSocket) -> Result<()> {
-    let client = ElevenLabsAgentClient::from_env()?;
+    let agent = ElevenLabsTelephonyAgent::from_env()?;
+    let  _ = agent.handle_call(socket).await?;
 
-    let  client = Arc::new(Mutex::new(client));
-    let client_two = Arc::clone(&client);
-
-    // Skip connected message
-    socket.next().await;
-
-    // Get stream sid
-    let stream_sid = match socket.next().await {
-        Some(Ok(Message::Text(msg))) => serde_json::from_str::<StartMessage>(&msg)?.stream_sid,
-        _ => return Err(AppError::StreamSidNotFound),
-    };
-
-    let (twilio_payload_tx, rx) = tokio::sync::mpsc::unbounded_channel();
-    let twilio_payload_rx = tokio_stream::wrappers::UnboundedReceiverStream::new(rx);
-
-    let (mut twilio_sink, mut twilio_stream) = socket.split();
-
-    let twilio_task: JoinHandle<Result<()>> = tokio::spawn(async move {
-        // TODO: learn how to use tracing correctly
-        //let span = span!(Level::INFO, "twilio_ws");
-        //let _enter = span.enter();
-
-        while let Some(msg_result) = twilio_stream.next().await {
-            let msg = msg_result?;
-            match msg {
-                Message::Close(_) => {
-                    //info!("Twilio stream closed");
-                    break;
-                }
-                Message::Text(txt) => {
-                    let twilio_msg = TwilioMessage::try_from(txt.as_str())?;
-                    match twilio_msg {
-                        TwilioMessage::Media(media_msg) => {
-                            twilio_payload_tx.send(media_msg.media.payload().to_string())?;
-                        }
-                        TwilioMessage::Stop(_) => {
-                            //info!("Stop message received from Twilio");
-                            client_two.lock().await.stop_conversation().await?;
-                            //info!("Elevenlabs' client stopped conversation");
-                            break;
-                        }
-                        _ => {}
-                    }
-                }
-                _ => {}
-            }
-        }
-        Ok(())
-    });
-
-    let el_task: JoinHandle<Result<()>> = tokio::spawn(async move {
-        let span = span!(Level::INFO, "elevenlabs_ws");
-        let _enter = span.enter();
-
-        let mut conversation_stream = client
-            .lock()
-            .await
-            .start_conversation(twilio_payload_rx)
-            .await?;
-        info!("Conversation started");
-
-        while let Some(server_msg_result) = conversation_stream.next().await {
-            let server_msg = server_msg_result?;
-            match server_msg {
-                ServerMessage::Audio(audio) => {
-                    let payload = audio.audio_event.audio_base_64;
-                    let media_msg = MediaMessage::new(&stream_sid, &payload);
-                    let json = serde_json::to_string(&media_msg)?;
-                    twilio_sink.send(Message::Text(json)).await?;
-                }
-                ServerMessage::Interruption(_) => {
-                    info!("Interruption event received from Elevenlabs");
-                    let clear_msg = ClearMessage::new(&stream_sid);
-                    let json = serde_json::to_string(&clear_msg)?;
-                    twilio_sink.send(Message::Text(json)).await?;
-                    info!("Clear message sent to Twilio");
-                }
-                _ => {}
-            }
-        }
-        Ok(())
-    });
-
-    tokio::select! {
-        res = twilio_task => {
-            info!("Twilio task done");
-            res??;
-            Ok(())
-        }
-        res = el_task => {
-            info!("Elevenlabs task done");
-            res??;
-            Ok(())
-        }
-    }
+    //tokio::select! {
+    //    res = twilio_task => {
+    //        info!("Twilio task done");
+    //        res??;
+    //        Ok(())
+    //    }
+    //    res = el_task => {
+    //        info!("Elevenlabs task done");
+    //        res??;
+    //        Ok(())
+    //    }
+    //}
+    Ok(())
 }
 
-#[derive(Serialize, Deserialize, Debug)]
-#[serde(untagged)]
-pub enum TwilioMessage {
-    Connected(ConnectedMessage),
-    Start(StartMessage),
-    Media(MediaMessage),
-    Mark(MarkMessage),
-    Stop(StopMessage),
-    Dtmf(DtmfMessage),
-}
-
-impl TryFrom<&str> for TwilioMessage {
-    type Error = AppError;
-
-    fn try_from(value: &str) -> Result<Self> {
-        let twilio_message: TwilioMessage = serde_json::from_str(value)
-            .map_err(|e| AppError::TwilioMessageParseError(e.to_string()))?;
-        Ok(twilio_message)
-    }
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-#[serde(rename_all = "camelCase")]
-pub struct ConnectedMessage {
-    event: String,
-    protocol: String,
-    version: String,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-#[serde(rename_all = "camelCase")]
-pub struct StartMessage {
-    event: String,
-    sequence_number: String,
-    start: StartMetadata,
-    stream_sid: String,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-#[serde(rename_all = "camelCase")]
-pub struct StopMessage {
-    event: String,
-    stream_sid: String,
-    sequence_number: String,
-    stop: Stop,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-#[serde(rename_all = "camelCase")]
-pub struct Stop {
-    account_sid: String,
-    call_sid: String,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-#[serde(rename_all = "camelCase")]
-pub struct ClearMessage {
-    event: String,
-    stream_sid: String,
-}
-
-impl ClearMessage {
-    fn new(sid: &str) -> Self {
-        ClearMessage {
-            event: "clear".to_string(),
-            stream_sid: sid.to_string(),
-        }
-    }
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-#[serde(rename_all = "camelCase")]
-pub struct MarkMessage {
-    event: String,
-    stream_sid: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    sequence_number: Option<String>,
-    mark: Mark,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-#[serde(rename_all = "camelCase")]
-pub struct Mark {
-    name: String,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-#[serde(rename_all = "camelCase")]
-pub struct StartMetadata {
-    stream_sid: String,
-    account_sid: String,
-    call_sid: String,
-    tracks: Vec<Track>,
-    custom_parameters: serde_json::Value,
-    media_format: MediaFormat,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-#[serde(rename_all = "camelCase")]
-pub struct MediaFormat {
-    encoding: String,
-    sample_rate: u32,
-    channels: u32,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub enum Track {
-    #[serde(rename = "inbound")]
-    Inbound,
-    #[serde(rename = "outbound")]
-    Outbound,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-#[serde(rename_all = "camelCase")]
-pub struct MediaMessage {
-    event: String,
-    stream_sid: String,
-    media: Media,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-#[serde(rename_all = "camelCase")]
-pub struct Media {
-    payload: String,
-}
-
-impl Media {
-    fn payload(&self) -> &str {
-        self.payload.as_str()
-    }
-}
-
-impl MediaMessage {
-    pub fn new(stream_sid: &str, payload: &str) -> Self {
-        MediaMessage {
-            event: "media".to_string(),
-            stream_sid: stream_sid.to_string(),
-            media: Media {
-                payload: payload.to_string(),
-            },
-        }
-    }
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-#[serde(rename_all = "camelCase")]
-pub struct DtmfMessage {
-    event: String,
-    stream_sid: String,
-    sequence_number: u32,
-    dtmf: Dtmf,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-#[serde(rename_all = "camelCase")]
-pub struct Dtmf {
-    digit: String,
-    track: Track,
-}
