@@ -336,6 +336,8 @@ pub struct PromptConfig {
     pub custom_llm: Option<CustomLLM>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tool_ids: Option<Vec<String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub knowledge_base_document_ids: Option<Vec<String>>,
 }
 
 impl PromptConfig {

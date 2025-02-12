@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - `CreateTool` to create a new tool
     - `UpdateTool` to update an existing tool
     - `DeleteTool` to delete an existing tool
+- `knowledge_base_document_ids` field to the `PromptConfig`
 ### Changed
 - **Breaking**: The `ResponseBody` of `DeleteAgent` now returns a `()` instead of a `StatusResponseBody`
 - **Breaking**: The `used_tools` field name to `tool_ids` of the `PromptConfig` and its type `Option<Vec<UsedTool>>` 
