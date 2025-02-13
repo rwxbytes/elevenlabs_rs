@@ -399,3 +399,53 @@ pub struct ListDependentAgentsResponse {
     pub has_more: bool,
     pub next_cursor: Option<String>,
 }
+
+/// Delete a document from the knowledge base.
+///
+/// # Example
+///
+/// ```no_run
+/// use elevenlabs_rs::{ElevenLabsClient, Result};
+/// use elevenlabs_rs::endpoints::convai::knowledge_base::*;
+///
+/// #[tokio::main]
+/// async fn main() -> Result<()> {
+///    let client = ElevenLabsClient::from_env()?;
+///    let endpoint = DeleteKnowledgeBaseDoc::new("documentation_id");
+///    let resp = client.hit(endpoint).await?;
+///    println!("{:#?}", resp);
+///    Ok(())
+/// }
+/// ```
+/// # Note
+/// A 422 error will be returned if the document is still being used by an agent.
+///
+/// See [Delete Knowledge Base Document API reference](https://elevenlabs.io/docs/api-reference/knowledge-base/delete-knowledge-base-document).
+#[derive(Clone, Debug)]
+pub struct DeleteKnowledgeBaseDoc {
+    documentation_id: String,
+}
+
+impl DeleteKnowledgeBaseDoc {
+    pub fn new(documentation_id: impl Into<String>) -> Self {
+        Self {
+            documentation_id: documentation_id.into(),
+        }
+    }
+}
+
+impl ElevenLabsEndpoint for DeleteKnowledgeBaseDoc {
+    const PATH: &'static str = "v1/convai/knowledge-base/:documentation_id";
+
+    const METHOD: Method = Method::DELETE;
+
+    type ResponseBody = ();
+
+    fn path_params(&self) -> Vec<(&'static str, &str)> {
+        vec![self.documentation_id.and_param(PathParam::DocumentationID)]
+    }
+
+    async fn response_body(self, _resp: Response) -> Result<Self::ResponseBody> {
+        Ok(())
+    }
+}
