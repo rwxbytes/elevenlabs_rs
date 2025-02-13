@@ -335,4 +335,67 @@ pub struct Document {
     pub dependent_agents: Vec<DependentAgent>,
 }
 
+/// Get a list of agents depending on this knowledge base document.
+///
+/// # Example
+///
+/// ```no_run
+/// use elevenlabs_rs::{ElevenLabsClient, Result};
+/// use elevenlabs_rs::endpoints::convai::knowledge_base::*;
+///
+/// #[tokio::main]
+/// async fn main() -> Result<()> {
+///    let client = ElevenLabsClient::from_env()?;
+///    let endpoint = ListDependentAgents::new("documentation_id");
+///    let resp = client.hit(endpoint).await?;
+///    println!("{:#?}", resp);
+///    Ok(())
+/// }
+/// ```
+/// See [Get Dependent Agents API reference](https://elevenlabs.io/docs/conversational-ai/api-reference/knowledge-base/get-dependent-agents)
+#[derive(Clone, Debug)]
+pub struct ListDependentAgents {
+    documentation_id: String,
+    query: Option<KnowledgeBaseQuery>,
+}
 
+impl ListDependentAgents {
+    pub fn new(documentation_id: impl Into<String>) -> Self {
+        Self {
+            documentation_id: documentation_id.into(),
+            query: None,
+        }
+    }
+
+    pub fn with_query(mut self, query: KnowledgeBaseQuery) -> Self {
+        self.query = Some(query);
+        self
+    }
+}
+
+impl ElevenLabsEndpoint for ListDependentAgents {
+    const PATH: &'static str = "v1/convai/knowledge-base/:documentation_id/dependent-agents";
+
+    const METHOD: Method = Method::GET;
+
+    type ResponseBody = ListDependentAgentsResponse;
+
+    fn query_params(&self) -> Option<QueryValues> {
+        self.query.as_ref().map(|q| q.params.clone())
+    }
+
+    fn path_params(&self) -> Vec<(&'static str, &str)> {
+        vec![self.documentation_id.and_param(PathParam::DocumentationID)]
+    }
+
+    async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
+        Ok(resp.json().await?)
+    }
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct ListDependentAgentsResponse {
+    pub agents: Vec<DependentAgent>,
+    pub has_more: bool,
+    pub next_cursor: Option<String>,
+}
