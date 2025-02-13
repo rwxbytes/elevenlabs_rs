@@ -59,7 +59,8 @@ pub struct GetKnowledgeBaseResponse {
     pub id: String,
     pub r#type: KnowledgeBaseType,
     pub extracted_inner_html: String,
-    pub dependent_agents: Vec<DependentAgent>,
+    pub name: String,
+    pub access_level: AccessLevel,
 }
 
 #[derive(Debug, Clone, Deserialize)]
