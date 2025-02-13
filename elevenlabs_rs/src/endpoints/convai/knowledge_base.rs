@@ -251,3 +251,88 @@ impl From<KnowledgeBaseDoc> for CreateKnowledgeBaseBody {
         Self { knowledge_base_doc }
     }
 }
+
+/// Get a list of available knowledge base documents.
+///
+/// # Example
+///
+/// ```no_run
+/// use elevenlabs_rs::{ElevenLabsClient, Result};
+/// use elevenlabs_rs::endpoints::convai::knowledge_base::*;
+///
+/// #[tokio::main]
+/// async fn main() -> Result<()> {
+///    let client = ElevenLabsClient::from_env()?;
+///    let endpoint = ListKnowledgeBaseDocs::new();
+///    let resp = client.hit(endpoint).await?;
+///    println!("{:#?}", resp);
+///    Ok(())
+/// }
+/// ```
+/// See [List Knowledge Base Documents API reference](https://elevenlabs.io/docs/conversational-ai/api-reference/knowledge-base/get-knowledge-base-list).
+#[derive(Clone, Debug, Default)]
+pub struct ListKnowledgeBaseDocs {
+    query: Option<KnowledgeBaseQuery>,
+}
+
+impl ListKnowledgeBaseDocs {
+    pub fn new() -> Self {
+        Self { query: None }
+    }
+
+    pub fn with_query(mut self, query: KnowledgeBaseQuery) -> Self {
+        self.query = Some(query);
+        self
+    }
+}
+
+#[derive(Clone, Debug, Default)]
+pub struct KnowledgeBaseQuery {
+    pub params: QueryValues,
+}
+
+impl KnowledgeBaseQuery {
+    pub fn with_cursor(mut self, cursor: impl Into<String>) -> Self {
+        self.params.push(("cursor", cursor.into()));
+        self
+    }
+
+    pub fn with_page_size(mut self, page_size: u32) -> Self {
+        self.params.push(("page_size", page_size.to_string()));
+        self
+    }
+}
+
+impl ElevenLabsEndpoint for ListKnowledgeBaseDocs {
+    const PATH: &'static str = "v1/convai/knowledge-base";
+
+    const METHOD: Method = Method::GET;
+
+    type ResponseBody = ListKnowledgeBaseDocsResponse;
+
+    fn query_params(&self) -> Option<QueryValues> {
+        self.query.as_ref().map(|q| q.params.clone())
+    }
+
+    async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
+        Ok(resp.json().await?)
+    }
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct ListKnowledgeBaseDocsResponse {
+    pub documents: Vec<Document>,
+    pub has_more: bool,
+    pub next_cursor: Option<String>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct Document {
+    pub id: String,
+    pub r#type: KnowledgeBaseType,
+    pub name: String,
+    pub access_level: AccessLevel,
+    pub dependent_agents: Vec<DependentAgent>,
+}
+
+
