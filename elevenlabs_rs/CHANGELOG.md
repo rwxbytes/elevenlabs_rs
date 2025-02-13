@@ -8,12 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - A `tools` module providing the following endpoints:
-    - `ListTools` to list all tools
-    - `GetTool` to get a specific tool
-    - `CreateTool` to create a new tool
-    - `UpdateTool` to update an existing tool
-    - `DeleteTool` to delete an existing tool
+  - `ListTools` to list all tools
+  - `GetTool` to get a specific tool
+  - `CreateTool` to create a new tool
+  - `UpdateTool` to update an existing tool
+  - `DeleteTool` to delete an existing tool
 - `knowledge_base_document_ids` field to the `PromptConfig`
+- `AgentQuery` on `CreateAgent` and `UpdateAgent`
+  - `use_tool_ids` Use tool ids instead of tools specs from request payload.   
 ### Changed
 - **Breaking**: The `ResponseBody` of `DeleteAgent` now returns a `()` instead of a `StatusResponseBody`
 - **Breaking**: The `used_tools` field name to `tool_ids` of the `PromptConfig` and its type `Option<Vec<UsedTool>>` 

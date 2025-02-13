@@ -38,11 +38,17 @@ use std::collections::HashMap;
 #[derive(Clone, Debug)]
 pub struct CreateAgent {
     body: CreateAgentBody,
+    query: Option<AgentQuery>
 }
 
 impl CreateAgent {
     pub fn new(body: CreateAgentBody) -> Self {
-        CreateAgent { body }
+        CreateAgent { body, query: None }
+    }
+
+    pub fn with_query(mut self, query: AgentQuery) -> Self {
+        self.query = Some(query);
+        self
     }
 }
 
@@ -75,6 +81,10 @@ impl ElevenLabsEndpoint for CreateAgent {
     const METHOD: Method = Method::POST;
 
     type ResponseBody = CreateAgentResponse;
+
+    fn query_params(&self) -> Option<QueryValues> {
+        self.query.as_ref().map(|q| q.params.clone())
+    }
 
     async fn request_body(&self) -> Result<RequestBody> {
         TryInto::try_into(&self.body)
@@ -369,6 +379,16 @@ impl PromptConfig {
 
     pub fn with_custom_llm(mut self, custom_llm: CustomLLM) -> Self {
         self.custom_llm = Some(custom_llm);
+        self
+    }
+
+    pub fn with_tool_ids(mut self, tool_ids: Vec<String>) -> Self {
+        self.tool_ids = Some(tool_ids);
+        self
+    }
+
+    pub fn with_knowledge_base_document_ids(mut self, kb_ids: Vec<String>) -> Self {
+        self.knowledge_base_document_ids = Some(kb_ids);
         self
     }
 }
@@ -2302,6 +2322,7 @@ impl GetAgentsQuery {
 pub struct UpdateAgent {
     agent_id: String,
     body: UpdateAgentBody,
+    query: Option<AgentQuery>,
 }
 
 impl UpdateAgent {
@@ -2309,7 +2330,25 @@ impl UpdateAgent {
         UpdateAgent {
             agent_id: agent_id.to_string(),
             body,
+            query: None,
         }
+    }
+
+    pub fn with_query(mut self, query: AgentQuery) -> Self {
+        self.query = Some(query);
+        self
+    }
+}
+
+#[derive(Clone, Debug, Default, Serialize)]
+pub struct AgentQuery {
+    pub params: QueryValues,
+}
+
+impl AgentQuery {
+    pub fn use_tool_ids(mut self) -> Self {
+        self.params.push(("use_tool_ids", true.to_string()));
+        self
     }
 }
 
@@ -2368,6 +2407,10 @@ impl ElevenLabsEndpoint for UpdateAgent {
     const METHOD: Method = Method::PATCH;
 
     type ResponseBody = UpdateAgentResponse;
+
+    fn query_params(&self) -> Option<QueryValues> {
+        self.query.as_ref().map(|q| q.params.clone())
+    }
 
     fn path_params(&self) -> Vec<(&'static str, &str)> {
         vec![self.agent_id.and_param(PathParam::AgentID)]
