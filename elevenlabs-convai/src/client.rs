@@ -24,15 +24,15 @@ type WebSocketReader = SplitStream<WebSocketStream<MaybeTlsStream<TcpStream>>>;
 
 /// Represents a client for interacting with the ElevenLabs Conversational AI.
 #[derive(Debug)]
-pub struct ElevenLabsAgentClient {
+pub struct AgentWebSocket {
     api_key: Option<String>,
     agent_id: String,
     close_socket: Option<UnboundedSender<Message>>,
     conversation_initiation_client_data: Option<ConversationInitiationClientData>,
 }
 
-impl ElevenLabsAgentClient {
-    /// Creates a new `ElevenLabsAgentClient` from environment variables.
+impl AgentWebSocket {
+    /// Creates a new `AgentWebSocket` from environment variables.
     pub fn from_env() -> Result<Self> {
         Ok(Self {
             api_key: Some(std::env::var("ELEVENLABS_API_KEY")?),
@@ -42,7 +42,7 @@ impl ElevenLabsAgentClient {
         })
     }
 
-    /// Creates a new `ElevenLabsAgentClient` with the given API key and agent ID.
+    /// Creates a new `AgentWebSocket` with the given API key and agent ID.
     pub fn new<T: Into<String>>(api_key: T, agent_id: T) -> Self {
         Self {
             api_key: Some(api_key.into()),
