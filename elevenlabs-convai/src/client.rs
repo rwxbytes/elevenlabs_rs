@@ -64,7 +64,7 @@ impl AgentWebSocket {
         self.conversation_initiation_client_data.as_mut()
     }
 
-    pub async fn start_conversation<S>(&mut self, stream: S) -> Result<ConversationStream>
+    pub async fn start_session<S>(&mut self, stream: S) -> Result<ConversationStream>
     where
         S: Stream<Item = String> + Send + Sync + 'static,
     {
@@ -103,7 +103,7 @@ impl AgentWebSocket {
         Ok(UnboundedReceiverStream::new(caller_rx))
     }
 
-    pub async fn stop_conversation(&mut self) -> Result<()> {
+    pub async fn end_session(&mut self) -> Result<()> {
         let close_frame = CloseFrame {
             code: CloseCode::Normal,
             reason: Cow::from("user stopped conversation"),
