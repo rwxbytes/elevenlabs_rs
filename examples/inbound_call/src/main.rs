@@ -4,7 +4,7 @@ use axum::{
     routing::{get, post},
     Router,
 };
-use elevenlabs_twilio::ElevenLabsTelephonyAgent;
+use elevenlabs_twilio::InboundAgent;
 
 #[tokio::main]
 async fn main() {
@@ -23,7 +23,7 @@ async fn ws_handler(ws: WebSocketUpgrade) -> Response {
 }
 
 async fn handle_socket(mut socket: WebSocket) {
-    let calle = ElevenLabsTelephonyAgent::from_env().expect("Failed to create calle agent");
+    let calle = InboundAgent::from_env().expect("Failed to create calle agent");
     println!("Answering call");
     let _ = calle.handle_call(socket).await.expect("Failed to answer call");
 }

@@ -6,7 +6,7 @@ use axum::response::Response;
 use axum::routing::{get, post};
 use axum::Router;
 use chrono::Utc;
-use elevenlabs_convai::client::ElevenLabsAgentClient;
+use elevenlabs_convai::client::AgentWebSocket;
 use elevenlabs_convai::messages::client_messages::{
     AgentOverrideData, ConversationInitiationClientData, OverrideData, PromptOverrideData,
 };
@@ -31,7 +31,7 @@ mod twilio;
 #[derive(Clone)]
 pub struct AppState {
     caller: Arc<Mutex<Option<twilio::Caller>>>,
-    client: Arc<Mutex<ElevenLabsAgentClient>>,
+    client: Arc<Mutex<AgentWebSocket>>,
     revisiting_customer: Arc<Mutex<Option<Customer>>>,
     db: Surreal<Client>,
     ngrok_url: String,
@@ -56,7 +56,7 @@ async fn main() -> Result<(), AppError> {
 
     let apikey = std::env::var("ELEVENLABS_API_KEY")?;
     let agent = agent::create_agent(NGROK_URL).await?;
-    let client = ElevenLabsAgentClient::new(apikey, agent.agent_id);
+    let client = AgentWebSocket::new(apikey, agent.agent_id);
 
     let app_state = AppState {
         caller: Arc::new(Mutex::new(None)),
@@ -160,7 +160,7 @@ async fn handle_socket(state: AppState, mut socket: WebSocket) {
                     }
                 }
                 TwilioMessage::Stop(_) => {
-                    client_2.lock().await.stop_conversation().await?;
+                    client_2.lock().await.end_session().await?;
                     println!("Caller has ended the call");
                     break;
                 }
@@ -174,7 +174,7 @@ async fn handle_socket(state: AppState, mut socket: WebSocket) {
         let mut convai_stream = client
             .lock()
             .await
-            .start_conversation(twilio_payload_rx)
+            .start_session(twilio_payload_rx)
             .await?;
 
         while let Some(msg_result) = convai_stream.next().await {

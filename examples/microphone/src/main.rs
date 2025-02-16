@@ -1,6 +1,6 @@
 use crate::audio_helpers::{resample_hz, UpmixMonoToStereo};
 use crate::prelude::{SampleRate, StreamTrait};
-use elevenlabs_convai::client::ElevenLabsAgentClient;
+use elevenlabs_convai::client::AgentWebSocket;
 use elevenlabs_convai::messages::server_messages::ServerMessage;
 use futures_util::StreamExt;
 
@@ -13,7 +13,7 @@ type BoxError = Box<dyn std::error::Error + Send + Sync>;
 
 #[tokio::main]
 async fn main() -> Result<(), BoxError> {
-    let mut client = ElevenLabsAgentClient::new("apikey", "agent_id");
+    let mut client = AgentWebSocket::new("apikey", "agent_id");
     //let mut client = ElevenLabsAgentClient::from_env()?;
 
     // Set up microphone and play input audio stream
@@ -39,7 +39,7 @@ async fn main() -> Result<(), BoxError> {
         .expect("speaker stream failed to play");
 
     // Have a chinwag
-    let mut convo = client.start_conversation(encoded_audio_tx).await?;
+    let mut convo = client.start_session(encoded_audio_tx).await?;
 
     // change the sample rate according to your agent's TTS output format
     let tts_output_format = SampleRate(16000);

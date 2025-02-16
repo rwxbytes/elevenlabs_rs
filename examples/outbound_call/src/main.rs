@@ -1,19 +1,26 @@
+use axum::extract::State;
+use axum::http::StatusCode;
+use axum::response::IntoResponse;
 use axum::{
     extract::ws::{Message, WebSocket, WebSocketUpgrade},
     response::Response,
     routing::{get, post},
-    Router,
+    Json, Router,
+};
+use elevenlabs_twilio::{
+    AgentWebSocket, CreateCall, CreateCallBody, OutboundAgent, ServerMessage, StatusCallbackEvent,
+    TelephonyAgent, TwilioClient, TwimlSrc,
 };
 use futures_util::{SinkExt, StreamExt};
 use reqwest::{Client, Url};
 use serde::{Deserialize, Serialize};
 use std::env::var;
+use std::future::Future;
 use std::sync::Arc;
 use thiserror::Error;
 use tokio::sync::Mutex;
 use tokio::task::JoinHandle;
 use tracing::{error, info, instrument, span, Level};
-use elevenlabs_twilio::{CreateCall, CreateCallBody, ElevenLabsOutboundCallAgent, ElevenLabsTelephonyAgent};
 
 #[derive(Error, Debug)]
 pub enum AppError {
@@ -40,151 +47,126 @@ pub enum AppError {
 
     //#[error("conversational_ai error: {0}")]
     //ConversationalError(#[from] ConvAIError),
-
     #[error("send error: {0}")]
     SendError(#[from] tokio::sync::mpsc::error::SendError<String>),
 }
 
 type Result<T> = std::result::Result<T, AppError>;
 
-#[derive(Debug)]
-struct Config {
-    twilio_auth_token: String,
-    twilio_account_sid: String,
-    to: String,
-    from: String,
-    ngrok_url: String,
-}
-
-impl Config {
-    fn from_env() -> Result<Config> {
-        Ok(Config {
-            twilio_auth_token: var("TWILIO_AUTH_TOKEN")
-                .map_err(|_| AppError::EnvVarError("TWILIO_AUTH_TOKEN not set".to_string()))?,
-            twilio_account_sid: var("TWILIO_ACCOUNT_SID")
-                .map_err(|_| AppError::EnvVarError("TWILIO_ACCOUNT_SID not set".to_string()))?,
-            to: var("TWILIO_TO")
-                .map_err(|_| AppError::EnvVarError("TWILIO_TO not set".to_string()))?,
-            from: var("TWILIO_FROM")
-                .map_err(|_| AppError::EnvVarError("TWILIO_FROM not set".to_string()))?,
-            ngrok_url: var("NGROK_URL")
-                // TODO: add your ngrok domain
-                .unwrap_or_else(|_| "https://yourdomain.ngrok-free.app".to_string()),
-        })
-    }
+#[derive(Clone)]
+pub struct AppState {
+    agent: Arc<Mutex<OutboundAgent>>,
 }
 
 #[tokio::main]
 async fn main() -> Result<()> {
     tracing_subscriber::fmt().init();
 
-    //let body = CreateCallBody::new("to", "from", "url");
-    //let endpoint = CreateCall::new(body);
+    let ngrok_url = "https://c8dc-86-18-8-153.ngrok-free.app";
+    let ngrok_ws = "wss://c8dc-86-18-8-153.ngrok-free.app";
 
-    let agent = ElevenLabsOutboundCallAgent::from_env()?;
-    //let e =  agent.twilio_client.hit(agent.create_call_endpoint).await?;
-    let _ = agent.ring("to").await?;
+    let agent_ws = AgentWebSocket::from_env().unwrap();
+    let twilio_client = TwilioClient::from_env().unwrap();
+    let outbound_agent = OutboundAgent::new(agent_ws, twilio_client)
+        .set_twiml_src(&format!("{}/outbound-call", ngrok_url))
+        .unwrap()
+        .set_twiml_for_connection(&format!("{}/ws", ngrok_ws))
+        .unwrap();
 
-    //let config = Config::from_env()?;
+    //let body = CreateCallBody::new("to", "from", TwimlSrc::Url("url".to_string()))
+    //    .with_status_callback("status_callback".to_string())
+    //    .with_status_callback_event(StatusCallbackEvent::Initiated)
+    //    .with_status_callback_event(StatusCallbackEvent::Ringing)
+    //    .with_status_callback_event(StatusCallbackEvent::Completed)
+    //    .with_status_callback_event(StatusCallbackEvent::Answered);
 
-    let t = tokio::spawn(run_server(config.ngrok_url.clone()));
+    //dbg!(&body);
+
+    let state = AppState {
+        agent: Arc::new(Mutex::new(outbound_agent)),
+    };
 
     let app = Router::new()
-        .route("/outbound-call", post(move || twiml(ngrok_url)))
-        .route("/ws", get(handler));
+        .route("/ring", post(ring))
+        .route("/outbound-call", post(twiml))
+        .route("/cb", post(status_callback))
+        .route("/cbe", post(status_callback_event))
+        .route("/ws", get(ws_handler))
+        .with_state(state);
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await?;
     info!("Listening on {}", listener.local_addr()?);
     axum::serve(listener, app).await?;
 
-    make_twilio_call(&config).await?;
-
-    let _ = t.await?;
-
     Ok(())
 }
 
-async fn run_server(ngrok_url: String) -> Result<()> {
-    let app = Router::new()
-        .route("/outbound-call", post(move || twiml(ngrok_url)))
-        .route("/ws", get(handler));
-
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await?;
-    info!("Listening on {}", listener.local_addr()?);
-    axum::serve(listener, app).await?;
-    Ok(())
+#[derive(Debug, Deserialize, Serialize)]
+struct Ring {
+    to: String,
+    from: String,
+    url: String,
 }
 
-async fn twiml(ngrok_url: String) -> String {
-    let url = Url::parse(&ngrok_url).expect("Invalid ngrok URL");
-    let domain = url.domain().unwrap();
-    format!(
-        r#"<?xml version="1.0" encoding="UTF-8"?>
-    <Response>
-        <Connect>
-            <Stream url="wss://{}/ws" track="inbound_track" />
-        </Connect>
-    </Response>"#,
-        domain
-    )
+async fn ring(State(state): State<AppState>, Json(payload): Json<Ring>) -> impl IntoResponse {
+    let body = CreateCallBody::new(payload.to, payload.from, TwimlSrc::Url(payload.url));
+
+    let _call_resp = state
+        .agent
+        .lock()
+        .await
+        .ring(body)
+        .await
+        .expect("Failed to ring");
+    "Ringing"
 }
 
-async fn make_twilio_call(config: &Config) -> Result<()> {
-    let mut params = std::collections::HashMap::new();
-    params.insert("To", config.to.clone());
-    params.insert("From", config.from.clone());
-    params.insert("Url", format!("{}/outbound-call", config.ngrok_url));
-
-    let resp = Client::new()
-        .post(format!(
-            "https://api.twilio.com/2010-04-01/Accounts/{}/Calls.json",
-            &config.twilio_account_sid
-        ))
-        .basic_auth(&config.twilio_account_sid, Some(&config.twilio_auth_token))
-        .form(&params)
-        .send()
-        .await?;
-
-    if !resp.status().is_success() {
-        error!("Twilio call failed: {:?}", resp.status());
-        let body = resp.text().await?;
-        error!("Twilio response: {:#?}", body);
-    }
-
-    Ok(())
+async fn status_callback(body: String) -> impl IntoResponse {
+    info!("Status Callback: {}", body);
+    StatusCode::OK
 }
 
-async fn handler(ws: WebSocketUpgrade) -> Response {
-    ws.on_upgrade(handle_socket)
+async fn status_callback_event(body: String) -> impl IntoResponse {
+    info!("Status Callback Event: {}", body);
+    StatusCode::OK
 }
 
-#[instrument(skip(socket))]
-async fn handle_socket(socket: WebSocket) {
+// TODO: get calle data
+async fn twiml(State(state): State<AppState>) -> impl IntoResponse {
+    let agent = state.agent.lock().await;
+    let twiml = agent.get_twiml_for_connection().unwrap();
+    twiml
+}
+
+async fn ws_handler(State(state): State<AppState>, ws: WebSocketUpgrade) -> Response {
+    ws.on_upgrade(move |socket| handle_socket(state, socket))
+}
+
+async fn handle_socket(state: AppState, socket: WebSocket) {
     let span = span!(Level::INFO, "handle_socket");
     let _enter = span.enter();
 
-    match process_socket(socket).await {
-        Ok(_) => info!("Connection closed"),
+    //
+    let callback = |msg: ServerMessage| match msg {
+        ServerMessage::AgentResponse(msg) => {
+            info!(
+                "received agent response: {}",
+                msg.agent_response_event.agent_response
+            );
+        }
+        ServerMessage::UserTranscript(msg) => {
+            info!(
+                "received user transcript: {}",
+                msg.user_transcription_event.user_transcript
+            );
+        }
+        _ => {}
+    };
+
+    let callback: Option<Box<dyn FnMut(ServerMessage) + Send>> = Some(Box::new(callback));
+
+    match state.agent.lock().await.talk(socket, callback).await {
+        Ok(_) => info!("phone call started"),
         Err(e) => error!("Error: {:?}", e),
     }
 }
-
-async fn process_socket(mut socket: WebSocket) -> Result<()> {
-    let agent = ElevenLabsTelephonyAgent::from_env()?;
-    let  _ = agent.handle_call(socket).await?;
-
-    //tokio::select! {
-    //    res = twilio_task => {
-    //        info!("Twilio task done");
-    //        res??;
-    //        Ok(())
-    //    }
-    //    res = el_task => {
-    //        info!("Elevenlabs task done");
-    //        res??;
-    //        Ok(())
-    //    }
-    //}
-    Ok(())
-}
-
