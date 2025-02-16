@@ -147,25 +147,25 @@ async fn handle_socket(state: AppState, socket: WebSocket) {
     let _enter = span.enter();
 
     //
-    let callback = |msg: ServerMessage| match msg {
-        ServerMessage::AgentResponse(msg) => {
-            info!(
-                "received agent response: {}",
-                msg.agent_response_event.agent_response
-            );
-        }
-        ServerMessage::UserTranscript(msg) => {
-            info!(
-                "received user transcript: {}",
-                msg.user_transcription_event.user_transcript
-            );
-        }
-        _ => {}
-    };
+    //let callback = |msg: ServerMessage| match msg {
+    //    ServerMessage::AgentResponse(msg) => {
+    //        info!(
+    //            "received agent response: {}",
+    //            msg.agent_response_event.agent_response
+    //        );
+    //    }
+    //    ServerMessage::UserTranscript(msg) => {
+    //        info!(
+    //            "received user transcript: {}",
+    //            msg.user_transcription_event.user_transcript
+    //        );
+    //    }
+    //    _ => {}
+    //};
 
-    let callback: Option<Box<dyn FnMut(ServerMessage) + Send>> = Some(Box::new(callback));
+    //let callback: Option<Box<dyn FnMut(ServerMessage) + Send>> = Some(Box::new(callback));
 
-    match state.agent.lock().await.talk(socket, callback).await {
+    match state.agent.lock().await.talk(socket).await {
         Ok(_) => info!("phone call started"),
         Err(e) => error!("Error: {:?}", e),
     }

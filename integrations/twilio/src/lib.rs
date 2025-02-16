@@ -23,9 +23,9 @@ pub enum Error {
     #[error("twilio client error")]
     TwilioClient(#[from] TwilioError),
     #[error("axum error")]
-    AxumError(#[from] axum::Error),
+    Axum(#[from] axum::Error),
     #[error("serde error")]
-    SerdeError(#[from] serde_json::Error),
+    Serde(#[from] serde_json::Error),
     #[error("unexpected websocket message")]
     FailedToReceiveStartMessage,
 }
@@ -33,6 +33,11 @@ pub enum Error {
 #[async_trait]
 pub trait TelephonyAgent: Send + Sync {
     fn agent_ws(&self) -> Arc<Mutex<AgentWebSocket>>;
+
+    fn server_message_callback() -> Option<Box<dyn FnMut(ServerMessage) + Send>>;
+
+    fn twilio_message_callback() -> Option<Box<dyn FnMut(TwilioMessage) + Send>>;
+
 
     async fn extract_stream_sid(&self, socket: &mut WebSocket) -> Result<String, Error> {
         let msg = socket
@@ -54,7 +59,7 @@ pub trait TelephonyAgent: Send + Sync {
                 let msg = match serde_json::from_str(txt.as_str()) {
                     Ok(parsed_msg) => parsed_msg,
                     Err(e) => {
-                        error!("Failed to parse Twilio message: {}", e);
+                        error!("failed to parse Twilio message: {}", e);
                         return ControlFlow::Break(());
                     }
                 };
@@ -92,8 +97,9 @@ pub trait TelephonyAgent: Send + Sync {
         }
     }
 
+
     // rename to handle_call or relay?
-    async fn talk(&self, mut socket: WebSocket, mut callback: Option<Box<dyn FnMut(ServerMessage) + Send>> ) -> Result<(), Error> {
+    async fn talk(&self, mut socket: WebSocket) -> Result<(), Error> {
         if let Some(Ok(msg)) = socket.next().await {
             let msg: ConnectedMessage = serde_json::from_str(msg.to_text()?)?;
             info!("Connected message: {:?}", msg);
@@ -119,6 +125,7 @@ pub trait TelephonyAgent: Send + Sync {
             }
         });
 
+
         let agent_ws_for_convo = Arc::clone(&self.agent_ws());
         // TODO: trace within this block
         tokio::spawn(async move {
@@ -131,7 +138,7 @@ pub trait TelephonyAgent: Send + Sync {
             while let Some(msg_result) = convai_stream.next().await {
                 let server_msg = msg_result?;
 
-                if let Some(cb) = &mut callback {
+                if let Some(mut cb) = Self::server_message_callback() {
                     cb(server_msg.clone());
                 }
 
@@ -168,6 +175,34 @@ pub struct OutboundAgent {
 impl TelephonyAgent for OutboundAgent {
     fn agent_ws(&self) -> Arc<Mutex<AgentWebSocket>> {
         Arc::clone(&self.agent_ws)
+    }
+
+    fn server_message_callback() -> Option<Box<dyn FnMut(ServerMessage) + Send>> {
+
+        let callback = move |msg: ServerMessage| { match msg {
+            ServerMessage::AgentResponse(msg) => {
+                info!(
+                "received agent response: {}",
+                msg.agent_response_event.agent_response
+            );
+            }
+            ServerMessage::UserTranscript(msg) => {
+                info!(
+                "received user transcript: {}",
+                msg.user_transcription_event.user_transcript
+            );
+            }
+            _ => {}
+        };
+
+        };
+
+        let callback: Option<Box<dyn FnMut(ServerMessage) + Send>> = Some(Box::new(callback));
+        callback
+    }
+
+    fn twilio_message_callback() -> Option<Box<dyn FnMut(TwilioMessage) + Send>> {
+        None
     }
 }
 
@@ -233,6 +268,24 @@ pub struct InboundAgent {
 impl TelephonyAgent for InboundAgent {
     fn agent_ws(&self) -> Arc<Mutex<AgentWebSocket>> {
         Arc::clone(&self.elevenlabs_client)
+    }
+
+    fn server_message_callback() -> Option<Box<dyn FnMut(ServerMessage) + Send>> {
+        //if let Some(tx) = &self.msg_tx {
+        //    let tx = tx.clone();
+        //    Some(Box::new(move |msg| {
+        //        if tx.send(msg).is_err() {
+        //            error!("failed to send server message to websocket");
+        //        }
+        //    }))
+        //} else {
+        //    None
+        //}
+        None
+    }
+
+    fn twilio_message_callback() -> Option<Box<dyn FnMut(TwilioMessage) + Send>> {
+        None
     }
 }
 
