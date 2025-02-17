@@ -1,6 +1,7 @@
 use async_trait::async_trait;
 use axum::extract::ws::{Message, WebSocket};
 use elevenlabs_convai::error::ConvAIError;
+use elevenlabs_convai::messages::server_messages::Audio;
 pub use elevenlabs_convai::{client::AgentWebSocket, messages::server_messages::ServerMessage};
 use futures_util::{SinkExt, StreamExt};
 pub use rusty_twilio::endpoints::accounts::*;
@@ -34,10 +35,13 @@ pub enum Error {
 pub trait TelephonyAgent: Send + Sync {
     fn agent_ws(&self) -> Arc<Mutex<AgentWebSocket>>;
 
-    fn server_message_callback() -> Option<Box<dyn FnMut(ServerMessage) + Send>>;
+    fn server_message_callback(&self) -> Option<Box<dyn FnMut(ServerMessage) + Send>> {
+        None
+    }
 
-    fn twilio_message_callback() -> Option<Box<dyn FnMut(TwilioMessage) + Send>>;
-
+    fn twilio_message_callback() -> Option<Box<dyn FnMut(TwilioMessage) + Send>> {
+        None
+    }
 
     async fn extract_stream_sid(&self, socket: &mut WebSocket) -> Result<String, Error> {
         let msg = socket
@@ -97,7 +101,6 @@ pub trait TelephonyAgent: Send + Sync {
         }
     }
 
-
     // rename to handle_call or relay?
     async fn talk(&self, mut socket: WebSocket) -> Result<(), Error> {
         if let Some(Ok(msg)) = socket.next().await {
@@ -125,6 +128,7 @@ pub trait TelephonyAgent: Send + Sync {
             }
         });
 
+        let mut cb = self.server_message_callback();
 
         let agent_ws_for_convo = Arc::clone(&self.agent_ws());
         // TODO: trace within this block
@@ -138,16 +142,15 @@ pub trait TelephonyAgent: Send + Sync {
             while let Some(msg_result) = convai_stream.next().await {
                 let server_msg = msg_result?;
 
-                if let Some(mut cb) = Self::server_message_callback() {
+                if let Some(cb) = cb.as_mut() {
                     cb(server_msg.clone());
                 }
 
                 match server_msg {
                     ServerMessage::Audio(audio) => {
-                        let payload = audio.audio_event.audio_base_64;
-                        let media_msg = MediaMessage::new(&stream_sid, &payload);
-                        let json = serde_json::to_string(&media_msg)?;
-                        twilio_sink.send(Message::Text(json.into())).await?;
+                        twilio_sink
+                            .send(LabAudio::new(audio, &stream_sid).try_into()?)
+                            .await?;
                     }
                     ServerMessage::Interruption(_) => {
                         let clear_msg = ClearMessage::new(&stream_sid);
@@ -160,6 +163,28 @@ pub trait TelephonyAgent: Send + Sync {
             Ok::<(), Error>(())
         });
         Ok(())
+    }
+}
+
+// or AudioToTwilio ?
+pub struct LabAudio<'a> {
+    audio: Audio,
+    stream_sid: &'a str,
+}
+
+impl<'a> LabAudio<'a> {
+    pub fn new(audio: Audio, stream_sid: &'a str) -> Self {
+        LabAudio { audio, stream_sid }
+    }
+}
+
+impl<'a> TryFrom<LabAudio<'a>> for Message {
+    type Error = Error;
+    fn try_from(audio: LabAudio) -> Result<Self, Error> {
+        let payload = audio.audio.audio_event.audio_base_64;
+        let media_msg = MediaMessage::new(audio.stream_sid, &payload);
+        let json = serde_json::to_string(&media_msg)?;
+        Ok(Message::Text(json.into()))
     }
 }
 
@@ -177,28 +202,8 @@ impl TelephonyAgent for OutboundAgent {
         Arc::clone(&self.agent_ws)
     }
 
-    fn server_message_callback() -> Option<Box<dyn FnMut(ServerMessage) + Send>> {
-
-        let callback = move |msg: ServerMessage| { match msg {
-            ServerMessage::AgentResponse(msg) => {
-                info!(
-                "received agent response: {}",
-                msg.agent_response_event.agent_response
-            );
-            }
-            ServerMessage::UserTranscript(msg) => {
-                info!(
-                "received user transcript: {}",
-                msg.user_transcription_event.user_transcript
-            );
-            }
-            _ => {}
-        };
-
-        };
-
-        let callback: Option<Box<dyn FnMut(ServerMessage) + Send>> = Some(Box::new(callback));
-        callback
+    fn server_message_callback(&self) -> Option<Box<dyn FnMut(ServerMessage) + Send>> {
+        None
     }
 
     fn twilio_message_callback() -> Option<Box<dyn FnMut(TwilioMessage) + Send>> {
@@ -220,34 +225,23 @@ impl OutboundAgent {
     pub async fn ring(
         &self,
         create_call_body: impl Into<CreateCallBody>,
-    ) -> Result<CallResponse, &'static str> {
+    ) -> Result<CallResponse, Error> {
         let body = create_call_body.into();
         let endpoint = CreateCall::new(self.twilio_client.account_sid(), body);
-        Ok(self
-            .twilio_client
-            .hit(endpoint)
-            .await
-            .map_err(|_| "Failed to ring")?)
+        Ok(self.twilio_client.hit(endpoint).await?)
     }
 
-    pub async fn ring_by_endpoint(
-        &self,
-        endpoint: CreateCall,
-    ) -> Result<CallResponse, &'static str> {
-        Ok(self
-            .twilio_client
-            .hit(endpoint)
-            .await
-            .map_err(|_| "Failed to ring")?)
+    pub async fn ring_by_endpoint(&self, endpoint: CreateCall) -> Result<CallResponse, Error> {
+        Ok(self.twilio_client.hit(endpoint).await?)
     }
 
     // TODO: name it something else
-    pub fn set_twiml_src(mut self, url: impl Into<String>) -> Result<Self, TwilioError> {
+    pub fn set_twiml_src(mut self, url: impl Into<String>) -> Self {
         self.twiml_src = Some(TwimlSrc::Url(url.into()));
-        Ok(self)
+        self
     }
 
-    pub fn set_twiml_for_connection(mut self, url: impl Into<String>) -> Result<Self, TwilioError> {
+    pub fn set_twiml_for_connection(mut self, url: impl Into<String>) -> Result<Self, Error> {
         let twiml = VoiceResponse::new().connect(url.into()).to_string()?;
         self.twiml_for_connection = Some(twiml);
         Ok(self)
@@ -270,7 +264,7 @@ impl TelephonyAgent for InboundAgent {
         Arc::clone(&self.elevenlabs_client)
     }
 
-    fn server_message_callback() -> Option<Box<dyn FnMut(ServerMessage) + Send>> {
+    fn server_message_callback(&self) -> Option<Box<dyn FnMut(ServerMessage) + Send>> {
         //if let Some(tx) = &self.msg_tx {
         //    let tx = tx.clone();
         //    Some(Box::new(move |msg| {
