@@ -148,11 +148,9 @@ pub trait TelephonyAgent: Send + Sync {
 
                 match server_msg {
                     ServerMessage::Audio(audio) => {
-                        twilio_sink
-                            .send(LabAudio::new(audio, &stream_sid).try_into()?)
-                            .await?;
+                        twilio_sink.send((audio, &stream_sid).to_twilio()?).await?;
                     }
-                    ServerMessage::Interruption(_) => {
+                    ServerMessage::Interruption(_interrupt) => {
                         let clear_msg = ClearMessage::new(&stream_sid);
                         let json = serde_json::to_string(&clear_msg)?;
                         twilio_sink.send(Message::Text(json.into())).await?;
@@ -166,27 +164,60 @@ pub trait TelephonyAgent: Send + Sync {
     }
 }
 
-// or AudioToTwilio ?
-pub struct LabAudio<'a> {
-    audio: Audio,
-    stream_sid: &'a str,
+pub trait AudioBase64 {
+    fn audio_base_64(&self) -> &str;
 }
 
-impl<'a> LabAudio<'a> {
-    pub fn new(audio: Audio, stream_sid: &'a str) -> Self {
-        LabAudio { audio, stream_sid }
+impl AudioBase64 for Audio {
+    fn audio_base_64(&self) -> &str {
+        &self.audio_event.audio_base_64
     }
 }
 
-impl<'a> TryFrom<LabAudio<'a>> for Message {
-    type Error = Error;
-    fn try_from(audio: LabAudio) -> Result<Self, Error> {
-        let payload = audio.audio.audio_event.audio_base_64;
-        let media_msg = MediaMessage::new(audio.stream_sid, &payload);
+impl AudioBase64 for MediaMessage {
+    fn audio_base_64(&self) -> &str {
+        &self.media.payload
+    }
+}
+
+pub trait ToTwilio {
+    fn to_twilio(self) -> Result<Message, Error>;
+}
+
+impl<T, U> ToTwilio for (T, U)
+where
+    T: AudioBase64,
+    U: Into<String>,
+{
+    fn to_twilio(self) -> Result<Message, Error> {
+        let (audio, stream_sid) = self;
+        let media_msg = MediaMessage::new(stream_sid.into(), audio.audio_base_64());
         let json = serde_json::to_string(&media_msg)?;
         Ok(Message::Text(json.into()))
     }
 }
+
+// or AudioToTwilio ?
+//pub struct LabAudio<'a> {
+//    audio: Audio,
+//    stream_sid: &'a str,
+//}
+//
+//impl<'a> LabAudio<'a> {
+//    pub fn new(audio: Audio, stream_sid: &'a str) -> Self {
+//        LabAudio { audio, stream_sid }
+//    }
+//}
+//
+//impl<'a> TryFrom<LabAudio<'a>> for Message {
+//    type Error = Error;
+//    fn try_from(audio: LabAudio) -> Result<Self, Error> {
+//        let payload = audio.audio.audio_event.audio_base_64;
+//        let media_msg = MediaMessage::new(audio.stream_sid, &payload);
+//        let json = serde_json::to_string(&media_msg)?;
+//        Ok(Message::Text(json.into()))
+//    }
+//}
 
 #[derive(Clone, Debug)]
 pub struct OutboundAgent {
