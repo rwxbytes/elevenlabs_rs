@@ -1,9 +1,12 @@
 pub use async_trait::async_trait;
 use axum::extract::rejection::{FormRejection, JsonRejection};
+use axum::extract::ws::rejection::WebSocketUpgradeRejection;
 use axum::extract::ws::{Message, WebSocket};
-use axum::extract::{FromRef, FromRequest, FromRequestParts, Query, State};
+use axum::extract::{
+    FromRef, FromRequest, FromRequestParts, Query, Request, State, WebSocketUpgrade,
+};
 use axum::http::request::Parts;
-use axum::http::{HeaderMap, Request, StatusCode, Uri};
+use axum::http::{HeaderMap, StatusCode, Uri};
 use axum::response::{IntoResponse, Response};
 use axum::{Form, Json};
 pub use elevenlabs_convai::error::ConvAIError;
@@ -53,47 +56,19 @@ pub enum Error {
     EnvVar(#[from] std::env::VarError),
 }
 
-#[async_trait]
-pub trait TelephonyAgent: Send + Sync {
-    fn agent_ws(&self) -> Arc<Mutex<AgentWebSocket>>;
-    fn twilio_client(&self) -> TwilioClient;
-
-    fn number(&self) -> &str;
-
-    fn on_server_message(&self) -> Option<Box<dyn FnMut(ServerMessage) + Send>> {
-        None
-    }
-
-    fn on_twilio_message(&self) -> Option<Box<dyn FnMut(TwilioMessage) + Send>> {
-        None
-    }
-
-    async fn on_gather(
-        &self,
-        gather: Gather,
-    ) -> Option<Result<Response<String>, (StatusCode, String)>> {
-        let _ = gather;
-        None
-    }
-
-    async fn on_outbound_call_req(
-        &self,
-        outbound_call_req: OutboundCallRequest,
-    ) -> Option<Result<Response<String>, (StatusCode, String)>> {
-        let _ = outbound_call_req;
-        None
-    }
-
-    //fn set_outbound_call_twilml_src(&self) -> Option<TwimlSrc> {
-    //    None
-    //}
-
+#[derive(Clone, Debug)]
+pub struct WebSocketStreamManager {
+    agent_ws: Arc<Mutex<AgentWebSocket>>,
+    twilio_client: TwilioClient,
 }
 
-pub trait HasTelephonyAgent: Send + Sync {
-    type Agent: TelephonyAgent;
-
-    fn telephony_agent(&self) -> &Self::Agent;
+impl WebSocketStreamManager {
+    pub fn new(agent_ws: Arc<Mutex<AgentWebSocket>>, twilio_client: TwilioClient) -> Self {
+        WebSocketStreamManager {
+            agent_ws,
+            twilio_client,
+        }
+    }
 }
 
 trait AudioBase64 {
@@ -139,33 +114,21 @@ pub struct OutboundCallRequest {
     pub first_message: Option<String>,
 }
 
-pub async fn initiate_outbound_call(outbound_call_req: OutboundCallFromHost) -> impl IntoResponse {
-    let call_response = outbound_call_req.call_response;
-    info!(
-        "initiated outbound call to: {}, call sid {}",
-        &call_response.to, &call_response.sid
-    );
 
-    Json(json!({
-        "success": true,
-        "message": "outbound call initiated",
-        "callSid": call_response.sid
-    }))
-}
 
-pub struct OutboundCallFromHost {
+pub struct OutboundCall {
     call_response: CallResponse,
 }
 
-impl<S> FromRequest<S> for OutboundCallFromHost
+impl<S> FromRequest<S> for OutboundCall
 where
-    //OutboundAgent: FromRef<S>,
-    S: HasTelephonyAgent + Send + Sync,
+    WebSocketStreamManager: FromRef<S>,
+    S: Send + Sync,
 {
     // TODO: implement Rejection
-    type Rejection = JsonRejection;
+    type Rejection = (StatusCode, String);
 
-    async fn from_request(req: axum::extract::Request, state: &S) -> Result<Self, Self::Rejection> {
+    async fn from_request(req: Request, state: &S) -> Result<Self, Self::Rejection> {
         let host = req
             .headers()
             .get("host")
@@ -174,13 +137,13 @@ where
             .unwrap()
             .to_string();
 
-        //let mut state = OutboundAgent::from_ref(state);
-        let Json(payload) = Json::<OutboundCallRequest>::from_request(req, &state).await?;
-        let agent = state.telephony_agent();
-        let from = agent.number().to_string();
+        let mut manager = WebSocketStreamManager::from_ref(state);
+        let Json(payload) = Json::<OutboundCallRequest>::from_request(req, &state)
+            .await
+            .unwrap();
         let to = payload.number;
-        let twilio_client = agent.twilio_client();
-        let agent_ws = state.agent_ws();
+        let twilio_client = manager.twilio_client;
+        let agent_ws = Arc::clone(&manager.agent_ws);
 
         {
             let mut guard = agent_ws.lock().await;
@@ -210,6 +173,7 @@ where
         // TODO: path ought not be hardcoded
         let url = format!("https://{}/outbound-call-twiml", host);
 
+        let from = "44";
         let create_call_body = CreateCallBody::new(to, from, TwimlSrc::Url(url));
 
         let create_call = CreateCall::new(twilio_client.account_sid(), create_call_body);
@@ -220,34 +184,8 @@ where
             .expect("Failed to create call");
         info!("created call");
 
-        Ok(OutboundCallFromHost { call_response })
+        Ok(OutboundCall { call_response })
     }
-}
-
-//pub async fn return_connect_stream() -> impl IntoResponse {
-//    let twiml = VoiceResponse::new()
-//        .connect(Stream::new("stream-id"))
-//        .to_string()
-//        .unwrap();
-//    info!("[TwiML] Generated Response : {}", &twiml);
-//}
-
-pub async fn handle_outbound_call_twiml<S>(State(state): State<S>) -> impl IntoResponse
-where
-    S: HasTelephonyAgent + Send + Sync,
-{
-    let mut agent = state.telephony_agent();
-
-    //let host = "dbd2-86-18-8-153.ngrok-free.app";
-    //// TODO: user may set ws_path with '/' prefix, so we should handle this
-    //let url = format!("wss://{}/{}", host, state.ws_path);
-
-    let twiml = VoiceResponse::new()
-        .connect(url)
-        .to_http_response()
-        .expect("Failed to create TwiML");
-    info!("sent connect TwiML");
-    twiml
 }
 
 async fn handle_twilio_message(
@@ -300,14 +238,10 @@ async fn handle_twilio_message(
 }
 
 // TODO: join the threads spawned in this function ?
-pub async fn handle_phone_call<S>(
-    mut socket: WebSocket,
-    State(state): State<S>,
-) -> Result<(), Error>
+pub async fn handle_phone_call<S>(mut socket: WebSocket, state: &S) -> Result<(), Error>
 where
-    S: HasTelephonyAgent, //OutboundAgent: FromRef<S>,
-                          //S: Send + Sync,
-                          //S: TelephonyAgent + Send + Sync + 'static,
+    //S: HasTelephonyAgent,
+    WebSocketStreamManager: FromRef<S>,
 {
     if let Some(Ok(msg)) = socket.next().await {
         let msg: ConnectedMessage = serde_json::from_str(msg.to_text()?)?;
@@ -323,18 +257,18 @@ where
     let stream_sid = msg.stream_sid;
     info!("Start message metadata: {:?}", msg.start);
 
-    //let state = OutboundAgent::from_ref(&state);
+    let state = WebSocketStreamManager::from_ref(&state);
 
     let (twilio_tx, rx) = tokio::sync::mpsc::unbounded_channel();
     let twilio_rx = UnboundedReceiverStream::new(rx);
 
     let (mut twilio_sink, mut twilio_stream) = socket.split();
 
-    let agent = state.telephony_agent();
+    let agent_ws = Arc::clone(&state.agent_ws);
 
     // Spawn task for incoming Twilio messages.
     //let agent_ws = Arc::clone(&state.agent_ws());
-    let agent_ws = agent.agent_ws();
+    //let agent_ws = agent.agent_ws();
     tokio::spawn(async move {
         while let Some(Ok(msg)) = twilio_stream.next().await {
             if handle_twilio_message(msg, &agent_ws, &twilio_tx)
@@ -346,10 +280,11 @@ where
         }
     });
 
-    let mut cb = agent.on_server_message();
+    //let mut cb = agent.on_server_message();
 
     //let agent_ws_for_convo = Arc::clone(&state.agent_ws());
-    let agent_ws_for_convo = agent.agent_ws();
+    //let agent_ws_for_convo = agent.agent_ws();
+    let agent_ws_for_convo = Arc::clone(&state.agent_ws);
     // TODO: trace within this block
     tokio::spawn(async move {
         let mut convai_stream = agent_ws_for_convo
@@ -361,9 +296,9 @@ where
         while let Some(msg_result) = convai_stream.next().await {
             let server_msg = msg_result?;
 
-            if let Some(cb) = cb.as_mut() {
-                cb(server_msg.clone());
-            }
+            //if let Some(cb) = cb.as_mut() {
+            //    cb(server_msg.clone());
+            //}
 
             match server_msg {
                 ServerMessage::Audio(audio) => {
@@ -392,37 +327,196 @@ pub struct Gather {
     pub confidence: Option<String>,
 }
 
-pub struct GatherExtractor {
+pub struct OverrideExtractor<F = DefaultCallBack> {
     connect_stream: Response<String>,
+    callback: F,
+    agent_ws: Arc<Mutex<AgentWebSocket>>,
+    request: Request,
+    call_response: Option<CallResponse>,
 }
 
-impl<S> FromRequest<S> for GatherExtractor
+impl<S> FromRequest<S> for OverrideExtractor
 where
-    S: HasTelephonyAgent,
+    WebSocketStreamManager: FromRef<S>,
+    S: Send + Sync,
 {
     type Rejection = (StatusCode, String);
 
-    async fn from_request(req: axum::extract::Request, state: &S) -> Result<Self, Self::Rejection> {
-        let Form(payload) = Form::<Gather>::from_request(req, &state)
-            .await
-            .map_err(|e| (e.status(), e.body_text()))?;
-        let mut agent = state.telephony_agent();
-        let voice_response = match agent.on_gather(payload).await {
-            Some(Ok(voice_response)) => voice_response,
-            Some(Err(err)) => return Err(err),
-            None => return Err((StatusCode::INTERNAL_SERVER_ERROR, "No response".to_string())),
-        };
+    async fn from_request(req: Request, state: &S) -> Result<Self, Self::Rejection> {
+        let manager = WebSocketStreamManager::from_ref(state);
 
-        Ok(GatherExtractor {
+        let voice_response = VoiceResponse::new()
+            .connect("wss://531f-86-18-8-153.ngrok-free.app/ws")
+            .to_http_response()
+            .expect("Failed to create TwiML");
+
+        Ok(OverrideExtractor {
             connect_stream: voice_response,
+            callback: DefaultCallBack,
+            agent_ws: Arc::clone(&manager.agent_ws),
+            request: req,
+            call_response: None,
         })
     }
 }
 
-pub async fn gather_action(gather: GatherExtractor) -> impl IntoResponse {
-    gather.connect_stream
-    //gather
-    //    .connect_stream
-    //    .to_http_response()
-    //    .expect("Failed to create TwiML")
+impl<F> OverrideExtractor<F> {
+    pub async fn on_req<C, Fut>(self, callback: C) -> Response<String>
+    where
+        C: FnOnce(Request) -> Fut + Send + 'static,
+        Fut: Future<Output = ConversationInitiationClientData> + Send + 'static,
+    {
+        let init_client_data = callback(self.request).await;
+        let mut agent = self.agent_ws.lock().await;
+        agent.with_conversation_initiation_client_data(init_client_data);
+        self.connect_stream
+    }
+}
+
+pub struct DefaultCallBack;
+
+impl DefaultCallBack {
+    async fn default_callback(_req: Request) -> ConversationInitiationClientData {
+        ConversationInitiationClientData::default()
+    }
+}
+
+trait Direction {}
+#[derive(Default)]
+struct Inbound;
+
+#[derive(Default)]
+struct Outbound;
+
+impl Direction for Inbound {}
+impl Direction for Outbound {}
+
+// have a default or not, or make inbound the default?
+pub struct TelephonyAgent<E, D: Direction = Outbound> {
+    direction: D,
+    inner_extractor: E,
+    agent_ws: Arc<Mutex<AgentWebSocket>>,
+    twilio_client: TwilioClient,
+    to: String,
+    from: String,
+}
+
+impl<S, E, D: Direction + Default> FromRequest<S> for TelephonyAgent<E, D>
+where
+    WebSocketStreamManager: FromRef<S>,
+    E: FromRequest<S>,
+    S: Send + Sync,
+{
+    type Rejection = E::Rejection;
+
+    async fn from_request(req: Request, state: &S) -> Result<Self, Self::Rejection> {
+        let manager = WebSocketStreamManager::from_ref(state);
+        let extractor = E::from_request(req, state).await?;
+
+        let agent_ws = Arc::clone(&manager.agent_ws);
+        let twilio_client = manager.twilio_client;
+        let from = twilio_client.number().unwrap().to_string();
+        let to = "1234".to_string();
+
+        Ok(TelephonyAgent {
+            direction: Default::default(),
+            inner_extractor: extractor,
+            agent_ws,
+            twilio_client,
+            from,
+            to,
+        })
+    }
+}
+
+impl<S, E, D: Direction + Default> FromRequestParts<S> for TelephonyAgent<E, D>
+where
+    WebSocketStreamManager: FromRef<S>,
+    E: FromRequestParts<S>,
+    S: Send + Sync,
+{
+    type Rejection = E::Rejection;
+
+    async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
+        let manager = WebSocketStreamManager::from_ref(state);
+        let extractor = E::from_request_parts(parts, state).await?;
+
+        let agent_ws = Arc::clone(&manager.agent_ws);
+        let twilio_client = manager.twilio_client;
+        let from = twilio_client.number().unwrap().to_string();
+        let to = "1234".to_string();
+
+        Ok(TelephonyAgent {
+            direction: Default::default(),
+            inner_extractor: extractor,
+            agent_ws,
+            twilio_client,
+            from,
+            to,
+        })
+    }
+}
+
+impl<E, D: Direction> TelephonyAgent<E, D> {}
+
+impl<E> TelephonyAgent<E, Inbound> {}
+
+impl<E> TelephonyAgent<E, Outbound> {
+    pub fn replace_from(self, from: &str) -> Self {
+        TelephonyAgent {
+            from: from.to_string(),
+            ..self
+        }
+    }
+
+    pub fn replace_to(self, to: &str) -> Self {
+        TelephonyAgent {
+            to: to.to_string(),
+            ..self
+        }
+    }
+    pub async fn ring_and_then<F, T>(self, f: F) -> Result<T, Error>
+    where
+        F: FnOnce(CallResponse) -> T,
+    {
+        let from = self.from;
+        let to = &self.to;
+        let url = "https://532e-86-18-8-153.ngrok-free.app/twiml";
+        let create_call_body = CreateCallBody::new(to, from, TwimlSrc::url(url));
+        let create_call = CreateCall::new(self.twilio_client.account_sid(), create_call_body);
+        let call_response = self.twilio_client.hit(create_call).await?;
+        Ok(f(call_response))
+    }
+    pub async fn ring_from(self, from: &str) -> Result<CallResponse, Error> {
+        let to = &self.from;
+        let url = "https://f359-86-18-8-153.ngrok-free.app/ring";
+        let create_call_body = CreateCallBody::new(to, from, TwimlSrc::url(url));
+        let create_call = CreateCall::new(self.twilio_client.account_sid(), create_call_body);
+        let resp = self.twilio_client.hit(create_call).await?;
+        Ok(resp)
+    }
+    pub async fn ring_if<P>(self, predicate: P) -> Option<Result<CallResponse, Error>>
+    where
+        P: FnOnce(E) -> bool,
+    {
+        if predicate(self.inner_extractor) {
+            let from = self.twilio_client.number().unwrap();
+            let to = &self.from.to_string();
+            let url = "https://f359-86-18-8-153.ngrok-free.app/ring";
+            let create_call_body = CreateCallBody::new(to, from, TwimlSrc::url(url));
+            let create_call = CreateCall::new(self.twilio_client.account_sid(), create_call_body);
+            Some(Ok(self.twilio_client.hit(create_call).await.unwrap()))
+        } else {
+            None
+        }
+    }
+
+    pub async fn ring_to(self, to: &str) -> Result<CallResponse, Error> {
+        let from = self.twilio_client.number().unwrap();
+        let url = "https://f359-86-18-8-153.ngrok-free.app/ring";
+        let create_call_body = CreateCallBody::new(to, from, TwimlSrc::url(url));
+        let create_call = CreateCall::new(self.twilio_client.account_sid(), create_call_body);
+        let resp = self.twilio_client.hit(create_call).await?;
+        Ok(resp)
+    }
 }
