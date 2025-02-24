@@ -21,8 +21,8 @@ pub use rusty_twilio::endpoints::applications::*;
 pub use rusty_twilio::endpoints::voice::call::TwimlSrc::Twiml;
 pub use rusty_twilio::endpoints::voice::{call::*, stream::*};
 pub use rusty_twilio::error::TwilioError;
-pub use rusty_twilio::twiml::voice::StreamBuilder;
-pub use rusty_twilio::twiml::voice::VoiceResponse;
+use rusty_twilio::twiml::voice::StreamNounBuilder;
+pub use rusty_twilio::twiml::voice::*;
 pub use rusty_twilio::TwilioClient;
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
@@ -101,90 +101,6 @@ where
         let media_msg = MediaMessage::new(stream_sid.into(), audio.audio_base_64());
         let json = serde_json::to_string(&media_msg)?;
         Ok(Message::Text(json.into()))
-    }
-}
-
-#[derive(Clone, Debug, Deserialize, Serialize)]
-pub struct OutboundCallRequest {
-    // TODO: Validate phone number
-    pub number: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub prompt: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub first_message: Option<String>,
-}
-
-
-
-pub struct OutboundCall {
-    call_response: CallResponse,
-}
-
-impl<S> FromRequest<S> for OutboundCall
-where
-    WebSocketStreamManager: FromRef<S>,
-    S: Send + Sync,
-{
-    // TODO: implement Rejection
-    type Rejection = (StatusCode, String);
-
-    async fn from_request(req: Request, state: &S) -> Result<Self, Self::Rejection> {
-        let host = req
-            .headers()
-            .get("host")
-            .unwrap()
-            .to_str()
-            .unwrap()
-            .to_string();
-
-        let mut manager = WebSocketStreamManager::from_ref(state);
-        let Json(payload) = Json::<OutboundCallRequest>::from_request(req, &state)
-            .await
-            .unwrap();
-        let to = payload.number;
-        let twilio_client = manager.twilio_client;
-        let agent_ws = Arc::clone(&manager.agent_ws);
-
-        {
-            let mut guard = agent_ws.lock().await;
-            let mut overrides = OverrideData::default();
-            let mut agent_override = AgentOverrideData::default();
-
-            if let Some(first_message) = payload.first_message {
-                info!("Overriding first message");
-                agent_override = agent_override.override_first_message(first_message);
-            }
-
-            if let Some(prompt) = payload.prompt {
-                info!("Overriding prompt");
-                agent_override = agent_override.with_prompt_override_data(
-                    PromptOverrideData::default().override_prompt(prompt),
-                );
-            }
-
-            overrides = overrides.with_agent_override_data(agent_override);
-            let mut init_data = ConversationInitiationClientData::default();
-            init_data.with_override_data(overrides);
-
-            guard.with_conversation_initiation_client_data(init_data);
-            info!("Set conversation initiation client data");
-        }
-
-        // TODO: path ought not be hardcoded
-        let url = format!("https://{}/outbound-call-twiml", host);
-
-        let from = "44";
-        let create_call_body = CreateCallBody::new(to, from, TwimlSrc::Url(url));
-
-        let create_call = CreateCall::new(twilio_client.account_sid(), create_call_body);
-
-        let call_response = twilio_client
-            .hit(create_call)
-            .await
-            .expect("Failed to create call");
-        info!("created call");
-
-        Ok(OutboundCall { call_response })
     }
 }
 
@@ -317,16 +233,6 @@ where
     Ok(())
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
-#[serde(rename_all = "PascalCase")]
-pub struct Gather {
-    pub digits: String,
-    pub call_sid: String,
-    pub from: String,
-    pub speech_results: Option<String>,
-    pub confidence: Option<String>,
-}
-
 pub struct OverrideExtractor<F = DefaultCallBack> {
     connect_stream: Response<String>,
     callback: F,
@@ -382,23 +288,30 @@ impl DefaultCallBack {
 }
 
 trait Direction {}
-#[derive(Default)]
-struct Inbound;
 
-#[derive(Default)]
-struct Outbound;
+#[derive(Debug, Default)]
+pub struct Inbound;
+
+#[derive(Debug, Default)]
+pub struct Outbound;
 
 impl Direction for Inbound {}
+
 impl Direction for Outbound {}
 
-// have a default or not, or make inbound the default?
-pub struct TelephonyAgent<E, D: Direction = Outbound> {
+pub type InboundAgent<E> = TelephonyAgent<E, Inbound>;
+
+pub type OutboundAgent<E> = TelephonyAgent<E, Outbound>;
+
+pub struct TelephonyAgent<E, D: Direction> {
     direction: D,
     inner_extractor: E,
     agent_ws: Arc<Mutex<AgentWebSocket>>,
     twilio_client: TwilioClient,
     to: String,
     from: String,
+    stream_noun_builder: StreamNounBuilder,
+    twiml: Option<Response<String>>,
 }
 
 impl<S, E, D: Direction + Default> FromRequest<S> for TelephonyAgent<E, D>
@@ -415,8 +328,11 @@ where
 
         let agent_ws = Arc::clone(&manager.agent_ws);
         let twilio_client = manager.twilio_client;
+        // TODO: panics if number is None, `TwilioClient::from_env()` does not enforce a number
         let from = twilio_client.number().unwrap().to_string();
         let to = "1234".to_string();
+        let stream_noun_builder = StreamNounBuilder::new();
+        let twiml = None;
 
         Ok(TelephonyAgent {
             direction: Default::default(),
@@ -425,6 +341,8 @@ where
             twilio_client,
             from,
             to,
+            stream_noun_builder,
+            twiml,
         })
     }
 }
@@ -445,6 +363,8 @@ where
         let twilio_client = manager.twilio_client;
         let from = twilio_client.number().unwrap().to_string();
         let to = "1234".to_string();
+        let stream_noun_builder = StreamNounBuilder::new();
+        let twiml = None;
 
         Ok(TelephonyAgent {
             direction: Default::default(),
@@ -453,13 +373,69 @@ where
             twilio_client,
             from,
             to,
+            stream_noun_builder,
+            twiml,
         })
     }
 }
 
-impl<E, D: Direction> TelephonyAgent<E, D> {}
+impl<E, D: Direction> TelephonyAgent<E, D> {
+    pub fn build_twiml(mut self) -> Result<Self, Error> {
+        let stream_noun = self.stream_noun_builder.clone().build()?;
+        let twiml = VoiceResponse::new()
+            .connect(stream_noun)
+            .to_http_response()?;
+        self.twiml = Some(twiml);
+        Ok(self)
+    }
+    pub fn set_ws_url(mut self, ws_url: impl Into<String>) -> Result<Self, Error> {
+        self.stream_noun_builder = self.stream_noun_builder.url(ws_url.into())?;
+        Ok(self)
+    }
 
-impl<E> TelephonyAgent<E, Inbound> {}
+    pub fn set_status_callback(
+        mut self,
+        status_callback: impl Into<String>,
+    ) -> Result<Self, Error> {
+        self.stream_noun_builder = self
+            .stream_noun_builder
+            .status_callback(status_callback.into())?;
+        Ok(self)
+    }
+
+    pub fn set_status_callback_method(mut self, method: impl Into<String>) -> Self {
+        self.stream_noun_builder = self
+            .stream_noun_builder
+            .status_callback_method(method.into());
+        self
+    }
+
+    pub fn set_custom_parameter(
+        mut self,
+        key: impl Into<String>,
+        value: impl Into<String>,
+    ) -> Self {
+        self.stream_noun_builder = self.stream_noun_builder.parameter(key.into(), value.into());
+        self
+    }
+}
+
+impl<E> TelephonyAgent<E, Inbound> {
+    pub fn answer(self) -> Option<Response<String>> {
+        self.twiml
+    }
+
+    pub fn answer_if<P>(self, predicate: P) -> Option<Response<String>>
+    where
+        P: FnOnce(E) -> bool,
+    {
+        if predicate(self.inner_extractor) {
+            self.twiml
+        } else {
+            None
+        }
+    }
+}
 
 impl<E> TelephonyAgent<E, Outbound> {
     pub fn replace_from(self, from: &str) -> Self {
