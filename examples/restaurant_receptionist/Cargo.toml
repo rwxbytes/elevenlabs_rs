@@ -6,8 +6,7 @@ publish = false
 
 [dependencies]
 tokio = "1.43.0"
-elevenlabs-convai = { path = "../../elevenlabs-convai"}
-elevenlabs_rs = { path = "../../elevenlabs_rs", features = ["convai"] }
+elevenlabs_twilio = { path = "../../integrations/twilio" }
 axum = { version = "0.8.1", features = ["ws", "form"] }
 futures-util = "0.3.30"
 serde = { version = "1.0.217", features = ["derive"] }
