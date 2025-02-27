@@ -5,3 +5,4 @@ pub mod knowledge_base;
 pub mod phone_numbers;
 pub mod widget;
 pub mod tools;
+pub mod workspace;

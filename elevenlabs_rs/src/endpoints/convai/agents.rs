@@ -2,6 +2,7 @@
 
 use super::*;
 use crate::shared::DictionaryLocator;
+use crate::endpoints::convai::workspace::UsedTools;
 use std::collections::HashMap;
 
 /// Create an agent from a config object
@@ -795,6 +796,16 @@ pub enum RequestHeaders {
     Value(String),
 }
 
+impl RequestHeaders {
+    pub fn new(secret_id: impl Into<String>) -> Self {
+        RequestHeaders::SecretLocator { secret_id: secret_id.into() }
+    }
+
+    pub fn new_value(value: impl Into<String>) -> Self {
+        RequestHeaders::Value(value.into())
+    }
+}
+
 impl ApiSchema {
     pub fn new(url: &str) -> Self {
         ApiSchema {
@@ -873,13 +884,32 @@ pub enum Secret {
         value: String,
         #[serde(default = "SecretType::new")]
         r#type: SecretType,
+        used_by: Option<UsedBy>,
     },
     Stored {
         name: String,
         secret_id: String,
         #[serde(default = "SecretType::stored")]
         r#type: SecretType,
+        used_by: Option<UsedBy>,
     },
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct UsedBy {
+    pub tools: Vec<UsedTools>,
+    pub agent_tools: Vec<AgentTool>,
+    pub others: Vec<String>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct AgentTool {
+    pub agent_id: String,
+    pub agent_name: String,
+    pub r#type: String,
+    pub access_level: AccessLevel,
+    pub created_at_unix_secs: u64,
+    pub used_by: Vec<String>
 }
 
 impl Secret {
@@ -888,16 +918,18 @@ impl Secret {
             name: name.into(),
             value: value.into(),
             r#type: SecretType::New,
+            used_by: None,
         }
     }
 
-    pub fn new_stored(name: impl Into<String>, secret_id: impl Into<String>) -> Self {
-        Secret::Stored {
-            name: name.into(),
-            secret_id: secret_id.into(),
-            r#type: SecretType::Stored,
-        }
-    }
+    //pub fn new_stored(name: impl Into<String>, secret_id: impl Into<String>) -> Self {
+    //    Secret::Stored {
+    //        name: name.into(),
+    //        secret_id: secret_id.into(),
+    //        r#type: SecretType::Stored,
+    //        used_by: None,
+    //    }
+    //}
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
