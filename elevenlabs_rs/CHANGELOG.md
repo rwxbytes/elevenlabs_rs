@@ -39,7 +39,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `with_search(search)`
   - `show_only_owned_documents()`
   - `use_typesense()`
-  - `verified_languages` to `GetVoiceResponse`
+
+- `verified_languages` to `GetVoiceResponse`
+- `speed` field to `VoiceSettings`
 
 ### Changed
 - **Breaking**: The `ResponseBody` of `DeleteAgent` now returns a `()` instead of a `StatusResponseBody`

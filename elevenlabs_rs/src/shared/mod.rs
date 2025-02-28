@@ -239,6 +239,8 @@ pub struct VoiceSettings {
     pub style: Option<f32>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub use_speaker_boost: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub speed: Option<f32>,
 }
 
 impl VoiceSettings {
@@ -248,6 +250,7 @@ impl VoiceSettings {
             stability,
             style: None,
             use_speaker_boost: None,
+            speed: None,
         }
     }
     pub fn with_similarity_boost(mut self, similarity_boost: f32) -> Self {
@@ -266,6 +269,11 @@ impl VoiceSettings {
         self.use_speaker_boost = Some(use_speaker_boost);
         self
     }
+
+    pub fn with_speed(mut self, speed: f32) -> Self {
+        self.speed = Some(speed);
+        self
+    }
 }
 
 impl Default for VoiceSettings {
@@ -275,6 +283,7 @@ impl Default for VoiceSettings {
             stability: 0.5,
             style: Some(0.5),
             use_speaker_boost: Some(true),
+            speed: Some(1.0),
         }
     }
 }
