@@ -1902,6 +1902,8 @@ pub struct Widget {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub variant: Option<WidgetVariant>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub expandable: Option<Expandable>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub avatar: Option<Avatar>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub feedback_mode: Option<FeedBackMode>,
@@ -1944,7 +1946,11 @@ pub struct Widget {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub terms_keys: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub supported_language_overrides: Option<Vec<String>>,
+    pub show_avatar_when_collapsed: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub disable_banner: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub language_selector: Option<bool>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -1953,6 +1959,15 @@ pub enum WidgetVariant {
     Compact,
     Full,
     Expandable,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum Expandable {
+    Never,
+    Mobile,
+    Desktop,
+    Always,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
