@@ -14,7 +14,6 @@ pub type Result<T> = std::result::Result<T, Box<dyn std::error::Error + Send + S
 
 const XI_API_KEY_HEADER: &str = "xi-api-key";
 const APPLICATION_JSON: &str = "application/json";
-//const MULTIPART_FORM_DATA: &str = "multipart/form-data"; // Client errs with this content type
 
 #[derive(Clone)]
 pub struct ElevenLabsClient {
