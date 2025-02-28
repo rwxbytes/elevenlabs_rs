@@ -56,7 +56,7 @@
 //! ```
 
 use super::*;
-pub use crate::shared::{Age, Language};
+pub use crate::shared::{Age, Language, VerifiedLanguage};
 
 /// Gets a list of shared voices.
 ///
@@ -112,7 +112,7 @@ impl ElevenLabsEndpoint for GetSharedVoices {
 }
 
 /// Shared voices response
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Deserialize)]
 pub struct GetSharedVoicesResponse {
     pub voices: Vec<SharedVoice>,
     pub has_more: bool,
@@ -120,7 +120,7 @@ pub struct GetSharedVoicesResponse {
 }
 
 /// Shared voice
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Deserialize)]
 pub struct SharedVoice {
     pub public_owner_id: String,
     pub voice_id: String,
@@ -144,11 +144,14 @@ pub struct SharedVoice {
     pub free_users_allowed: bool,
     pub live_moderation_enabled: bool,
     pub featured: bool,
+    pub verified_language: Option<Vec<VerifiedLanguage>>,
     pub notice_period: Option<f32>,
     pub instagram_username: Option<String>,
     pub twitter_username: Option<String>,
     pub youtube_username: Option<String>,
     pub tiktok_username: Option<String>,
+    pub image_url: Option<String>,
+    pub is_added_by_user: Option<bool>,
 }
 
 /// Shared voices query
@@ -216,6 +219,11 @@ impl SharedVoicesQuery {
     }
     pub fn with_page(mut self, page: u16) -> Self {
         self.params.push(("page", page.to_string()));
+        self
+    }
+
+    pub fn with_min_notice_period_days(mut self, days: u32) -> Self {
+        self.params.push(("min_notice_period_days", days.to_string()));
         self
     }
 }

@@ -42,6 +42,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `verified_languages` to `GetVoiceResponse`
 - `speed` field to `VoiceSettings`
+- Fields to `SharedVoice`
+  - `verified_languages`
+  - `image_url`
+  - `is_added_by_user`
+- Query parameter builder method to `SharedVoiceQuery`:
+  - `with_min_notice_period_days(days)`
 
 ### Changed
 - **Breaking**: The `ResponseBody` of `DeleteAgent` now returns a `()` instead of a `StatusResponseBody`

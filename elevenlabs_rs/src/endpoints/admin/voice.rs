@@ -2,7 +2,7 @@
 use super::*;
 pub use crate::shared::{
     FineTuning, SafetyControl, Sharing, VoiceCategory, VoiceSample, VoiceSettings,
-    VoiceVerification,
+    VoiceVerification, VerifiedLanguage
 };
 use std::collections::HashMap;
 use std::path::Path;
@@ -543,12 +543,7 @@ pub struct GetVoiceResponse {
     pub created_at_unix: Option<u64>,
 }
 
-#[derive(Clone, Debug, Deserialize)]
-pub struct VerifiedLanguage {
-    pub language: String,
-    pub model_id: String,
-    accent: Option<String>,
-}
+
 
 impl<'a> IntoIterator for &'a GetVoicesResponse {
     type Item = &'a GetVoiceResponse;

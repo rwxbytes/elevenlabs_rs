@@ -288,6 +288,14 @@ impl Default for VoiceSettings {
     }
 }
 
+/// Verified language
+#[derive(Clone, Debug, Deserialize)]
+pub struct VerifiedLanguage {
+    pub language: String,
+    pub model_id: String,
+    accent: Option<String>,
+}
+
 /// Voice category
 #[derive(Debug, Deserialize, Serialize, PartialEq, Clone)]
 #[serde(rename_all = "snake_case")]
