@@ -292,13 +292,35 @@ pub struct KnowledgeBaseQuery {
 }
 
 impl KnowledgeBaseQuery {
+    /// Used for fetching next page. Cursor is returned in the response.
     pub fn with_cursor(mut self, cursor: impl Into<String>) -> Self {
         self.params.push(("cursor", cursor.into()));
         self
     }
 
+    /// How many documents to return at maximum. Can not exceed 100, defaults to 30.
     pub fn with_page_size(mut self, page_size: u32) -> Self {
         self.params.push(("page_size", page_size.to_string()));
+        self
+    }
+
+    /// If specified, the endpoint returns only such knowledge base documents whose names start with this string.
+    pub fn with_search(mut self, search: impl Into<String>) -> Self {
+        self.params.push(("search", search.into()));
+        self
+    }
+
+    /// If set to true, the endpoint will return only documents owned by you (and not shared from somebody else).
+    /// Defaults to false.
+    pub fn show_only_owned_documents(mut self) -> Self {
+        self.params
+            .push(("show_only_owned_documents", true.to_string()));
+        self
+    }
+    /// If set to true, the endpoint will use typesense DB to search for the documents).
+    /// Defaults to false.
+    pub fn use_typesense(mut self) -> Self {
+        self.params.push(("use_typesense", true.to_string()));
         self
     }
 }
