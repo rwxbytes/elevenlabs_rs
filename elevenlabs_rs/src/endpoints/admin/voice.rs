@@ -1,6 +1,6 @@
 //! The voice endpoints
 use super::*;
-use crate::shared::{
+pub use crate::shared::{
     FineTuning, SafetyControl, Sharing, VoiceCategory, VoiceSample, VoiceSettings,
     VoiceVerification,
 };
@@ -533,6 +533,7 @@ pub struct GetVoiceResponse {
     pub settings: Option<VoiceSettings>,
     pub sharing: Option<Sharing>,
     pub high_quality_base_model_ids: Option<Vec<String>>,
+    pub verified_languages: Option<Vec<VerifiedLanguage>>,
     pub safety_control: Option<SafetyControl>,
     pub voice_verification: Option<VoiceVerification>,
     pub permission_on_resource: Option<String>,
@@ -540,6 +541,13 @@ pub struct GetVoiceResponse {
     pub is_legacy: Option<bool>,
     pub is_mixed: Option<bool>,
     pub created_at_unix: Option<u64>,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+pub struct VerifiedLanguage {
+    pub language: String,
+    pub model_id: String,
+    accent: Option<String>,
 }
 
 impl<'a> IntoIterator for &'a GetVoicesResponse {

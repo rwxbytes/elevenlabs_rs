@@ -39,6 +39,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `with_search(search)`
   - `show_only_owned_documents()`
   - `use_typesense()`
+  - `verified_languages` to `GetVoiceResponse`
 
 ### Changed
 - **Breaking**: The `ResponseBody` of `DeleteAgent` now returns a `()` instead of a `StatusResponseBody`
@@ -50,6 +51,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Breaking**: The field `supported_language_overrides` on `Widget`
 ### Fixed
 - **Breaking** The `GetAgentResponse` by wrapping the `Vec<Secret>` in an `Option`
+- The `GetVoiceResponse` by wrapping `VoiceVerification` optional fields in `Option`s 
 ### Security
 
 ## [0.4.1] - 2025-02-06

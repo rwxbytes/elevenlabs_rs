@@ -476,10 +476,10 @@ pub enum ResourceType {
 pub struct VoiceVerification {
     pub requires_verification: bool,
     pub is_verified: bool,
-    pub verification_failures: Vec<String>,
-    pub verification_attempts_count: u32,
+    pub verification_failures: Option<Vec<String>>,
+    pub verification_attempts_count: Option<u32>,
     pub language: Option<String>,
-    pub verification_attempts: Vec<VerificationAttempt>,
+    pub verification_attempts: Option<Vec<VerificationAttempt>>,
 }
 
 /// Age
