@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- A `speech_to_text` module providing the following endpoint:
+  - `CreateTranscript`
 - A `tools` module providing the following endpoints:
   - `ListTools` to list all tools
   - `GetTool` to get a specific tool
@@ -37,6 +39,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `with_search(search)`
   - `show_only_owned_documents()`
   - `use_typesense()`
+
 ### Changed
 - **Breaking**: The `ResponseBody` of `DeleteAgent` now returns a `()` instead of a `StatusResponseBody`
 - **Breaking**: The `used_tools` field name to `tool_ids` of the `PromptConfig` and its type `Option<Vec<UsedTool>>` 
