@@ -25,6 +25,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `UpdateSettings` to update workspace settings
   - `GetSecrets` to list all workspace secrets
   - `CreateSecret` to create a new workspace secret
+- `phone_numbers` field to `GetAgentResponse`
+- 
 ### Changed
 - **Breaking**: The `ResponseBody` of `DeleteAgent` now returns a `()` instead of a `StatusResponseBody`
 - **Breaking**: The `used_tools` field name to `tool_ids` of the `PromptConfig` and its type `Option<Vec<UsedTool>>` 
@@ -33,6 +35,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 - The `UsedTool` struct
 ### Fixed
+- **Breaking** The `GetAgentResponse` by wrapping the `Vec<Secret>` in an `Option`
 ### Security
 
 ## [0.4.1] - 2025-02-06

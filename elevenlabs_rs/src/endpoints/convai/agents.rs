@@ -4,6 +4,7 @@ use super::*;
 use crate::shared::DictionaryLocator;
 use crate::endpoints::convai::workspace::UsedTools;
 use std::collections::HashMap;
+use crate::endpoints::convai::phone_numbers::{AssignedAgent, PhoneNumberProvider};
 
 /// Create an agent from a config object
 ///
@@ -2192,20 +2193,32 @@ impl ElevenLabsEndpoint for GetAgent {
     }
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize)]
 pub struct GetAgentResponse {
     pub agent_id: String,
     pub name: String,
     pub conversation_config: ConversationConfig,
     pub platform_settings: Option<PlatformSettings>,
     pub metadata: Metadata,
-    pub secrets: Vec<Secret>,
+    pub secrets: Option<Vec<Secret>>,
+    pub phone_numbers: Option<Vec<PhoneNumber>>,
 }
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 pub struct Metadata {
     pub created_at_unix_secs: u64,
 }
+
+#[derive(Clone, Debug, Deserialize)]
+pub struct PhoneNumber {
+    pub phone_number: String,
+    pub provider: PhoneNumberProvider,
+    pub label: String,
+    pub phone_number_id: String,
+    pub assigned_agent: AssignedAgent,
+}
+
+
 
 /// Returns a page of your agents and their metadata.
 ///
