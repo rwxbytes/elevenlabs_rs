@@ -1,10 +1,10 @@
 //! Agents endpoints
 
 use super::*;
-use crate::shared::DictionaryLocator;
-use crate::endpoints::convai::workspace::UsedTools;
-use std::collections::HashMap;
 use crate::endpoints::convai::phone_numbers::{AssignedAgent, PhoneNumberProvider};
+use crate::endpoints::convai::workspace::UsedTools;
+use crate::shared::DictionaryLocator;
+use std::collections::HashMap;
 
 /// Create an agent from a config object
 ///
@@ -40,7 +40,7 @@ use crate::endpoints::convai::phone_numbers::{AssignedAgent, PhoneNumberProvider
 #[derive(Clone, Debug)]
 pub struct CreateAgent {
     body: CreateAgentBody,
-    query: Option<AgentQuery>
+    query: Option<AgentQuery>,
 }
 
 impl CreateAgent {
@@ -799,7 +799,9 @@ pub enum RequestHeaders {
 
 impl RequestHeaders {
     pub fn new(secret_id: impl Into<String>) -> Self {
-        RequestHeaders::SecretLocator { secret_id: secret_id.into() }
+        RequestHeaders::SecretLocator {
+            secret_id: secret_id.into(),
+        }
     }
 
     pub fn new_value(value: impl Into<String>) -> Self {
@@ -910,7 +912,7 @@ pub struct AgentTool {
     pub r#type: String,
     pub access_level: AccessLevel,
     pub created_at_unix_secs: u64,
-    pub used_by: Vec<String>
+    pub used_by: Vec<String>,
 }
 
 impl Secret {
@@ -1587,8 +1589,8 @@ pub struct Overrides {
     pub conversation_config_override: Option<ConversationConfigOverride>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub custom_llm_extra_body: Option<bool>,
-    //#[serde(skip_serializing_if = "Option::is_none")]
-    //pub enable_conversation_initiation_client_data_from_webhook: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub enable_conversation_initiation_client_data_from_webhook: Option<bool>,
 }
 
 impl Overrides {
@@ -1605,13 +1607,13 @@ impl Overrides {
         self
     }
 
-    //pub fn enable_conversation_initiation_client_data_from_webhook(
-    //    mut self,
-    //    boolean: bool,
-    //) -> Self {
-    //    self.enable_conversation_initiation_client_data_from_webhook = Some(boolean);
-    //    self
-    //}
+    pub fn enable_conversation_initiation_client_data_from_webhook(
+        mut self,
+        boolean: bool,
+    ) -> Self {
+        self.enable_conversation_initiation_client_data_from_webhook = Some(boolean);
+        self
+    }
 }
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
@@ -2217,8 +2219,6 @@ pub struct PhoneNumber {
     pub phone_number_id: String,
     pub assigned_agent: AssignedAgent,
 }
-
-
 
 /// Returns a page of your agents and their metadata.
 ///
