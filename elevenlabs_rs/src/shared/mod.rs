@@ -7,6 +7,8 @@ use serde::{Deserialize, Serialize, Serializer};
 use std::string::ToString;
 use serde_json::Value;
 use strum::Display;
+use crate::endpoints::admin::voice_library::{Gender, SharedVoiceCategory};
+
 pub(crate) mod url;
 
 pub mod response_bodies {
@@ -316,6 +318,41 @@ pub struct VoiceSample {
     pub mime_type: Option<String>,
     pub size_bytes: Option<u64>,
     pub hash: Option<String>,
+}
+
+/// Shared voice
+#[derive(Clone, Debug, Deserialize)]
+pub struct SharedVoice {
+    pub public_owner_id: String,
+    pub voice_id: String,
+    pub date_unix: f32,
+    pub name: String,
+    pub accent: String,
+    pub gender: Gender,
+    pub age: Age,
+    pub descriptive: String,
+    pub use_case: String,
+    pub category: SharedVoiceCategory,
+    #[serde(deserialize_with = "Language::from_code")]
+    pub language: Language,
+    pub description: String,
+    pub preview_url: String,
+    pub usage_character_count_1y: f32,
+    pub usage_character_count_7d: f32,
+    pub play_api_usage_character_count_1y: f32,
+    pub cloned_by_count: f32,
+    pub rate: f32,
+    pub free_users_allowed: bool,
+    pub live_moderation_enabled: bool,
+    pub featured: bool,
+    pub verified_language: Option<Vec<VerifiedLanguage>>,
+    pub notice_period: Option<f32>,
+    pub instagram_username: Option<String>,
+    pub twitter_username: Option<String>,
+    pub youtube_username: Option<String>,
+    pub tiktok_username: Option<String>,
+    pub image_url: Option<String>,
+    pub is_added_by_user: Option<bool>,
 }
 
 /// Safety control

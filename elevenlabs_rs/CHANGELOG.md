@@ -39,7 +39,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `with_search(search)`
   - `show_only_owned_documents()`
   - `use_typesense()`
-
 - `verified_languages` to `GetVoiceResponse`
 - `speed` field to `VoiceSettings`
 - Fields to `SharedVoice`

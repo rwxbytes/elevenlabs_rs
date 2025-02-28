@@ -2,7 +2,7 @@
 use super::*;
 pub use crate::shared::{
     FineTuning, SafetyControl, Sharing, VoiceCategory, VoiceSample, VoiceSettings,
-    VoiceVerification, VerifiedLanguage
+    VoiceVerification, VerifiedLanguage, SharedVoice
 };
 use std::collections::HashMap;
 use std::path::Path;
@@ -575,10 +575,15 @@ impl IntoIterator for GetVoicesResponse {
 ///    let body = ListSimilarVoicesBody::new("audio_sample.mp3")
 ///     .with_similarity_threshold(1.75)
 ///     .with_top_k(5);
+///
 ///    let endpoint = ListSimilarVoices::new(body);
 ///    let resp = c.hit(endpoint).await?;
-///    println!("{:#?}", resp);
-/// Ok(())
+///
+///    for shared_voice in resp {
+///       println!("{:#?}", shared_voice);
+///    }
+///
+///    Ok(())
 /// }
 /// ```
 /// See the [List Similar Voices API reference](https://elevenlabs.io/docs/api-reference/voices/get-similar-library-voices)
@@ -680,6 +685,25 @@ impl TryFrom<ListSimilarVoicesBody> for Form {
 /// List similar voices response
 #[derive(Clone, Debug, Deserialize)]
 pub struct ListSimilarVoicesResponse {
-    // TODO: implement type
-    pub voices: Vec<Value>,
+    pub voices: Vec<SharedVoice>,
+    pub has_more: bool,
+    pub last_sort_id: Option<String>,
+}
+
+impl<'a> IntoIterator for &'a ListSimilarVoicesResponse {
+    type Item = &'a SharedVoice;
+    type IntoIter = std::slice::Iter<'a, SharedVoice>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.voices.iter()
+    }
+}
+
+impl IntoIterator for ListSimilarVoicesResponse {
+    type Item = SharedVoice;
+    type IntoIter = std::vec::IntoIter<SharedVoice>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.voices.into_iter()
+    }
 }
