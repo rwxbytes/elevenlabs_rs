@@ -2,8 +2,9 @@
 use super::*;
 pub use crate::shared::{
     FineTuning, SafetyControl, Sharing, VoiceCategory, VoiceSample, VoiceSettings,
-    VoiceVerification, VerifiedLanguage, SharedVoice
+    VoiceVerification, VerifiedLanguage,
 };
+use crate::endpoints::admin::voice_library::SharedVoice;
 use std::collections::HashMap;
 use std::path::Path;
 
