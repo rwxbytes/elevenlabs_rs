@@ -9,7 +9,7 @@ repository = "https://github.com/rwxbytes/elevenlabs_rs/tree/master/elevenlabs-c
 keywords = ["elevenlabs", "convai", "AI", "conversational-AI", "AI-agent"]
 
 [dependencies]
-elevenlabs_rs = { path = "../elevenlabs_rs", version = "0.5.0", default-features = false, features = ["convai"] }
+elevenlabs_rs = { path = "../elevenlabs_rs", version = "0.5.1", default-features = false, features = ["convai"] }
 thiserror = "1.0.69"
 futures-util = "0.3.30"
 tokio-stream = "0.1.17"
