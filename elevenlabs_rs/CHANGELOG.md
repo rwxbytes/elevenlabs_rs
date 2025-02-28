@@ -26,7 +26,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `GetSecrets` to list all workspace secrets
   - `CreateSecret` to create a new workspace secret
 - `phone_numbers` field to `GetAgentResponse`
-- `enable_conversation_initiation_client_data_from_webhook` field to `Overrides` 
+- `enable_conversation_initiation_client_data_from_webhook` field to `Overrides`
+- `access_info` field to `Agent` on `GetAgentsResponse`
 ### Changed
 - **Breaking**: The `ResponseBody` of `DeleteAgent` now returns a `()` instead of a `StatusResponseBody`
 - **Breaking**: The `used_tools` field name to `tool_ids` of the `PromptConfig` and its type `Option<Vec<UsedTool>>` 

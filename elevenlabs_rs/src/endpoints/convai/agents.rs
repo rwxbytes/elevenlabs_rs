@@ -2283,19 +2283,27 @@ impl ElevenLabsEndpoint for GetAgents {
     }
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize)]
 pub struct GetAgentsResponse {
     pub agents: Vec<Agent>,
     pub has_more: bool,
     pub next_cursor: Option<String>,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize)]
 pub struct Agent {
     pub agent_id: String,
     pub name: String,
     pub created_at_unix_secs: u64,
-    pub access_level: AccessLevel,
+    pub access_info: AccessInfo,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+pub struct AccessInfo {
+    pub is_creator: bool,
+    pub creator_name: String,
+    pub creator_email: String,
+    pub role: AccessLevel,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
