@@ -1,7 +1,8 @@
-use crate::prelude::*;
+//use crate::prelude::*;
 use chrono::Utc;
 use surrealdb::engine::remote::ws::Client;
 use surrealdb::{RecordId, Surreal};
+use serde::{Deserialize, Serialize};
 
 pub const AVAILABLE_TABLES: &str = "SELECT * FROM table WHERE capacity >= $party_size \
 AND {out: id } NOTINSIDE (SELECT out FROM reservation WHERE time == <datetime>$datetime);";

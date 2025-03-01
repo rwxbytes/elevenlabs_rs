@@ -1,7 +1,8 @@
-use crate::prelude::AppError;
-use elevenlabs_rs::endpoints::convai::agents::*;
-use elevenlabs_rs::{DefaultVoice, ElevenLabsClient};
+use elevenlabs_twilio::agents::*;
+use elevenlabs_twilio::{DefaultVoice, ElevenLabsClient};
 use std::collections::HashMap;
+use elevenlabs_twilio::phone_numbers::{UpdatePhoneNumber, UpdatePhoneNumberBody};
+use elevenlabs_twilio::workspace::{ConversationInitiationClientDataWebhook, UpdateSettings, UpdateSettingsBody};
 
 const ATTITUDE_TOWARDS_NEW_CUSTOMER: &str = "You are a restaurant receptionist. \
 The current datetime is {{datetime}}. When a customer calls in to book a reservation for a table, \
@@ -38,7 +39,7 @@ const END_CALL_DESCRIPTION: &str = "End the call either when the customer says '
 or any other farewell expression, when the customer says something like 'no, thank you', \
 after you have asked if they need anything else, or when the customer directly tells you to end the call.";
 
-pub async fn create_agent(ngrok_url: &str) -> Result<CreateAgentResponse, AppError> {
+pub async fn agent_setup(ngrok_url: &str, phone_number: &str) -> Result<(), Box<dyn std::error::Error>> {
     let c = ElevenLabsClient::from_env().unwrap();
 
     let mut properties: HashMap<String, Schema> = HashMap::new();
@@ -131,16 +132,39 @@ pub async fn create_agent(ngrok_url: &str) -> Result<CreateAgentResponse, AppErr
     let convo_config_override =
         ConversationConfigOverride::default().with_agent_override(agent_override);
 
-    let overrides = Overrides::default().with_conversation_config_override(convo_config_override);
+    let overrides = Overrides::default()
+        .with_conversation_config_override(convo_config_override)
+        .enable_conversation_initiation_client_data_from_webhook(true);
 
     let settings = PlatformSettings::default().with_overrides(overrides);
 
     let body = CreateAgentBody::new(convo_config).with_platform_settings(settings);
 
-    let response = c
+    let agent_resp = c
         .hit(CreateAgent::new(body))
         .await
-        .expect("expected agent response");
+        .unwrap();
 
-    Ok(response)
+    let agent_id = agent_resp.agent_id;
+
+    let body = UpdatePhoneNumberBody::new(&agent_id);
+    let _resp = c
+        .hit(UpdatePhoneNumber::new(phone_number, body))
+        .await
+        .unwrap();
+
+    let hashmap = HashMap::new();
+
+    let init_webhook = ConversationInitiationClientDataWebhook::new(format!("{}/inbound-call", ngrok_url))
+        .with_request_headers(hashmap);
+
+
+    let body = UpdateSettingsBody::new(vec![])
+        .with_initiation_webhook(init_webhook);
+
+    let endpoint = UpdateSettings::new(body);
+
+    let _resp = c.hit(endpoint).await.unwrap();
+
+    Ok(())
 }

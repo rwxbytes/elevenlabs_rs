@@ -1,38 +1,67 @@
-use crate::db_types::{Customer, Reservation, ReservationData, Table, AVAILABLE_TABLES};
-use crate::prelude::*;
-use crate::{twilio, AppState};
-use axum::Form;
-use url::Url;
+use crate::db_types::{
+    revisiting_customer, Customer, Reservation, ReservationData, Table, AVAILABLE_TABLES,
+};
+use crate::{agent, AppState};
+use axum::extract::State;
+use axum::Json;
+use chrono::Utc;
+use elevenlabs_twilio::agents::DynamicVar;
+use elevenlabs_twilio::{
+    AgentOverrideData, ConversationInitiationClientData, OverrideData,
+    Personalization, PromptOverrideData,
+};
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
-pub async fn twiml(State(state): State<AppState>, Form(caller): Form<twilio::Caller>) -> String {
-    let url = Url::parse(&state.ngrok_url).expect("invalid ngrok URL");
-    let domain = url.domain().unwrap();
-    *state.caller.lock().await = Some(caller);
+pub async fn personalization(
+    State(state): State<AppState>,
+    Json(data): Personalization,
+) -> Json<ConversationInitiationClientData> {
+    let caller_id = data.caller_id.clone();
+    *state.caller_id.lock().await = Some(caller_id.clone());
 
-    format!(
-        r#"<?xml version="1.0" encoding="UTF-8"?>
-    <Response>
-        <Connect>
-            <Stream url="wss://{}/ws" track="inbound_track" />
-        </Connect>
-    </Response>
-    "#,
-        domain
-    )
+    let mut dyn_vars = HashMap::new();
+    let dyn_var = DynamicVar::new_string(Utc::now().to_rfc2822());
+    dyn_vars.insert("datetime".to_string(), dyn_var);
+    let mut init_client_data =
+        ConversationInitiationClientData::default().with_dynamic_variables(dyn_vars);
+
+    if let Some(customer) = revisiting_customer(&state.db, &caller_id).await {
+        let dyn_var = DynamicVar::new_string(&customer.name);
+
+        init_client_data
+            .dynamic_variables
+            .as_mut()
+            .unwrap()
+            .insert("customer".to_string(), dyn_var);
+
+        let prompt_override_data = PromptOverrideData::default()
+            .override_prompt(agent::ATTITUDE_TOWARDS_REVISITING_CUSTOMER);
+
+        let agent_override = AgentOverrideData::default()
+            .override_first_message(agent::FIRST_MSG_FOR_REVISITING_CUSTOMER)
+            .with_prompt_override_data(prompt_override_data);
+
+        let override_data = OverrideData::default().with_agent_override_data(agent_override);
+
+        init_client_data.with_override_data(override_data);
+    };
+
+    Json(init_client_data)
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-pub struct Reservation200 {
+pub struct ReservationSuccess {
     message: String,
 }
 
 pub async fn create_reservation(
     State(state): State<AppState>,
     Json(data): Json<ReservationData>,
-) -> Json<Reservation200> {
-    let caller = state.caller.lock().await.clone();
+) -> Json<ReservationSuccess> {
+    let caller_id = state.caller_id.lock().await.clone();
 
-    let customer = match state.revisiting_customer.lock().await.clone() {
+    let customer = match state.revisiting_customer {
         None => {
             let resp = state
                 .db
@@ -40,7 +69,7 @@ pub async fn create_reservation(
                 .content(Customer {
                     name: data.name.clone(),
                     email: None,
-                    number: caller.unwrap().caller,
+                    number: caller_id.unwrap(),
                     id: None,
                 })
                 .await
@@ -63,7 +92,7 @@ pub async fn create_reservation(
         .await
         .expect("Failed to create reservation");
 
-    Json(Reservation200 {
+    Json(ReservationSuccess {
         message: "Reservation created".to_string(),
     })
 }
