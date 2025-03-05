@@ -17,7 +17,7 @@ use strum::Display;
 /// async fn main() -> Result<()> {
 ///    let client = ElevenLabsClient::from_env()?;
 ///
-///    let endpoint = GetKnowledgeBase::new("documentation_id");
+///    let endpoint = GetKnowledgeBaseDoc::new("documentation_id");
 ///
 ///    let resp = client.hit(endpoint).await?;
 ///
@@ -28,11 +28,11 @@ use strum::Display;
 /// ```
 /// See [Get Knowledge Base Document API reference](https://elevenlabs.io/docs/api-reference/knowledge-base/get-knowledge-base-document-by-id).
 #[derive(Debug, Clone)]
-pub struct GetKnowledgeBase {
+pub struct GetKnowledgeBaseDoc {
     documentation_id: String,
 }
 
-impl GetKnowledgeBase {
+impl GetKnowledgeBaseDoc {
     pub fn new(documentation_id: impl Into<String>) -> Self {
         Self {
             documentation_id: documentation_id.into(),
@@ -40,12 +40,12 @@ impl GetKnowledgeBase {
     }
 }
 
-impl ElevenLabsEndpoint for GetKnowledgeBase {
+impl ElevenLabsEndpoint for GetKnowledgeBaseDoc {
     const PATH: &'static str = "v1/convai/knowledge-base/:documentation_id";
 
     const METHOD: Method = Method::GET;
 
-    type ResponseBody = GetKnowledgeBaseResponse;
+    type ResponseBody = GetKnowledgeBaseDocResponse;
 
     fn path_params(&self) -> Vec<(&'static str, &str)> {
         vec![self.documentation_id.and_param(PathParam::DocumentationID)]
@@ -57,7 +57,7 @@ impl ElevenLabsEndpoint for GetKnowledgeBase {
 }
 
 #[derive(Debug, Clone, Deserialize)]
-pub struct GetKnowledgeBaseResponse {
+pub struct GetKnowledgeBaseDocResponse {
     pub id: String,
     pub r#type: KnowledgeBaseType,
     pub extracted_inner_html: String,
@@ -96,14 +96,14 @@ pub enum KnowledgeBaseType {
 /// ```no_run
 /// use elevenlabs_rs::{ElevenLabsClient, Result};
 /// use elevenlabs_rs::endpoints::convai::agents::*;
-/// use elevenlabs_rs::endpoints::convai::knowledge_base::{CreateKnowledgeBase, KnowledgeBaseDoc};
+/// use elevenlabs_rs::endpoints::convai::knowledge_base::{CreateKnowledgeBaseDoc, KnowledgeBaseDoc};
 ///
 /// #[tokio::main]
 /// async fn main() -> Result<()> {
 ///   let client = ElevenLabsClient::from_env()?;
 ///   let kb = KnowledgeBaseDoc::url("https://elevenlabs.io/blog");
 ///   // Or KnowledgeBaseDoc::file("some_file.pdf");
-///   let endpoint = CreateKnowledgeBase::new(kb);
+///   let endpoint = CreateKnowledgeBaseDoc::new(kb);
 ///   let resp = client.hit(endpoint).await?;
 ///
 ///   // You must now patch the agent to include the knowledge base
@@ -127,21 +127,21 @@ pub enum KnowledgeBaseType {
 /// ```
 /// See [Create Knowledge Base Document API reference](https://elevenlabs.io/docs/api-reference/knowledge-base/add-to-knowledge-base).
 #[derive(Debug, Clone)]
-pub struct CreateKnowledgeBase {
-    body: CreateKnowledgeBaseBody,
+pub struct CreateKnowledgeBaseDoc {
+    body: CreateKnowledgeBaseDocBody,
 }
 
-impl CreateKnowledgeBase {
-    pub fn new(body: impl Into<CreateKnowledgeBaseBody>) -> Self {
+impl CreateKnowledgeBaseDoc {
+    pub fn new(body: impl Into<CreateKnowledgeBaseDocBody>) -> Self {
         Self { body: body.into() }
     }
 }
-impl ElevenLabsEndpoint for CreateKnowledgeBase {
+impl ElevenLabsEndpoint for CreateKnowledgeBaseDoc {
     const PATH: &'static str = "v1/convai/knowledge-base";
 
     const METHOD: Method = Method::POST;
 
-    type ResponseBody = CreateKnowledgeBaseResponse;
+    type ResponseBody = CreateKnowledgeBaseDocResponse;
 
     async fn request_body(&self) -> Result<RequestBody> {
         TryInto::try_into(&self.body)
@@ -153,20 +153,35 @@ impl ElevenLabsEndpoint for CreateKnowledgeBase {
 }
 
 #[derive(Debug, Clone)]
-pub struct CreateKnowledgeBaseBody {
+pub struct CreateKnowledgeBaseDocBody {
     knowledge_base_doc: KnowledgeBaseDoc,
+    name: Option<String>,
 }
 
-impl CreateKnowledgeBaseBody {
+impl CreateKnowledgeBaseDocBody {
     pub fn new(knowledge_base_doc: KnowledgeBaseDoc) -> Self {
-        Self { knowledge_base_doc }
+        Self {
+            knowledge_base_doc,
+            name: None,
+        }
+    }
+
+    pub fn with_name(mut self, name: impl Into<String>) -> Self {
+        self.name = Some(name.into());
+        self
     }
 }
 
-impl TryFrom<&CreateKnowledgeBaseBody> for RequestBody {
+impl TryFrom<&CreateKnowledgeBaseDocBody> for RequestBody {
     type Error = Box<dyn std::error::Error + Send + Sync>;
 
-    fn try_from(body: &CreateKnowledgeBaseBody) -> Result<Self> {
+    fn try_from(body: &CreateKnowledgeBaseDocBody) -> Result<Self> {
+        let mut form = Form::new();
+
+        if let Some(name) = &body.name {
+            form = form.text("name", name.clone());
+        }
+
         match body.knowledge_base_doc.clone() {
             KnowledgeBaseDoc::File(path) => {
                 let path = Path::new(&path);
@@ -189,10 +204,14 @@ impl TryFrom<&CreateKnowledgeBaseBody> for RequestBody {
                     .file_name(filename.to_string())
                     .mime_str(file_type.mime_type())?;
 
-                Ok(RequestBody::Multipart(Form::new().part("file", part)))
+                form = form.part("file", part);
+                Ok(RequestBody::Multipart(form))
             }
 
-            KnowledgeBaseDoc::Url(url) => Ok(RequestBody::Multipart(Form::new().text("url", url))),
+            KnowledgeBaseDoc::Url(url) => {
+                form = form.text("url", url);
+                Ok(RequestBody::Multipart(form))
+            }
         }
     }
 }
@@ -230,7 +249,7 @@ impl FileType {
 }
 
 #[derive(Debug, Clone, Deserialize)]
-pub struct CreateKnowledgeBaseResponse {
+pub struct CreateKnowledgeBaseDocResponse {
     pub id: String,
     pub prompt_injectable: bool,
 }
@@ -250,9 +269,12 @@ impl KnowledgeBaseDoc {
     }
 }
 
-impl From<KnowledgeBaseDoc> for CreateKnowledgeBaseBody {
+impl From<KnowledgeBaseDoc> for CreateKnowledgeBaseDocBody {
     fn from(knowledge_base_doc: KnowledgeBaseDoc) -> Self {
-        Self { knowledge_base_doc }
+        Self {
+            knowledge_base_doc,
+            name: None,
+        }
     }
 }
 
@@ -612,7 +634,6 @@ pub struct ComputeRAGIndexResponse {
     pub status: RAGIndexStatus,
     pub progress_percentage: f32,
 }
-
 
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "lowercase")]
