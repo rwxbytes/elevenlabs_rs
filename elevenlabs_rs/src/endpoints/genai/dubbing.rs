@@ -23,7 +23,6 @@ use strum::Display;
 ///         //.with_file("some_audio_or_video.mp3/mp4")
 ///         .with_highest_resolution(true)
 ///         .with_num_speakers(2)
-///          // perhaps a scene from Crouching Tiger, Hidden Dragon
 ///         .with_source_url("some_url")
 ///         .with_source_lang("zh");
 ///
@@ -247,10 +246,7 @@ pub struct GetDubbedAudio {
 }
 
 impl GetDubbedAudio {
-    pub fn new(
-        dubbing_id: impl Into<String>,
-        language_code_id: impl Into<String>,
-    ) -> Self {
+    pub fn new(dubbing_id: impl Into<String>, language_code_id: impl Into<String>) -> Self {
         GetDubbedAudio {
             dubbing_id: dubbing_id.into(),
             language_code_id: language_code_id.into(),
@@ -358,10 +354,7 @@ pub struct GetDubbedTranscript {
 }
 
 impl GetDubbedTranscript {
-    pub fn new(
-        dubbing_id: impl Into<String>,
-        language_code_id: impl Into<String>,
-    ) -> Self {
+    pub fn new(dubbing_id: impl Into<String>, language_code_id: impl Into<String>) -> Self {
         GetDubbedTranscript {
             dubbing_id: dubbing_id.into(),
             language_code_id: language_code_id.into(),
@@ -482,3 +475,74 @@ impl TryFrom<&DubbingBody> for RequestBody {
         Ok(RequestBody::Multipart(form))
     }
 }
+
+// TODO: get dubbing api access
+///#[derive(Debug, Clone)]
+///pub struct AddLanguageToDubbingResource {
+///    dubbing_id: String,
+///    body: AddLanguageToDubbingResourceBody,
+///}
+///
+///#[derive(Debug, Clone, Serialize)]
+///pub struct AddLanguageToDubbingResourceBody {
+///    language: String,
+///}
+///
+///impl From<&str> for AddLanguageToDubbingResourceBody {
+///    fn from(language: &str) -> Self {
+///        AddLanguageToDubbingResourceBody {
+///            language: language.to_string(),
+///        }
+///    }
+///}
+///
+///impl From<String> for AddLanguageToDubbingResourceBody {
+///    fn from(language: String) -> Self {
+///        AddLanguageToDubbingResourceBody { language }
+///    }
+///}
+///
+///impl AddLanguageToDubbingResource {
+///    pub fn new(
+///        dubbing_id: impl Into<String>,
+///        language: impl Into<AddLanguageToDubbingResourceBody>,
+///    ) -> Self {
+///        AddLanguageToDubbingResource {
+///            dubbing_id: dubbing_id.into(),
+///            body: language.into(),
+///        }
+///    }
+///}
+///
+///impl TryFrom<&AddLanguageToDubbingResourceBody> for RequestBody {
+///    type Error = Box<dyn std::error::Error + Send + Sync>;
+///
+///    fn try_from(value: &AddLanguageToDubbingResourceBody) -> Result<Self> {
+///        Ok(RequestBody::Json(serde_json::to_value(value)?))
+///    }
+///}
+///
+///impl ElevenLabsEndpoint for AddLanguageToDubbingResource {
+///    const PATH: &'static str = "v1/dubbing/resource/:dubbing_id/language";
+///
+///    const METHOD: Method = Method::POST;
+///
+///    type ResponseBody = AddLanguageToDubbingResourceResponse;
+///
+///    fn path_params(&self) -> Vec<(&'static str, &str)> {
+///        vec![self.dubbing_id.and_param(PathParam::DubbingID)]
+///    }
+///
+///    async fn request_body(&self) -> Result<RequestBody> {
+///        TryInto::try_into(&self.body)
+///    }
+///
+///    async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
+///        Ok(resp.json().await?)
+///    }
+///}
+///
+///#[derive(Debug, Clone, Deserialize)]
+///pub struct AddLanguageToDubbingResourceResponse {
+///    pub version: u32
+///}
