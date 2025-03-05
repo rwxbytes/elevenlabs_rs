@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `prompt_injectable` field to `GetKnowledgeBaseDocResponse`, `CreateKnowledgeBaseDocResponse`, and `Document`
 - `name` field to `CreateKnowledgeBaseDocBody`
 - `speed` field to `TTSConfig` 
+- LLM models
+  - claude-3.7-sonnet
+  - gemini-2.0-flash-lite
+  
 
 ### Changed
 - **Breaking**: `GetKnowledgeBase` to `GetKnowledgeBaseDoc`
@@ -18,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Breaking**: `CreateKnowledgeBase` to `CreateKnowledgeBaseDoc`
 - **Breaking**: `CreateKnowledgeBaseBody` to `CreateKnowledgeBaseDocBody`
 - **Breaking**: `CreateKnowledgeBaseResponse` to `CreateKnowledgeBaseDocResponse`
+- **Breaking**: `LLM::Gemini2_0FlashExp` to `LLM::Gemini2_0Flash001`
 
 ### Removed
 - **Breaking:**`GetVoiceQuery` as now deprecated
