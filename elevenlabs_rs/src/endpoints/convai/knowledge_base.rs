@@ -2,6 +2,8 @@ use super::*;
 use crate::endpoints::convai::agents::AccessLevel;
 use crate::error::Error;
 use std::path::Path;
+use std::string::ToString;
+use strum::Display;
 
 /// Get details about a specific documentation making up the agent’s knowledge base.
 ///
@@ -317,7 +319,7 @@ impl KnowledgeBaseQuery {
             .push(("show_only_owned_documents", true.to_string()));
         self
     }
-    /// If set to true, the endpoint will use typesense DB to search for the documents).
+    /// If set to true, the endpoint will use typesense DB to search for the documents.
     /// Defaults to false.
     pub fn use_typesense(mut self) -> Self {
         self.params.push(("use_typesense", true.to_string()));
@@ -470,4 +472,150 @@ impl ElevenLabsEndpoint for DeleteKnowledgeBaseDoc {
     async fn response_body(self, _resp: Response) -> Result<Self::ResponseBody> {
         Ok(())
     }
+}
+
+/// Compute a RAG index for a knowledge base document.
+///
+/// # Example
+///
+/// ```no_run
+/// use elevenlabs_rs::{ElevenLabsClient, Result};
+/// use elevenlabs_rs::endpoints::convai::knowledge_base::*;
+///
+/// #[tokio::main]
+/// async fn main() -> Result<()> {
+///   let client = ElevenLabsClient::from_env()?;
+///   let endpoint = ComputeRAGIndex::new("documentation_id", RAGModel::E5Mistral7BInstruct);
+///   let resp = client.hit(endpoint).await?;
+///   println!("{:#?}", resp);
+///   Ok(())
+/// }
+/// ```
+/// See [Compute RAG Index API reference](https://elevenlabs.io/docs/api-reference/knowledge-base/rag-index-status).
+/// # Note
+/// In case the document is not RAG indexed, it triggers rag indexing task,
+/// otherwise it just returns the current status.
+#[derive(Debug, Clone)]
+pub struct ComputeRAGIndex {
+    documentation_id: String,
+    body: ComputeRAGIndexBody,
+    query: Option<ComputeRAGIndexQuery>,
+}
+
+impl ComputeRAGIndex {
+    pub fn new(documentation_id: impl Into<String>, body: impl Into<ComputeRAGIndexBody>) -> Self {
+        Self {
+            documentation_id: documentation_id.into(),
+            body: body.into(),
+            query: None,
+        }
+    }
+
+    pub fn with_query(mut self, query: ComputeRAGIndexQuery) -> Self {
+        self.query = Some(query);
+        self
+    }
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct ComputeRAGIndexBody {
+    pub model: String,
+}
+
+impl ComputeRAGIndexBody {
+    pub fn new(model: impl Into<String>) -> Self {
+        Self {
+            model: model.into(),
+        }
+    }
+}
+
+impl TryFrom<&ComputeRAGIndexBody> for RequestBody {
+    type Error = Box<dyn std::error::Error + Send + Sync>;
+
+    fn try_from(body: &ComputeRAGIndexBody) -> Result<Self> {
+        Ok(RequestBody::Json(serde_json::to_value(body)?))
+    }
+}
+
+impl From<&str> for ComputeRAGIndexBody {
+    fn from(model: &str) -> Self {
+        Self {
+            model: model.to_string(),
+        }
+    }
+}
+
+impl From<String> for ComputeRAGIndexBody {
+    fn from(model: String) -> Self {
+        Self { model }
+    }
+}
+#[derive(Debug, Clone, Serialize, Display)]
+pub enum RAGModel {
+    #[strum(to_string = "e5_mistral_7b_instruct")]
+    E5Mistral7BInstruct,
+    #[strum(to_string = "gte_Qwen2_15B_instruct")]
+    GteQwen2_15BInstruct,
+}
+
+impl From<RAGModel> for ComputeRAGIndexBody {
+    fn from(model: RAGModel) -> Self {
+        Self {
+            model: model.to_string(),
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct ComputeRAGIndexQuery {
+    pub params: QueryValues,
+}
+
+impl ComputeRAGIndexQuery {
+    /// In case the document is indexed and for some reason you want to reindex it, set this param as true.
+    pub fn force_reindex(mut self) -> Self {
+        self.params.push(("force_reindex", true.to_string()));
+        self
+    }
+}
+
+impl ElevenLabsEndpoint for ComputeRAGIndex {
+    const PATH: &'static str = "v1/convai/knowledge-base/:documentation_id/rag-index";
+
+    const METHOD: Method = Method::POST;
+
+    type ResponseBody = ComputeRAGIndexResponse;
+
+    fn query_params(&self) -> Option<QueryValues> {
+        self.query.as_ref().map(|q| q.params.clone())
+    }
+
+    fn path_params(&self) -> Vec<(&'static str, &str)> {
+        vec![self.documentation_id.and_param(PathParam::DocumentationID)]
+    }
+
+    async fn request_body(&self) -> Result<RequestBody> {
+        TryInto::try_into(&self.body)
+    }
+
+    async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
+        Ok(resp.json().await?)
+    }
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct ComputeRAGIndexResponse {
+    pub status: RAGIndexStatus,
+    pub progress_percentage: f32,
+}
+
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum RAGIndexStatus {
+    Created,
+    Processing,
+    Failed,
+    Succeeded,
 }
