@@ -1231,6 +1231,8 @@ pub struct TTSConfig {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub stability: Option<f32>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub speed: Option<f32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub similarity_boost: Option<f32>,
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub pronunciation_dictionary_locators: Vec<DictionaryLocator>,
@@ -1275,6 +1277,11 @@ impl TTSConfig {
         pronunciation_dictionary_locators: Vec<DictionaryLocator>,
     ) -> Self {
         self.pronunciation_dictionary_locators = pronunciation_dictionary_locators;
+        self
+    }
+
+    pub fn with_speed(mut self, speed: f32) -> Self {
+        self.speed = Some(speed);
         self
     }
 }

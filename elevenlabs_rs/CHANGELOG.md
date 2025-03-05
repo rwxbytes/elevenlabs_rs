@@ -10,7 +10,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `ComputeRAGIndex` endpoint
 - `prompt_injectable` field to `GetKnowledgeBaseDocResponse`, `CreateKnowledgeBaseDocResponse`, and `Document`
 - `name` field to `CreateKnowledgeBaseDocBody`
-- 
+- `speed` field to `TTSConfig` 
+
 ### Changed
 - **Breaking**: `GetKnowledgeBase` to `GetKnowledgeBaseDoc`
 - **Breaking**: `GetKnowledgeBaseResponse` to `GetKnowledgeBaseDocResponse`
