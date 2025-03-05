@@ -12,11 +12,13 @@ use elevenlabs_twilio::{
 };
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use tracing::info;
 
 pub async fn personalization(
     State(state): State<AppState>,
     Json(data): Personalization,
 ) -> Json<ConversationInitiationClientData> {
+    info!("personalization called");
     let caller_id = data.caller_id.clone();
     *state.caller_id.lock().await = Some(caller_id.clone());
 
