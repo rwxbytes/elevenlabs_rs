@@ -1,10 +1,10 @@
 //! The voice endpoints
 use super::*;
-pub use crate::shared::{
-    FineTuning, SafetyControl, Sharing, VoiceCategory, VoiceSample, VoiceSettings,
-    VoiceVerification, VerifiedLanguage,
-};
 use crate::endpoints::admin::voice_library::SharedVoice;
+pub use crate::shared::{
+    FineTuning, SafetyControl, Sharing, VerifiedLanguage, VoiceCategory, VoiceSample,
+    VoiceSettings, VoiceVerification,
+};
 use std::collections::HashMap;
 use std::path::Path;
 
@@ -128,41 +128,13 @@ impl ElevenLabsEndpoint for GetVoiceSettings {
 #[derive(Clone, Debug)]
 pub struct GetVoice {
     voice_id: String,
-    query: Option<GetVoiceQuery>,
 }
 
 impl GetVoice {
     pub fn new(voice_id: impl Into<String>) -> Self {
         GetVoice {
             voice_id: voice_id.into(),
-            query: None,
         }
-    }
-
-    pub fn with_query(voice_id: impl Into<String>, query: GetVoiceQuery) -> Self {
-        GetVoice {
-            voice_id: voice_id.into(),
-            query: Some(query),
-        }
-    }
-}
-
-/// # Query Parameters
-/// `with_settings` - bool
-///
-/// Default: false
-///
-/// If set to true, the [`VoiceSettings`] will be included in the [`GetVoiceResponse`]
-#[derive(Clone, Debug, Default)]
-pub struct GetVoiceQuery {
-    params: QueryValues,
-}
-
-impl GetVoiceQuery {
-    pub fn with_settings(mut self, with_settings: bool) -> Self {
-        self.params
-            .push(("with_settings", with_settings.to_string()));
-        self
     }
 }
 
@@ -172,10 +144,6 @@ impl ElevenLabsEndpoint for GetVoice {
     const METHOD: Method = Method::GET;
 
     type ResponseBody = GetVoiceResponse;
-
-    fn query_params(&self) -> Option<QueryValues> {
-        self.query.as_ref().map(|q| q.params.clone())
-    }
 
     fn path_params(&self) -> Vec<(&'static str, &str)> {
         vec![self.voice_id.and_param(PathParam::VoiceID)]
@@ -543,8 +511,6 @@ pub struct GetVoiceResponse {
     pub is_mixed: Option<bool>,
     pub created_at_unix: Option<u64>,
 }
-
-
 
 impl<'a> IntoIterator for &'a GetVoicesResponse {
     type Item = &'a GetVoiceResponse;
