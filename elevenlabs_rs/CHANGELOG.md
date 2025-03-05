@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 ### Added
 - `ComputeRAGIndex` endpoint
+- `prompt_injectable` field to `GetKnowledgeBaseResponse`, `CreateKnowledgeBaseResponse`, and `Document`
 ### Removed
 - **Breaking:**`GetVoiceQuery` as now deprecated
 ## [0.5.1] - 2025-02-28

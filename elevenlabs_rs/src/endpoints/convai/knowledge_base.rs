@@ -63,6 +63,7 @@ pub struct GetKnowledgeBaseResponse {
     pub extracted_inner_html: String,
     pub name: String,
     pub access_level: AccessLevel,
+    pub prompt_injectable: bool,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -231,6 +232,7 @@ impl FileType {
 #[derive(Debug, Clone, Deserialize)]
 pub struct CreateKnowledgeBaseResponse {
     pub id: String,
+    pub prompt_injectable: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -357,6 +359,7 @@ pub struct Document {
     pub name: String,
     pub access_level: AccessLevel,
     pub dependent_agents: Vec<DependentAgent>,
+    pub prompt_injectable: bool,
 }
 
 /// Get a list of agents depending on this knowledge base document.
