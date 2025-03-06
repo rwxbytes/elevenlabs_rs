@@ -1,6 +1,9 @@
 //! Convai workspace endpoints
 
-use super::{agents::{AccessLevel ,RequestHeaders}, *};
+use super::{
+    agents::{AccessLevel, RequestHeaders},
+    *,
+};
 use std::collections::HashMap;
 
 /// Retrieve Convai settings for the workspace
@@ -129,13 +132,6 @@ pub struct UpdateSettingsBody {
 }
 
 impl UpdateSettingsBody {
-    //pub fn new(secrets: Vec<Secret>) -> Self {
-    //    Self {
-    //        conversation_initiation_client_data_webhook: None,
-    //        webhooks: None,
-    //    }
-    //}
-
     pub fn with_initiation_webhook(
         mut self,
         webhook: ConversationInitiationClientDataWebhook,
@@ -267,6 +263,52 @@ impl ElevenLabsEndpoint for CreateSecret {
 
     async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
         Ok(resp.json().await?)
+    }
+}
+
+/// Delete a workspace secret if it’s not in use
+///
+/// # Example
+///
+/// ```no_run
+/// use elevenlabs_rs::{ElevenLabsClient, Result};
+/// use elevenlabs_rs::endpoints::convai::workspace::DeleteSecret;
+///
+/// #[tokio::main]
+/// async fn main() -> Result<()> {
+///    let client = ElevenLabsClient::from_env()?;
+///    let _resp = client.hit(DeleteSecret::new("secret_id")).await?;
+///    Ok(())
+/// }
+/// ```
+/// See [Delete Secret API reference](https://elevenlabs.io/docs/api-reference/workspace/delete-secret)
+#[derive(Debug)]
+pub struct DeleteSecret {
+    pub secret_id: String,
+}
+impl DeleteSecret {
+    pub fn new(secret_id: impl Into<String>) -> Self {
+        Self {
+            secret_id: secret_id.into(),
+        }
+    }
+}
+
+type DeleteSecretResponse = ();
+
+impl ElevenLabsEndpoint for DeleteSecret {
+    const PATH: &'static str = "v1/convai/secrets/:secret_id";
+
+    const METHOD: Method = Method::DELETE;
+
+    type ResponseBody = DeleteSecretResponse;
+
+    fn path_params(&self) -> Vec<(&'static str, &str)> {
+        vec![self.secret_id.and_param(PathParam::SecretID)]
+    }
+
+    async fn response_body(self, _resp: Response) -> Result<Self::ResponseBody> {
+        Ok(())
     }
 }
 
