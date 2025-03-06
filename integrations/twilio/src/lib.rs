@@ -43,6 +43,7 @@ use tokio::task::JoinHandle;
 use tokio_stream::wrappers::UnboundedReceiverStream;
 use tracing::{error, info};
 use url::Url;
+use crate::conversations::GetConversationDetailsResponse;
 
 #[derive(Error, Debug)]
 pub enum Error {
@@ -91,9 +92,6 @@ impl WebSocketStreamManager {
     }
 }
 
-type ServerMessageCallback = Box<dyn FnMut(ServerMessage) + Send + 'static>;
-
-type TwilioMessageCallback = Box<dyn FnMut(TwilioMessage) + Send + 'static>;
 
 trait AudioBase64 {
     fn audio_base_64(&self) -> &str;
@@ -212,6 +210,7 @@ impl InboundCall {
     }
 }
 
+#[derive(Clone, Debug)]
 pub struct OutboundCall<E> {
     pub inner_extractor: E,
     pub twilio_client: TwilioClient,
@@ -334,11 +333,15 @@ impl<E> OutboundCall<E> {
 //    self
 //}
 
+type ServerMessageCallback = Box<dyn FnMut(ServerMessage) + Send + 'static>;
+
+type TwilioMessageCallback = Box<dyn FnMut(TwilioMessage) + Send + 'static>;
+
 pub struct TelephonyAgent {
     pub agent_ws: Arc<Mutex<AgentWebSocket>>,
     pub twilio_ws: WebSocketUpgrade,
-    pub server_message_cb: Option<Box<dyn FnMut(ServerMessage) + Send + 'static>>,
-    pub twilio_message_cb: Option<Box<dyn FnMut(TwilioMessage) + Send + 'static>>,
+    pub server_message_cb: Option<ServerMessageCallback>,
+    pub twilio_message_cb: Option<TwilioMessageCallback>,
     pub convo_init_rx: Option<Receiver<ConversationInitiationClientData>>,
 }
 
@@ -498,5 +501,33 @@ where {
             Ok::<(), Error>(())
         });
         Ok(())
+    }
+}
+
+#[derive(Clone, Debug, Deserialize)]
+pub struct PostCallPayload {
+    pub r#type: String,
+    pub data: GetConversationDetailsResponse,
+    pub event_timestamp: u64,
+}
+
+#[derive(Clone, Debug)]
+pub struct PostCall {
+    pub inner_extractor: Json<PostCallPayload>
+}
+
+impl<S> FromRequest<S> for PostCall
+where
+    S: Send + Sync,
+    WebSocketStreamManager: FromRef<S>,
+{
+    type Rejection = JsonRejection;
+
+    async fn from_request(req: Request, state: &S) -> Result<Self, Self::Rejection> {
+        info!("Post call request");
+        let extractor = Json::<PostCallPayload>::from_request(req, state).await?;
+        Ok(PostCall {
+            inner_extractor: extractor,
+        })
     }
 }
