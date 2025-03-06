@@ -23,9 +23,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Breaking**: `CreateKnowledgeBaseBody` to `CreateKnowledgeBaseDocBody`
 - **Breaking**: `CreateKnowledgeBaseResponse` to `CreateKnowledgeBaseDocResponse`
 - **Breaking**: `LLM::Gemini2_0FlashExp` to `LLM::Gemini2_0Flash001`
+- **Breaking**: Moved `Secret`, `UsedBy`, `AgentTool`, and `SecretType` from `convai::agents` to `convai::workspace`
+
+### Fixed
+- The api key field on `CustomLLM` and its type
 
 ### Removed
 - **Breaking:**`GetVoiceQuery` as now deprecated
+- **Breaking:** `secrets` field from `GetAgentResponse` and `UpdateAgentBody`
 
 ## [0.5.1] - 2025-02-28
 ### Added

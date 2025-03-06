@@ -2,7 +2,6 @@
 
 use super::*;
 use crate::endpoints::convai::phone_numbers::{AssignedAgent, PhoneNumberProvider};
-use crate::endpoints::convai::workspace::UsedTools;
 use crate::shared::DictionaryLocator;
 use std::collections::HashMap;
 
@@ -754,7 +753,7 @@ pub struct CustomLLM {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub model_id: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub apikey: Option<SecretType>,
+    pub api_key: Option<CustomAPIKey>,
 }
 
 impl CustomLLM {
@@ -762,7 +761,7 @@ impl CustomLLM {
         CustomLLM {
             url: url.into(),
             model_id: None,
-            apikey: None,
+            api_key: None,
         }
     }
 
@@ -771,10 +770,15 @@ impl CustomLLM {
         self
     }
 
-    pub fn with_apikey(mut self, apikey: SecretType) -> Self {
-        self.apikey = Some(apikey);
+    pub fn with_apikey(mut self, apikey: CustomAPIKey) -> Self {
+        self.api_key = Some(apikey);
         self
     }
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct CustomAPIKey {
+    pub secret_id: String,
 }
 
 /// Configuration for a webhook that will be called by an LLM tool.
@@ -791,8 +795,6 @@ pub struct ApiSchema {
     #[serde(skip_serializing_if = "Option::is_none")]
     request_headers: Option<HashMap<String, RequestHeaders>>,
 }
-
-//pub type RequestHeaders = HashMap<String, ConvAIHeaderValue>;
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(untagged)]
@@ -846,115 +848,9 @@ impl ApiSchema {
         self.request_headers = Some(request_headers);
         self
     }
-
-    //pub fn with_request_headers(mut self, request_headers: RequestHeaders) -> Self {
-    //    self.request_headers = Some(request_headers);
-    //    self
-    //}
 }
 
-//#[derive(Clone, Debug, Deserialize, Serialize)]
-//#[serde(untagged)]
-//pub enum ConvAIHeaderValue {
-//    String(String),
-//    Secret(Secret),
-//}
-//
-//impl ConvAIHeaderValue {
-//    pub fn new_string(value: &str) -> Self {
-//        ConvAIHeaderValue::String(value.to_string())
-//    }
-//
-//    //pub fn new_secret(secret_id: &str) -> Self {
-//    //    ConvAIHeaderValue::Secret(Secret::new(secret_id))
-//    //}
-//}
-//
-//impl From<String> for ConvAIHeaderValue {
-//    fn from(value: String) -> Self {
-//        ConvAIHeaderValue::String(value)
-//    }
-//}
-//
-//impl From<Secret> for ConvAIHeaderValue {
-//    fn from(secret: Secret) -> Self {
-//        ConvAIHeaderValue::Secret(secret)
-//    }
-//}
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
-#[serde(rename_all = "lowercase")]
-#[serde(untagged)]
-pub enum Secret {
-    New {
-        name: String,
-        value: String,
-        #[serde(default = "SecretType::new")]
-        r#type: SecretType,
-        used_by: Option<UsedBy>,
-    },
-    Stored {
-        name: String,
-        secret_id: String,
-        #[serde(default = "SecretType::stored")]
-        r#type: SecretType,
-        used_by: Option<UsedBy>,
-    },
-}
-
-#[derive(Clone, Debug, Deserialize, Serialize)]
-pub struct UsedBy {
-    pub tools: Vec<UsedTools>,
-    pub agent_tools: Vec<AgentTool>,
-    pub others: Vec<String>,
-}
-
-#[derive(Clone, Debug, Deserialize, Serialize)]
-pub struct AgentTool {
-    pub agent_id: String,
-    pub agent_name: String,
-    pub r#type: String,
-    pub access_level: AccessLevel,
-    pub created_at_unix_secs: u64,
-    pub used_by: Vec<String>,
-}
-
-impl Secret {
-    pub fn new(name: impl Into<String>, value: impl Into<String>) -> Self {
-        Secret::New {
-            name: name.into(),
-            value: value.into(),
-            r#type: SecretType::New,
-            used_by: None,
-        }
-    }
-
-    //pub fn new_stored(name: impl Into<String>, secret_id: impl Into<String>) -> Self {
-    //    Secret::Stored {
-    //        name: name.into(),
-    //        secret_id: secret_id.into(),
-    //        r#type: SecretType::Stored,
-    //        used_by: None,
-    //    }
-    //}
-}
-
-#[derive(Clone, Debug, Deserialize, Serialize)]
-#[serde(rename_all = "lowercase")]
-pub enum SecretType {
-    New,
-    Stored,
-}
-
-impl SecretType {
-    fn new() -> Self {
-        SecretType::New
-    }
-
-    fn stored() -> Self {
-        SecretType::Stored
-    }
-}
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 pub enum ApiMethod {
@@ -2228,7 +2124,6 @@ pub struct GetAgentResponse {
     pub conversation_config: ConversationConfig,
     pub platform_settings: Option<PlatformSettings>,
     pub metadata: Metadata,
-    pub secrets: Option<Vec<Secret>>,
     pub phone_numbers: Option<Vec<PhoneNumber>>,
 }
 
@@ -2373,9 +2268,6 @@ impl GetAgentsQuery {
 /// async fn main() -> Result<()> {
 ///     let client = ElevenLabsClient::from_env()?;
 ///
-///     let new_secret = Secret::new("new_secret", "new_secret_value");
-///     let new_stored_secret = Secret::new("another_secret", "another_value");
-///     let secrets = vec![new_secret];
 ///
 ///     let updated_config = ConversationConfig::default()
 ///         .with_agent_config(AgentConfig::default().with_first_message("updated first message"))
@@ -2384,8 +2276,7 @@ impl GetAgentsQuery {
 ///
 ///     let body = UpdateAgentBody::default()
 ///         .with_conversation_config(updated_config)
-///         .with_name("updated agent")
-///         .with_secrets(secrets);
+///         .with_name("updated agent");
 ///
 ///     let endpoint = UpdateAgent::new("agent_id", body);
 ///
@@ -2439,8 +2330,6 @@ pub struct UpdateAgentBody {
     platform_settings: Option<PlatformSettings>,
     #[serde(skip_serializing_if = "Option::is_none")]
     name: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    secrets: Option<Vec<Secret>>,
 }
 
 impl UpdateAgentBody {
@@ -2454,26 +2343,6 @@ impl UpdateAgentBody {
     }
     pub fn with_name(mut self, name: impl Into<String>) -> Self {
         self.name = Some(name.into());
-        self
-    }
-    /// Add a secret to the agent.
-    ///
-    /// # Example
-    ///
-    ///
-    /// ```
-    /// use elevenlabs_rs::endpoints::convai::agents::{UpdateAgent, UpdateAgentBody, Secret};
-    ///
-    /// let body = UpdateAgentBody::default().with_secrets(vec![
-    ///     Secret::new("secret_name", "secret_value"),
-    ///     Secret::new("other_secret_name", "other_secret_value"),
-    /// ]);
-    ///
-    /// let endpoint = UpdateAgent::new("my_agent_id", body);
-    ///
-    /// ```
-    pub fn with_secrets(mut self, secrets: Vec<Secret>) -> Self {
-        self.secrets = Some(secrets);
         self
     }
 }

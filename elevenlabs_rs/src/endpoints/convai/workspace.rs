@@ -1,7 +1,6 @@
 //! Convai workspace endpoints
 
-use super::{agents::AccessLevel, *};
-use crate::endpoints::convai::agents::{RequestHeaders, Secret};
+use super::{agents::{AccessLevel ,RequestHeaders}, *};
 use std::collections::HashMap;
 
 /// Retrieve Convai settings for the workspace
@@ -95,8 +94,8 @@ pub struct UsedTools {
 ///
 /// ```no_run
 /// use elevenlabs_rs::{ElevenLabsClient, Result};
-/// use elevenlabs_rs::endpoints::convai::workspace::{UpdateSettings, UpdateSettingsBody};
-/// use elevenlabs_rs::endpoints::convai::agents::{Secret, RequestHeaders};
+/// use elevenlabs_rs::endpoints::convai::workspace::{UpdateSettings, UpdateSettingsBody, Secret};
+/// use elevenlabs_rs::endpoints::convai::agents::RequestHeaders;
 ///
 /// #[tokio::main]
 /// async fn main() -> Result<()> {
@@ -224,7 +223,6 @@ pub struct GetSecretsResponse {
 /// ```no_run
 /// use elevenlabs_rs::{ElevenLabsClient, Result};
 /// use elevenlabs_rs::endpoints::convai::workspace::CreateSecret;
-/// use elevenlabs_rs::endpoints::convai::agents::Secret;
 ///
 /// #[tokio::main]
 /// async fn main() -> Result<()> {
@@ -271,6 +269,71 @@ impl ElevenLabsEndpoint for CreateSecret {
 
     async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
         Ok(resp.json().await?)
+    }
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "lowercase")]
+#[serde(untagged)]
+pub enum Secret {
+    New {
+        name: String,
+        value: String,
+        #[serde(default = "SecretType::new")]
+        r#type: SecretType,
+        used_by: Option<UsedBy>,
+    },
+    Stored {
+        name: String,
+        secret_id: String,
+        #[serde(default = "SecretType::stored")]
+        r#type: SecretType,
+        used_by: Option<UsedBy>,
+    },
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct UsedBy {
+    pub tools: Vec<UsedTools>,
+    pub agent_tools: Vec<AgentTool>,
+    pub others: Vec<String>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct AgentTool {
+    pub agent_id: String,
+    pub agent_name: String,
+    pub r#type: String,
+    pub access_level: AccessLevel,
+    pub created_at_unix_secs: u64,
+    pub used_by: Vec<String>,
+}
+
+impl Secret {
+    pub fn new(name: impl Into<String>, value: impl Into<String>) -> Self {
+        Secret::New {
+            name: name.into(),
+            value: value.into(),
+            r#type: SecretType::New,
+            used_by: None,
+        }
+    }
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum SecretType {
+    New,
+    Stored,
+}
+
+impl SecretType {
+    fn new() -> Self {
+        SecretType::New
+    }
+
+    fn stored() -> Self {
+        SecretType::Stored
     }
 }
 
