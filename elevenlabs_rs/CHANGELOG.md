@@ -31,6 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 - **Breaking:**`GetVoiceQuery` as now deprecated
 - **Breaking:** `secrets` field from `GetAgentResponse` and `UpdateAgentBody`
+- **Breaking:** `secrets` field from `GetSettingsResponse` and `UpdateSettingsBody`
 
 ## [0.5.1] - 2025-02-28
 ### Added

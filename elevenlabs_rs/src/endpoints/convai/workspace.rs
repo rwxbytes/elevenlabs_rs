@@ -37,7 +37,6 @@ impl ElevenLabsEndpoint for GetSettings {
 
 #[derive(Clone, Debug, Deserialize)]
 pub struct GetSettingsResponse {
-    pub secrets: Option<Vec<Secret>>,
     pub conversation_initiation_client_data_webhook:
         Option<ConversationInitiationClientDataWebhook>,
     pub webhooks: Option<Webhooks>,
@@ -53,7 +52,7 @@ impl ConversationInitiationClientDataWebhook {
     pub fn new(url: impl Into<String>) -> Self {
         Self {
             url: url.into(),
-            request_headers: None,
+            request_headers: Some(HashMap::new()),
         }
     }
 
@@ -94,13 +93,14 @@ pub struct UsedTools {
 ///
 /// ```no_run
 /// use elevenlabs_rs::{ElevenLabsClient, Result};
-/// use elevenlabs_rs::endpoints::convai::workspace::{UpdateSettings, UpdateSettingsBody, Secret};
-/// use elevenlabs_rs::endpoints::convai::agents::RequestHeaders;
+/// use elevenlabs_rs::endpoints::convai::workspace::*;
 ///
 /// #[tokio::main]
 /// async fn main() -> Result<()> {
 ///     let client = ElevenLabsClient::from_env()?;
-///     let body = UpdateSettingsBody::new(vec![Secret::new("name", "value")]);
+///     let init_webhook = ConversationInitiationClientDataWebhook::new("https://example.com/webhook");
+///     let body = UpdateSettingsBody::default()
+///        .with_initiation_webhook(init_webhook);
 ///     let endpoint = UpdateSettings::new(body);
 ///     let resp = client.hit(endpoint).await?;
 ///     println!("{:?}", resp);
@@ -119,9 +119,8 @@ impl UpdateSettings {
     }
 }
 
-#[derive(Clone, Debug, Serialize)]
+#[derive(Clone, Debug, Default, Serialize)]
 pub struct UpdateSettingsBody {
-    pub secrets: Vec<Secret>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub conversation_initiation_client_data_webhook:
         Option<ConversationInitiationClientDataWebhook>,
@@ -130,13 +129,12 @@ pub struct UpdateSettingsBody {
 }
 
 impl UpdateSettingsBody {
-    pub fn new(secrets: Vec<Secret>) -> Self {
-        Self {
-            secrets,
-            conversation_initiation_client_data_webhook: None,
-            webhooks: None,
-        }
-    }
+    //pub fn new(secrets: Vec<Secret>) -> Self {
+    //    Self {
+    //        conversation_initiation_client_data_webhook: None,
+    //        webhooks: None,
+    //    }
+    //}
 
     pub fn with_initiation_webhook(
         mut self,
