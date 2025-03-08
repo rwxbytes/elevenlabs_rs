@@ -1,10 +1,11 @@
 [package]
 name = "elevenlabs_twilio"
+authors = ["rwxbytes"]
 version = "0.1.0"
 edition = "2021"
 license = "MIT"
 repository = "https://github.com/rwxbytes/elevenlabs_rs"
-description = "A lib crate for ElevenLabs' Twilio integration"
+description = "A lib crate for the integration of ElevenLabs and Twilio"
 
 [dependencies]
 axum = { version = "0.8.1", features = ["ws"] }
@@ -24,6 +25,9 @@ hmac = "0.12.1"
 sha2 = "0.10.8"
 hex = "0.4.3"
 secrecy = "0.10.3"
+sha1 = "0.10.6"
+base64 = "0.22.1"
+serde_qs = "0.14.0"
 
 [dev-dependencies]
 http-body-util = "0.1.2"

@@ -7,7 +7,7 @@ use axum::extract::{
     FromRef, FromRequest, FromRequestParts, Query, Request, State, WebSocketUpgrade,
 };
 use axum::http::request::Parts;
-use axum::http::{HeaderMap, StatusCode, Uri};
+use axum::http::{HeaderMap, Method, StatusCode, Uri};
 use axum::response::{IntoResponse, Response};
 use axum::{Form, Json};
 use chrono::Utc;
@@ -27,11 +27,13 @@ pub use rusty_twilio::endpoints::voice::{call::*, stream::*};
 pub use rusty_twilio::error::TwilioError;
 use rusty_twilio::twiml::voice::StreamNounBuilder;
 pub use rusty_twilio::twiml::voice::*;
+pub use rusty_twilio::validation::SignatureValidationError;
 pub use rusty_twilio::TwilioClient;
 use secrecy::{ExposeSecret, SecretString};
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
+use std::collections::BTreeMap;
 use std::collections::HashMap;
 use std::convert::Infallible;
 use std::future::Future;
@@ -143,6 +145,89 @@ pub struct NativeExtractor {
 }
 
 pub type Personalization = Json<NativeExtractor>;
+
+pub struct TwilioParams(TwilioRequestParams);
+
+impl TwilioParams {
+    pub fn connect(self, ws_url: impl Into<String>) -> Result<Response<String>, Error> {
+        let twiml = VoiceResponse::new()
+            .connect(ws_url.into())
+            .to_http_response()?;
+        Ok(twiml)
+    }
+    pub fn from_map(map: BTreeMap<String, String>) -> Result<Self, String> {
+        let params = serde_qs::from_str::<TwilioRequestParams>(
+            &serde_qs::to_string(&map).map_err(|e| e.to_string())?,
+        )
+        .map_err(|e| e.to_string())?;
+        Ok(TwilioParams(params))
+    }
+
+    pub fn into_inner(self) -> TwilioRequestParams {
+        self.0
+    }
+}
+
+impl<S> FromRequest<S> for TwilioParams
+where
+    WebSocketStreamManager: FromRef<S>,
+    S: Send + Sync,
+{
+    type Rejection = TwilioValidationRejection;
+
+    async fn from_request(req: Request, state: &S) -> Result<Self, Self::Rejection> {
+        info!("Twilio request");
+
+        let manager = WebSocketStreamManager::from_ref(state);
+        let twilio_client = &manager.twilio_client;
+
+        let method = req.method().clone();
+        let uri = req.uri().clone();
+        let headers = req.headers().clone();
+
+        let form_data: BTreeMap<String, String> = Form::from_request(req, state)
+            .await
+            .map_err(TwilioValidationRejection::FormRejection)?
+            .0;
+
+        let post_params = if method == Method::POST
+            && headers.get("Content-Type").map_or(false, |ct| {
+                ct.to_str()
+                    .unwrap_or("")
+                    .starts_with("application/x-www-form-urlencoded")
+            }) {
+            Some(&form_data)
+        } else {
+            None
+        };
+
+        twilio_client
+            .validate_request(&method, &uri, &headers, post_params)
+            .map_err(TwilioValidationRejection::ValidationError)?;
+
+        let params = TwilioParams::from_map(form_data)
+            .map_err(TwilioValidationRejection::DeserializationError)?;
+
+        Ok(params)
+    }
+}
+
+#[derive(Debug)]
+pub enum TwilioValidationRejection {
+    ValidationError(TwilioError),
+    DeserializationError(String),
+    FormRejection(FormRejection),
+}
+
+impl IntoResponse for TwilioValidationRejection {
+    fn into_response(self) -> Response {
+        match self {
+            Self::ValidationError(e) => (StatusCode::BAD_REQUEST, e.to_string()).into_response(),
+            Self::DeserializationError(e) => (StatusCode::BAD_REQUEST, e).into_response(),
+            Self::FormRejection(e) => e.into_response(),
+        }
+    }
+}
 
 #[derive(Clone, Debug)]
 pub struct InboundCall {
@@ -311,6 +396,24 @@ impl<E> OutboundCall<E> {
     //}
 }
 
+//pub trait Contacts {
+//    fn number(&self) -> String;
+//    fn twiml_url(&self) -> String;
+//}
+//
+//impl<E: Contacts> OutboundCall<E> {
+//    pub async fn ring(self) -> Result<CallResponse, Error> {
+//        let create_call_body = CreateCallBody::new(
+//            self.inner_extractor.number(),
+//            self.number,
+//            TwimlSrc::url(self.inner_extractor.twiml_url()),
+//        );
+//        let create_call = CreateCall::new(self.twilio_client.account_sid(), create_call_body);
+//        let call_response = self.twilio_client.hit(create_call).await?;
+//        Ok(call_response)
+//    }
+//}
+
 //pub fn set_status_callback(
 //    mut self,
 //    status_callback: impl Into<String>,
@@ -451,20 +554,21 @@ where {
                     TwilioMessage::Media(media_msg) => {
                         let payload = media_msg.media.payload;
                         if twilio_tx.send(payload).is_err() {
-                            error!("failed to send Twilio payload to agent websocket");
+                            error!("Failed to send Twilio payload to agent websocket");
                         }
                     }
-                    TwilioMessage::Stop(_) => {
+                    TwilioMessage::Stop(s) => {
                         return match agent_ws_for_stop.lock().await.end_session().await {
                             Ok(_) => {
-                                info!("twilio message: stop, agent websocket session ended");
+                                info!("{:?}", s);
+                                //info!("Twilio message: stop, agent websocket session ended");
                                 Ok(())
                             }
                             Err(e) => {
-                                error!("failed to end agent websocket session: {}", e);
+                                error!("Failed to end agent websocket session: {}", e);
                                 Err(e.into())
                             }
-                        }
+                        };
                     }
                     _ => {}
                 }
@@ -666,9 +770,8 @@ mod tests {
         Router,
     };
     use chrono::Utc;
-    use hmac::{Hmac, Mac};
+    use hmac::Mac;
     use http_body_util::BodyExt;
-    use sha2::Sha256;
     use tower::ServiceExt;
 
     #[derive(Clone)]
