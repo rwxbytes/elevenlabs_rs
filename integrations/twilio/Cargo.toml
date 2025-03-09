@@ -24,11 +24,12 @@ hmac = "0.12.1"
 sha2 = "0.10.8"
 hex = "0.4.3"
 secrecy = "0.10.3"
-sha1 = "0.10.6"
-base64 = "0.22.1"
 serde_qs = "0.14.0"
 
 [dev-dependencies]
 http-body-util = "0.1.2"
+hyper-util = { version = "0.1.10", features = ["client", "http1", "client-legacy"] }
 serde_urlencoded = "0.7.1"
 tower = { version = "0.5.2", features = ["util"] }
+sha1 = "0.10.6"
+base64 = "0.22.1"

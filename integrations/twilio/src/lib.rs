@@ -143,10 +143,14 @@ pub type Personalization = Json<NativeExtractor>;
 pub struct TwilioParams(TwilioRequestParams);
 
 impl TwilioParams {
-    pub fn connect(self, ws_url: impl Into<String>) -> Result<Response<String>, Error> {
+    pub fn connect(
+        self,
+        ws_url: impl Into<String>,
+    ) -> Result<Response<String>, (StatusCode, String)> {
         let twiml = VoiceResponse::new()
             .connect(ws_url.into())
-            .to_http_response()?;
+            .to_http_response()
+            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
         Ok(twiml)
     }
     pub fn from_map(map: BTreeMap<String, String>) -> Result<Self, String> {
@@ -243,34 +247,34 @@ where
         let twilio_params = TwilioParams::from_request(req, state).await?;
         let mut t_state = TelephonyState::from_ref(state);
         let convo_init_rx = t_state.convo_init_rx.clone();
-       // let twilio_client = &t_state.twilio_client;
+        // let twilio_client = &t_state.twilio_client;
 
-       // let method = req.method().clone();
-       // let uri = req.uri().clone();
-       // let headers = req.headers().clone();
+        // let method = req.method().clone();
+        // let uri = req.uri().clone();
+        // let headers = req.headers().clone();
 
-       // let form_data: BTreeMap<String, String> = Form::from_request(req, state)
-       //     .await
-       //     .map_err(TwilioValidationRejection::FormRejection)?
-       //     .0;
+        // let form_data: BTreeMap<String, String> = Form::from_request(req, state)
+        //     .await
+        //     .map_err(TwilioValidationRejection::FormRejection)?
+        //     .0;
 
-       // let post_params = if method == Method::POST
-       //     && headers.get("Content-Type").map_or(false, |ct| {
-       //         ct.to_str()
-       //             .unwrap_or("")
-       //             .starts_with("application/x-www-form-urlencoded")
-       //     }) {
-       //     Some(&form_data)
-       // } else {
-       //     None
-       // };
+        // let post_params = if method == Method::POST
+        //     && headers.get("Content-Type").map_or(false, |ct| {
+        //         ct.to_str()
+        //             .unwrap_or("")
+        //             .starts_with("application/x-www-form-urlencoded")
+        //     }) {
+        //     Some(&form_data)
+        // } else {
+        //     None
+        // };
 
-       // twilio_client
-       //     .validate_request(&method, &uri, &headers, post_params)
-       //     .map_err(TwilioValidationRejection::ValidationError)?;
+        // twilio_client
+        //     .validate_request(&method, &uri, &headers, post_params)
+        //     .map_err(TwilioValidationRejection::ValidationError)?;
 
-       // let params = TwilioParams::from_map(form_data)
-       //     .map_err(TwilioValidationRejection::DeserializationError)?;
+        // let params = TwilioParams::from_map(form_data)
+        //     .map_err(TwilioValidationRejection::DeserializationError)?;
 
         Ok(InboundCall {
             params: twilio_params.into_inner(),
@@ -661,7 +665,6 @@ pub struct PostCall {
 
 use hex::*;
 use hmac::{Hmac, Mac};
-use rusty_twilio::validation::validate_twilio_signature;
 use sha2::Sha256;
 
 type HmacSha256 = Hmac<Sha256>;
@@ -675,9 +678,9 @@ where
 
     async fn from_request(req: Request, state: &S) -> Result<Self, Self::Rejection> {
         info!("Post call request");
-        let manager = TelephonyState::from_ref(state);
+        let t_state = TelephonyState::from_ref(state);
 
-        let secret_str = manager
+        let secret_str = t_state
             .webhook_secret
             .ok_or(PostCallRejection::InternalServerError(
                 "Webhook secret not set".to_string(),
@@ -802,6 +805,7 @@ mod tests {
     use hmac::Mac;
     use http_body_util::BodyExt;
     use sha1::Sha1;
+    use tokio::net::TcpListener;
     use tower::ServiceExt;
 
     #[derive(Clone)]
@@ -842,7 +846,12 @@ mod tests {
             .route("/post_call", post(|_: PostCall| async { StatusCode::OK }))
             .route(
                 "/connect_twiml",
-                post(|p: TwilioParams| async { p.connect("wss://example.com/ws").unwrap() }),
+                post(|p: TwilioParams| async {
+                    match p.connect("wss://example.com/ws") {
+                        Ok(twiml) => twiml.into_response(),
+                        Err(e) => e.into_response(),
+                    }
+                }),
             )
             .with_state(app_state)
     }
@@ -1216,7 +1225,48 @@ mod tests {
         );
     }
 
-    //#[tokio::test]
+    #[tokio::test]
+    async fn connect_is_returning_connect_twiml_response_in_handler() {
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap();
 
+        tokio::spawn(async move {
+            axum::serve(listener, app("test_secret", "test_auth_token"))
+                .await
+                .unwrap();
+        });
 
+        let client =
+            hyper_util::client::legacy::Client::builder(hyper_util::rt::TokioExecutor::new())
+                .build_http();
+
+        let url = format!("https://{}/connect_twiml", addr);
+        let params = required_twilio_params();
+        let form_data = serde_urlencoded::to_string(&params).unwrap();
+        let signature = generate_valid_signature("test_auth_token", &url, Some(&params));
+
+        let request = Request::builder()
+            .method(Method::POST)
+            .uri(format!("http://{}/connect_twiml", addr))
+            .header("Host", addr.to_string())
+            .header("X-Twilio-Signature", signature)
+            .header(
+                "Content-Type",
+                "application/x-www-form-urlencoded; charset=UTF-8",
+            )
+            .body(Body::from(form_data))
+            .unwrap();
+
+        let response = client.request(request).await.unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+
+        let body = response.into_body().collect().await.unwrap().to_bytes();
+        let twiml_response = String::from_utf8(body.to_vec()).unwrap();
+
+        let want = r#"<?xml version="1.0" encoding="UTF-8"?><Response><Connect><Stream url="wss://example.com/ws" /></Connect></Response>"#;
+        assert_eq!(twiml_response, want);
+    }
 }
+
+
