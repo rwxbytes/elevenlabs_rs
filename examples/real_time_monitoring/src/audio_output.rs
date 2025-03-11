@@ -1,3 +1,5 @@
+// Iterations of LLMs
+// Audio quality still poor
 pub use std::sync::{Arc, Mutex};
 use base64::Engine;
 use base64::prelude::BASE64_STANDARD;
