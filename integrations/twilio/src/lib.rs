@@ -1,12 +1,12 @@
 use crate::conversations::GetConversationDetailsResponse;
-use axum::extract::rejection::{FormRejection, JsonRejection};
+use axum::extract::rejection::FormRejection;
 use axum::extract::ws::rejection::WebSocketUpgradeRejection;
 use axum::extract::ws::{Message, WebSocket};
 use axum::extract::{
-    FromRef, FromRequest, FromRequestParts, Query, Request, State, WebSocketUpgrade,
+    FromRef, FromRequest, FromRequestParts, Request,  WebSocketUpgrade,
 };
 use axum::http::request::Parts;
-use axum::http::{HeaderMap, Method, StatusCode, Uri};
+use axum::http::{Method, StatusCode};
 use axum::response::{IntoResponse, Response};
 use axum::{Form, Json};
 use chrono::Utc;
@@ -19,25 +19,19 @@ pub use elevenlabs_convai::messages::server_messages::{Audio, ConversationInitia
 pub use elevenlabs_convai::{client::AgentWebSocket, messages::server_messages::ServerMessage};
 pub use elevenlabs_convai::{DefaultVoice, ElevenLabsClient, LegacyVoice};
 use futures_util::{SinkExt, StreamExt};
-pub use rusty_twilio::endpoints::accounts::*;
-pub use rusty_twilio::endpoints::applications::*;
-pub use rusty_twilio::endpoints::voice::call::TwimlSrc::Twiml;
 pub use rusty_twilio::endpoints::voice::{call::*, stream::*};
 pub use rusty_twilio::error::TwilioError;
-use rusty_twilio::twiml::voice::StreamNounBuilder;
-pub use rusty_twilio::twiml::voice::*;
+pub use rusty_twilio::twiml::voice::VoiceResponse;
 pub use rusty_twilio::validation::SignatureValidationError;
 pub use rusty_twilio::TwilioClient;
 use secrecy::{ExposeSecret, SecretString};
-use serde::{Deserialize, Serialize};
-use serde_json::{json, Value};
+use serde::Deserialize;
 use std::collections::BTreeMap;
 use std::future::Future;
 use std::sync::Arc;
 use thiserror::Error;
-use tokio::sync::mpsc::{Receiver, Sender};
+use tokio::sync::mpsc::Receiver;
 use tokio::sync::Mutex;
-use tokio::task::JoinHandle;
 use tokio_stream::wrappers::UnboundedReceiverStream;
 use tracing::{error, info};
 
@@ -245,7 +239,7 @@ where
         info!("Inbound call request");
 
         let twilio_params = TwilioParams::from_request(req, state).await?;
-        let mut t_state = TelephonyState::from_ref(state);
+        let t_state = TelephonyState::from_ref(state);
         let convo_init_rx = t_state.convo_init_rx.clone();
 
         Ok(InboundCall {
@@ -279,7 +273,7 @@ impl InboundCall {
 
     // TODO: change Output to Result as user's async function can fail
     pub fn answer_and_config<F, Fut>(
-        mut self,
+        self,
         ws_url: impl Into<String>,
         f: F,
     ) -> Result<Response<String>, Error>
@@ -361,6 +355,9 @@ where
 }
 
 impl<E> OutboundCall<E> {
+    pub fn as_inner(&self) -> &E {
+        &self.inner_extractor
+    }
     pub async fn ring(
         self,
         to: impl Into<String>,
@@ -665,6 +662,14 @@ pub struct PostCall {
     pub payload: PostCallPayload,
 }
 
+impl PostCall {
+    pub fn summary(&self) -> Option<&str> {
+        if let Some(analysis) = &self.payload.data.analysis {
+            return Some(&analysis.transcript_summary);
+        } else { None }
+    }
+}
+
 use hex::*;
 use hmac::{Hmac, Mac};
 use sha2::Sha256;
@@ -812,6 +817,7 @@ mod tests {
     use tokio::net::TcpListener;
     use tokio_tungstenite::tungstenite;
     use tower::ServiceExt;
+    use serde_json::json;
 
     #[derive(Clone)]
     struct TestAppState {
