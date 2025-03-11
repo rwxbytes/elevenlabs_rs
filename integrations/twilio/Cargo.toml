@@ -10,7 +10,7 @@ description = "A lib crate for the integration of ElevenLabs and Twilio"
 [dependencies]
 axum = { version = "0.8.1", features = ["ws"] }
 elevenlabs-convai = {path = "../../elevenlabs-convai"}
-rusty_twilio = {path = "../../../rusty_twilio"}
+rusty_twilio = {git = "https://github.com/rwxbytes/rusty_twilio", branch = "master"}
 serde = { version = "1.0.217", features = ["derive"] }
 serde_json = "1.0.138"
 tokio = "1.43.0"
