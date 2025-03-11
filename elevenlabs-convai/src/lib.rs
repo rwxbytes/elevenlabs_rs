@@ -7,3 +7,6 @@ pub mod messages;
 /// An error type for the ElevenLabs Conversational AI.
 pub type Result<T> = std::result::Result<T, error::ConvAIError>;
 
+pub use elevenlabs_rs::endpoints::convai::*;
+pub use elevenlabs_rs::{ElevenLabsClient, DefaultVoice, LegacyVoice};
+
