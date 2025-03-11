@@ -1,26 +1,47 @@
-use axum::extract::FromRef;
-use axum::response::IntoResponse;
-use axum::{extract::ws::{Message, WebSocket, WebSocketUpgrade}, extract::State, response::Response, routing::{get, post}, Form, Json, Router};
-use elevenlabs_twilio::ServerMessage::{
-    AgentResponse, ConversationInitiationMetadata, UserTranscript,
+use axum::{
+    extract::FromRef,
+    response::{IntoResponse, Response},
+    routing::{get, post},
+    Json, Router,
 };
-use elevenlabs_twilio::{AgentWebSocket, Error, OutboundCall, ServerMessage, TelephonyAgent, TwilioClient, TwilioMessage, TwilioRequestParams, VoiceResponse, WebSocketStreamManager};
+use elevenlabs_twilio::*;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
-use std::sync::Arc;
-use tokio::sync::Mutex;
-use tracing::{error, info, instrument, span, Level};
+use tracing::info;
 
 #[derive(Clone, Debug)]
 pub struct AppState {
-    web_socket_stream_manager: WebSocketStreamManager,
+    telephony_state: TelephonyState,
 }
 
-// TODO: put in Arc & Mutex ?
-impl FromRef<AppState> for WebSocketStreamManager {
+impl FromRef<AppState> for TelephonyState {
     fn from_ref(app_state: &AppState) -> Self {
-        app_state.web_socket_stream_manager.clone()
+        app_state.telephony_state.clone()
     }
+}
+
+static WS_URL: &str = "wss://your-ngrok/ws";
+static TWIML_CONNECT_URL: &str = "https://your-ngrok/twiml";
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    tracing_subscriber::fmt().init();
+
+    let app_state = AppState {
+        telephony_state: TelephonyState::from_env()?,
+    };
+
+    let router = Router::new()
+        .route("/ring", post(outbound_call_handler))
+        .route("/twiml", post(twiml_handler))
+        .route("/ws", get(agent_handler))
+        .with_state(app_state);
+
+    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await?;
+    info!("Listening on {}", listener.local_addr()?);
+    axum::serve(listener, router).await?;
+
+    Ok(())
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -32,68 +53,61 @@ pub struct UserRequest {
     pub first_message: Option<String>,
 }
 
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    tracing_subscriber::fmt().init();
+impl From<UserRequest> for ConversationInitiationClientData {
+    fn from(user_request: UserRequest) -> Self {
+        let mut init = ConversationInitiationClientData::default();
+        let mut overrides = OverrideData::default();
 
-    let agent_ws = Arc::new(Mutex::new(AgentWebSocket::from_env()?));
-    let twilio_client = TwilioClient::from_env()?;
-    let web_socket_stream_manager = WebSocketStreamManager::new(agent_ws, twilio_client);
-
-    let app_state = AppState {
-        web_socket_stream_manager,
-    };
-
-    let router = Router::new()
-        .route("/ring", post(ring))
-        .route("/twiml", post(handle_outbound_call_twiml))
-        .route("/ws", get(handle_media_stream))
-        .with_state(app_state);
-
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await?;
-    info!("Listening on {}", listener.local_addr()?);
-    axum::serve(listener, router).await?;
-
-    Ok(())
+        if let Some(prompt) = user_request.prompt {
+            let msg = AgentOverrideData::default().override_first_message(prompt);
+            overrides = overrides.with_agent_override_data(msg);
+        }
+        if let Some(first_message) = user_request.first_message {
+            let msg = AgentOverrideData::default().override_first_message(first_message);
+            overrides = overrides.with_agent_override_data(msg);
+        }
+        init.with_override_data(overrides);
+        init
+    }
 }
 
-pub async fn handle_outbound_call_twiml(_: Form<TwilioRequestParams>) -> impl IntoResponse {
-    let url = "wss://02d8-86-18-8-153.ngrok-free.app/ws";
+async fn outbound_call_handler(
+    outbound_call: OutboundCall<Json<UserRequest>>,
+) -> impl IntoResponse {
+    let user_request = outbound_call.as_inner().0.clone();
+    let number = user_request.number.clone();
+    let f = move || ConversationInitiationClientData::from(user_request);
 
-    let twiml = VoiceResponse::new()
-        .connect(url)
-        .to_http_response()
-        .expect("Failed to create TwiML");
-
-    info!("sent connect TwiML");
-    twiml
-}
-
-async fn ring(outbound_call: OutboundCall<Json<UserRequest>>) -> impl IntoResponse {
-    let number_to_ring = outbound_call.inner_extractor.number.clone();
-    let url = "https://02d8-86-18-8-153.ngrok-free.app/twiml";
-    let resp = outbound_call.ring(&number_to_ring, url).await.unwrap();
-
-    println!("ring response: {:?}", &resp);
+    let resp = outbound_call
+        .ring_and_config(number, TWIML_CONNECT_URL, f)
+        .await
+        .unwrap();
 
     Json(json!({
         "success": true,
         "message": "outbound call initiated",
-        "callSid": resp.sid
+        "callSid": resp.sid,
     }))
 }
 
-async fn handle_media_stream(mut agent: TelephonyAgent) -> Response {
-    let cb = move |msg: ServerMessage| match msg {
-        AgentResponse(inner) => {
+async fn twiml_handler(params: TwilioParams) -> impl IntoResponse {
+    match params.connect(WS_URL) {
+        Ok(twilml) => twilml.into_response(),
+        Err(e) => e.into_response(),
+    }
+}
+
+async fn agent_handler(mut agent: TelephonyAgent) -> Response {
+    let cb = |msg: ServerMessage| match msg {
+        ServerMessage::AgentResponse(inner) => {
             println!(
-                "agent response: {:?}",
+                "agent response: {}",
                 inner.agent_response_event.agent_response
             );
         }
-        UserTranscript(inner) => {
+        ServerMessage::UserTranscript(inner) => {
             println!(
-                "user transcript: {:?}",
+                "user transcript: {}",
                 inner.user_transcription_event.user_transcript
             );
         }

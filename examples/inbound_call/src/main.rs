@@ -1,20 +1,18 @@
-use axum::response::Response;
-use axum::routing::get;
+use axum::http::StatusCode;
 use axum::{extract::FromRef, response::IntoResponse, routing::post, Router};
 use elevenlabs_twilio::{
-    AgentOverrideData, ConversationInitiationClientData, InboundCall, OverrideData, TelephonyAgent,
-    WebSocketStreamManager,
+    ConversationInitiationClientData, Personalization, PostCall, TelephonyState,
 };
 use tracing::info;
 
 #[derive(Debug, Clone)]
-    struct AppState {
-    ws_manager: WebSocketStreamManager,
+struct AppState {
+    telephony_state: TelephonyState,
 }
 
-impl FromRef<AppState> for WebSocketStreamManager {
+impl FromRef<AppState> for TelephonyState {
     fn from_ref(app_state: &AppState) -> Self {
-        app_state.ws_manager.clone()
+        app_state.telephony_state.clone()
     }
 }
 
@@ -22,15 +20,16 @@ impl FromRef<AppState> for WebSocketStreamManager {
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     tracing_subscriber::fmt().init();
 
-    let ws_manager = WebSocketStreamManager::from_env()?;
+    let telephony_state = TelephonyState::from_env()?;
 
-    let app_state = AppState { ws_manager };
+    let app_state = AppState { telephony_state };
 
+    // Change routes according to your Conversational AI workspace settings
     let app = Router::new()
-        //.route("/inbound-call", post(inbound_call))
-        //.route("/inbound-call", post(dynamic_inbound_call))
-        .route("/inbound-call", post(inbound_call))
-        .route("/ws", get(ws_handler))
+        // See Personalization https://elevenlabs.io/docs/conversational-ai/guides/twilio/dynamic-calls
+        .route("/inbound-call", post(native_inbound_call))
+        // See Post-call webhook https://elevenlabs.io/docs/conversational-ai/workflows/post-call-webhooks
+        .route("/post_call", post(post_call_handler))
         .with_state(app_state);
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
@@ -40,41 +39,18 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-// TODO: some macro like init_convo!
-async fn inbound_call(inbound_call: InboundCall) -> impl IntoResponse {
-    let ws_url = "wss://7c4e-86-18-8-153.ngrok-free.app/ws";
-    let f = async move || {
-        let agent_overrride =
-            AgentOverrideData::default().override_first_message("In Rust We Trust");
-        let mut init = ConversationInitiationClientData::default();
-        init.with_override_data(OverrideData::default().with_agent_override_data(agent_overrride));
-        info!("sent conversation initiation from inbound call");
-        init
-    };
-    inbound_call.dynamically_answer(ws_url, f).unwrap()
+async fn native_inbound_call(data: Personalization) -> impl IntoResponse {
+    info!("inbound call from {}", data.caller_id);
+    axum::Json(ConversationInitiationClientData::default())
 }
 
-async fn answer_if(inbound_call: InboundCall) -> impl IntoResponse {
-    let ws_url = "wss://02d8-86-18-8-153.ngrok-free.app/ws";
-    inbound_call
-        .answer_if(ws_url, |req| req.from == "some_number")
-        .unwrap()
-}
+async fn post_call_handler(post_call: PostCall) -> impl IntoResponse {
+    let summary = post_call.summary();
 
-async fn dynamic_inbound_call(inbound_call: InboundCall) -> impl IntoResponse {
-    let ws_url = "wss://02d8-86-18-8-153.ngrok-free.app/ws";
-    let caller_id = inbound_call.inner_extractor.from.clone();
-    let f = async move || {
-        let agent_overrride =
-            AgentOverrideData::default().override_first_message("In Rust We Trust");
-        let mut init = ConversationInitiationClientData::default();
-        init.with_override_data(OverrideData::default().with_agent_override_data(agent_overrride));
-        info!("sent conversation initiation from inbound call");
-        init
-    };
-    inbound_call.dynamically_answer(ws_url, f).unwrap()
-}
+    match summary {
+        Some(summary) => println!("Summary: {:?}", summary),
+        None => println!("No summary available"),
+    }
 
-async fn ws_handler(agent: TelephonyAgent) -> Response {
-    agent.handle_phone_call().await
+    (StatusCode::OK, "Webhook received")
 }
