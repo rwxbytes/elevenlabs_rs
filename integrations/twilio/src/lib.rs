@@ -1,5 +1,4 @@
 use crate::conversations::GetConversationDetailsResponse;
-pub use async_trait::async_trait;
 use axum::extract::rejection::{FormRejection, JsonRejection};
 use axum::extract::ws::rejection::WebSocketUpgradeRejection;
 use axum::extract::ws::{Message, WebSocket};
@@ -215,6 +214,7 @@ pub enum TwilioValidationRejection {
     ValidationError(TwilioError),
     DeserializationError(String),
     FormRejection(FormRejection),
+    WebSocketUpgradeRejection(WebSocketUpgradeRejection),
 }
 
 impl IntoResponse for TwilioValidationRejection {
@@ -223,6 +223,7 @@ impl IntoResponse for TwilioValidationRejection {
             Self::ValidationError(e) => (StatusCode::BAD_REQUEST, e.to_string()).into_response(),
             Self::DeserializationError(e) => (StatusCode::BAD_REQUEST, e).into_response(),
             Self::FormRejection(e) => e.into_response(),
+            Self::WebSocketUpgradeRejection(e) => e.into_response(),
         }
     }
 }
@@ -243,38 +244,9 @@ where
     async fn from_request(req: Request, state: &S) -> Result<Self, Self::Rejection> {
         info!("Inbound call request");
 
-        //let mut t_state = TelephonyState::from_ref(state);
         let twilio_params = TwilioParams::from_request(req, state).await?;
         let mut t_state = TelephonyState::from_ref(state);
         let convo_init_rx = t_state.convo_init_rx.clone();
-        // let twilio_client = &t_state.twilio_client;
-
-        // let method = req.method().clone();
-        // let uri = req.uri().clone();
-        // let headers = req.headers().clone();
-
-        // let form_data: BTreeMap<String, String> = Form::from_request(req, state)
-        //     .await
-        //     .map_err(TwilioValidationRejection::FormRejection)?
-        //     .0;
-
-        // let post_params = if method == Method::POST
-        //     && headers.get("Content-Type").map_or(false, |ct| {
-        //         ct.to_str()
-        //             .unwrap_or("")
-        //             .starts_with("application/x-www-form-urlencoded")
-        //     }) {
-        //     Some(&form_data)
-        // } else {
-        //     None
-        // };
-
-        // twilio_client
-        //     .validate_request(&method, &uri, &headers, post_params)
-        //     .map_err(TwilioValidationRejection::ValidationError)?;
-
-        // let params = TwilioParams::from_map(form_data)
-        //     .map_err(TwilioValidationRejection::DeserializationError)?;
 
         Ok(InboundCall {
             params: twilio_params.into_inner(),
@@ -306,7 +278,7 @@ impl InboundCall {
     }
 
     // TODO: change Output to Result as user's async function can fail
-    pub fn dynamically_answer<F, Fut>(
+    pub fn answer_and_config<F, Fut>(
         mut self,
         ws_url: impl Into<String>,
         f: F,
@@ -320,9 +292,8 @@ impl InboundCall {
             *self.convo_init_rx.lock().await = Some(rx);
             let data = f().await;
             if tx.send(data).await.is_err() {
-                error!("Failed to send conversation initiation data to agent websocket");
+                error!("Failed to send conversation initiation data to telephony state");
             }
-            info!("Conversation initiation data sent to agent websocket");
         });
 
         Ok(VoiceResponse::new()
@@ -336,6 +307,7 @@ pub struct OutboundCall<E> {
     pub inner_extractor: E,
     pub twilio_client: TwilioClient,
     pub number: String,
+    pub convo_init_rx: Arc<Mutex<Option<Receiver<ConversationInitiationClientData>>>>,
 }
 
 impl<S, E> FromRequest<S> for OutboundCall<E>
@@ -352,11 +324,13 @@ where
         let t_state = TelephonyState::from_ref(state);
         let twilio_client = t_state.twilio_client.clone();
         let number = twilio_client.number().unwrap().to_string();
+        let convo_init_rx = t_state.convo_init_rx.clone();
 
         Ok(OutboundCall {
             inner_extractor,
             twilio_client,
             number,
+            convo_init_rx,
         })
     }
 }
@@ -375,11 +349,13 @@ where
         let t_state = TelephonyState::from_ref(state);
         let twilio_client = t_state.twilio_client.clone();
         let number = twilio_client.number().unwrap().to_string();
+        let convo_init_rx = t_state.convo_init_rx.clone();
 
         Ok(OutboundCall {
             inner_extractor,
             twilio_client,
             number,
+            convo_init_rx,
         })
     }
 }
@@ -394,6 +370,24 @@ impl<E> OutboundCall<E> {
         let create_call = CreateCall::new(self.twilio_client.account_sid(), body);
         let call_response = self.twilio_client.hit(create_call).await?;
         Ok(call_response)
+    }
+
+    pub async fn ring_and_config<F>(
+        self,
+        to: impl Into<String>,
+        twiml_url: impl Into<String>,
+        f: F,
+    ) -> Result<CallResponse, Error>
+    where
+        F: FnOnce() -> ConversationInitiationClientData + Send + 'static,
+    {
+        let (tx, rx) = tokio::sync::mpsc::channel(1);
+        *self.convo_init_rx.lock().await = Some(rx);
+        let data = f();
+        if tx.send(data).await.is_err() {
+            error!("Failed to send conversation initiation data to telephony state");
+        }
+        self.ring(to, twiml_url).await
     }
 
     /// Use a different Twilio phone number to make the call
@@ -496,12 +490,21 @@ where
     TelephonyState: FromRef<S>,
     S: Send + Sync,
 {
-    type Rejection = WebSocketUpgradeRejection;
+    type Rejection = TwilioValidationRejection;
 
     async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
-        let ws = WebSocketUpgrade::from_request_parts(parts, state).await?;
+        let t_state = TelephonyState::from_ref(state);
+        let twilio_client = &t_state.twilio_client;
 
-        let mut t_state = TelephonyState::from_ref(state);
+        // TODO: just make it take &Parts ?
+        twilio_client
+            .validate_request(&parts.method, &parts.uri, &parts.headers, None)
+            .map_err(TwilioValidationRejection::ValidationError)?;
+
+        let ws = WebSocketUpgrade::from_request_parts(parts, state)
+            .await
+            .map_err(TwilioValidationRejection::WebSocketUpgradeRejection)?;
+
         let agent_ws = Arc::clone(&t_state.agent_ws);
         let convo_init_rx = t_state.convo_init_rx.lock().await.take();
 
@@ -533,7 +536,7 @@ impl TelephonyAgent {
             )
             .await
             {
-                Ok(_) => info!("Established phone call"),
+                Ok(_) => info!("Phone call established"),
                 Err(e) => error!("Failed to establish phone call: {:?}", e),
             }
         })
@@ -588,11 +591,10 @@ where {
                             error!("Failed to send Twilio payload to agent websocket");
                         }
                     }
-                    TwilioMessage::Stop(s) => {
+                    TwilioMessage::Stop(_) => {
                         return match agent_ws_for_stop.lock().await.end_session().await {
                             Ok(_) => {
-                                info!("{:?}", s);
-                                //info!("Twilio message: stop, agent websocket session ended");
+                                info!("Twilio's stop message received");
                                 Ok(())
                             }
                             Err(e) => {
@@ -608,14 +610,13 @@ where {
         });
 
         if let Some(mut rx) = convo_init_rx {
-            let convo_init_data = rx
-                .recv()
-                .await
-                .expect("failed to receive conversation initiation data");
-            agent_ws
-                .lock()
-                .await
-                .with_conversation_initiation_client_data(convo_init_data);
+            if let Some(convo_init_data) = rx.recv().await {
+                let mut agent_ws = agent_ws.lock().await;
+                agent_ws.with_conversation_initiation_client_data(convo_init_data);
+                info!("Received conversation initiation data");
+            } else {
+                error!("Failed to receive conversation initiation data");
+            }
         }
 
         let agent_ws_for_convo = Arc::clone(&agent_ws);
@@ -658,6 +659,7 @@ pub struct PostCallPayload {
     pub event_timestamp: u64,
 }
 
+/// Requires env var `WEBHOOK_SECRET` to be set, returns `PostCallRejection::InternalServerError` if not set
 #[derive(Clone, Debug)]
 pub struct PostCall {
     pub payload: PostCallPayload,
@@ -751,7 +753,7 @@ where
 
         mac.update(message.as_bytes());
 
-        let computed_digest = format!("v0={}", hex::encode(mac.finalize().into_bytes()));
+        let computed_digest = format!("v0={}", encode(mac.finalize().into_bytes()));
 
         if signature != computed_digest {
             return Err(PostCallRejection::Unauthorized(
@@ -794,6 +796,7 @@ impl IntoResponse for PostCallRejection {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use axum::routing::get;
     use axum::{
         body::Body,
         http::{Request, StatusCode},
@@ -805,7 +808,9 @@ mod tests {
     use hmac::Mac;
     use http_body_util::BodyExt;
     use sha1::Sha1;
+    use std::future::IntoFuture;
     use tokio::net::TcpListener;
+    use tokio_tungstenite::tungstenite;
     use tower::ServiceExt;
 
     #[derive(Clone)]
@@ -843,7 +848,6 @@ mod tests {
     fn app(webhook_secret: &str, auth_token: &str) -> Router {
         let app_state = TestAppState::new(webhook_secret, auth_token);
         Router::new()
-            .route("/post_call", post(|_: PostCall| async { StatusCode::OK }))
             .route(
                 "/connect_twiml",
                 post(|p: TwilioParams| async {
@@ -853,6 +857,8 @@ mod tests {
                     }
                 }),
             )
+            .route("/ws", get(telephony_agent_testable_handler))
+            .route("/post_call", post(|_: PostCall| async { StatusCode::OK }))
             .with_state(app_state)
     }
 
@@ -895,7 +901,7 @@ mod tests {
         base64::engine::general_purpose::STANDARD.encode(mac.finalize().into_bytes())
     }
 
-    fn required_twilio_params() -> BTreeMap<String, String> {
+    fn required_twilio_params_for_deserialization() -> BTreeMap<String, String> {
         let mut params = BTreeMap::new();
         params.insert("CallSid".to_string(), "CA123456789".to_string());
         params.insert("AccountSid".to_string(), "AC123456789".to_string());
@@ -905,6 +911,21 @@ mod tests {
         params.insert("ApiVersion".to_string(), "2010-04-01".to_string());
         params.insert("Direction".to_string(), "outbound-api".to_string());
         params
+    }
+
+    async fn telephony_agent_testable_handler(agent: TelephonyAgent) -> Response {
+        agent.twilio_ws.on_upgrade(send_first_media_payload)
+    }
+
+    async fn send_first_media_payload(mut socket: WebSocket) {
+        let msg = socket.next().await.unwrap().unwrap();
+        let msg: ConnectedMessage = serde_json::from_str(msg.to_text().unwrap()).unwrap();
+        let msg = socket.next().await.unwrap().unwrap();
+        let msg: StartMessage = serde_json::from_str(msg.to_text().unwrap()).unwrap();
+        let stream_sid = msg.stream_sid;
+        let media_msg = MediaMessage::new(stream_sid, "test_payload");
+        let json = serde_json::to_string(&media_msg).unwrap();
+        socket.send(Message::Text(json.into())).await.unwrap();
     }
 
     #[tokio::test]
@@ -1028,7 +1049,7 @@ mod tests {
         let payload = r#"{"type": "test"}"#;
         let message = format!("{}.{}", timestamp, payload);
         mac.update(message.as_bytes());
-        let signature = format!("v0={}", hex::encode(mac.finalize().into_bytes()));
+        let signature = format!("v0={}", encode(mac.finalize().into_bytes()));
         let request = Request::builder()
             .method("POST")
             .uri("/post_call")
@@ -1054,7 +1075,7 @@ mod tests {
         let payload = json!({"type": "test"});
         let message = format!("{}.{}", timestamp, payload);
         mac.update(message.as_bytes());
-        let signature = format!("v0={}", hex::encode(mac.finalize().into_bytes()));
+        let signature = format!("v0={}", encode(mac.finalize().into_bytes()));
         let request = Request::builder()
             .method("POST")
             .uri("/post_call")
@@ -1097,7 +1118,7 @@ mod tests {
         });
         let message = format!("{}.{}", timestamp, payload);
         mac.update(message.as_bytes());
-        let signature = format!("v0={}", hex::encode(mac.finalize().into_bytes()));
+        let signature = format!("v0={}", encode(mac.finalize().into_bytes()));
         let request = Request::builder()
             .method("POST")
             .uri("/post_call")
@@ -1117,7 +1138,7 @@ mod tests {
     async fn twilio_params_extractor_is_returning_self() {
         let app_state = TestAppState::new("test_secret", "test_auth_token");
 
-        let params = required_twilio_params();
+        let params = required_twilio_params_for_deserialization();
 
         let form_data = serde_urlencoded::to_string(&params).unwrap();
 
@@ -1143,9 +1164,10 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn twilio_params_extractor_is_rejecting_with_bad_request_when_twilio_signature_is_invalid() {
+    async fn twilio_params_extractor_is_rejecting_with_bad_request_when_twilio_signature_is_invalid(
+    ) {
         let app_state = TestAppState::new("test_secret", "test_auth_token");
-        let params = required_twilio_params();
+        let params = required_twilio_params_for_deserialization();
         let form_data = serde_urlencoded::to_string(&params).unwrap();
         let url = "https://example.com/webhook";
         let signature = generate_valid_signature("invalid_auth_token", url, Some(&params));
@@ -1175,7 +1197,7 @@ mod tests {
     #[tokio::test]
     async fn twilio_params_extractor_is_rejecting_with_bad_request_when_signature_is_missing() {
         let app_state = TestAppState::new("test_secret", "test_auth_token");
-        let params = required_twilio_params();
+        let params = required_twilio_params_for_deserialization();
         let form_data = serde_urlencoded::to_string(&params).unwrap();
         let url = "https://example.com/webhook";
         let request = Request::builder()
@@ -1201,7 +1223,7 @@ mod tests {
     #[tokio::test]
     async fn twilio_params_extractor_is_rejecting_with_bad_request_when_host_missing() {
         let app_state = TestAppState::new("test_secret", "test_auth_token");
-        let params = required_twilio_params();
+        let params = required_twilio_params_for_deserialization();
         let form_data = serde_urlencoded::to_string(&params).unwrap();
         let url = "https://example.com/webhook";
         let signature = generate_valid_signature("test_auth_token", url, Some(&params));
@@ -1241,7 +1263,7 @@ mod tests {
                 .build_http();
 
         let url = format!("https://{}/connect_twiml", addr);
-        let params = required_twilio_params();
+        let params = required_twilio_params_for_deserialization();
         let form_data = serde_urlencoded::to_string(&params).unwrap();
         let signature = generate_valid_signature("test_auth_token", &url, Some(&params));
 
@@ -1267,6 +1289,84 @@ mod tests {
         let want = r#"<?xml version="1.0" encoding="UTF-8"?><Response><Connect><Stream url="wss://example.com/ws" /></Connect></Response>"#;
         assert_eq!(twiml_response, want);
     }
+
+    #[tokio::test]
+    async fn telephony_agent_extractor_is_sending_media_payload() {
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+
+        let addr = listener.local_addr().unwrap();
+
+        let app = app("test_secret", "test_auth_token");
+
+        let signature =
+            generate_valid_signature("test_auth_token", &format!("wss://{addr}/ws"), None);
+
+        tokio::spawn(axum::serve(listener, app).into_future());
+
+        let req = Request::builder()
+            .method(Method::GET)
+            .uri(format!("ws://{addr}/ws"))
+            .header("Host", addr.to_string())
+            .header("X-Twilio-Signature", signature)
+            .header("Upgrade", "websocket")
+            .header("Connection", "Upgrade")
+            .header("Sec-WebSocket-Key", "dGhlIHNhbXBsZSBub25jZQ==")
+            .header("Sec-WebSocket-Version", "13")
+            .body(())
+            .unwrap();
+
+        let (mut socket, _response) = tokio_tungstenite::connect_async(req).await.unwrap();
+
+        // send connected message
+        let connected_msg = json!({
+            "event": "connected",
+            "protocol": "Call",
+            "version": "1.0.0",
+        });
+
+        let connected_msg = serde_json::to_string(&connected_msg).unwrap();
+        socket
+            .send(tungstenite::Message::Text(connected_msg.into()))
+            .await
+            .unwrap();
+
+        // send start message
+        let start_msg = json!({
+            "event": "start",
+            "sequenceNumber": "1",
+            "streamSid": "test_stream_sid",
+            "start": {
+                "streamSid": "test_stream_sid",
+                "accountSid": "AC123456789",
+                "callSid": "CA123456789",
+                "tracks": [
+                    "inbound"
+                ],
+                "customParameters": {
+                    "foo": "bar"
+                },
+                "mediaFormat": {
+                    "encoding": "audio/x-mulaw",
+                    "sampleRate": 8000,
+                    "channels": 1,
+                }
+            }
+        });
+
+        let start_msg = serde_json::to_string(&start_msg).unwrap();
+        socket
+            .send(tungstenite::Message::Text(start_msg.into()))
+            .await
+            .unwrap();
+
+        let msg = match socket.next().await.unwrap().unwrap() {
+            tungstenite::Message::Text(msg) => msg,
+            other => panic!("expected a text message but got {other:?}"),
+        };
+
+        let want =
+            r#"{"event":"media","streamSid":"test_stream_sid","media":{"payload":"test_payload"}}"#;
+
+        assert_eq!(msg.as_str(), want);
+    }
 }
-
-
