@@ -1,5 +1,7 @@
 use crate::error::ConvAIError;
-use crate::messages::client_messages::{ConversationInitiationClientData, Pong, UserAudioChunk};
+use crate::messages::client_messages::{
+    ClientToolResult, ConversationInitiationClientData, Pong, UserAudioChunk,
+};
 use crate::messages::server_messages::ServerMessage;
 use crate::Result;
 use elevenlabs_rs::endpoints::convai::conversations::GetSignedUrl;
@@ -27,7 +29,7 @@ type WebSocketReader = SplitStream<WebSocketStream<MaybeTlsStream<TcpStream>>>;
 pub struct AgentWebSocket {
     api_key: Option<String>,
     agent_id: String,
-    close_socket: Option<UnboundedSender<Message>>,
+    writer_task_tx: Option<UnboundedSender<Message>>,
     conversation_initiation_client_data: Option<ConversationInitiationClientData>,
 }
 
@@ -38,7 +40,7 @@ impl AgentWebSocket {
             api_key: Some(std::env::var("ELEVENLABS_API_KEY")?),
             agent_id: std::env::var("ELEVENLABS_AGENT_ID")?,
             conversation_initiation_client_data: None,
-            close_socket: None,
+            writer_task_tx: None,
         })
     }
 
@@ -48,7 +50,7 @@ impl AgentWebSocket {
             api_key: Some(api_key.into()),
             agent_id: agent_id.into(),
             conversation_initiation_client_data: None,
-            close_socket: None,
+            writer_task_tx: None,
         }
     }
     /// Sets initial data to be sent to the server when starting a conversation.
@@ -64,7 +66,7 @@ impl AgentWebSocket {
         self.conversation_initiation_client_data.as_mut()
     }
 
-    pub async fn start_session<S>(&mut self, stream: S) -> Result<ConversationStream>
+    pub async fn start_conversation<S>(&mut self, stream: S) -> Result<ConversationStream>
     where
         S: Stream<Item = String> + Send + Sync + 'static,
     {
@@ -85,7 +87,7 @@ impl AgentWebSocket {
 
         let (caller_tx, caller_rx) = unbounded_channel::<Result<ServerMessage>>();
         let (writer_task_tx, writer_task_rx) = unbounded_channel::<Message>();
-        self.close_socket = Some(writer_task_tx.clone());
+        self.writer_task_tx = Some(writer_task_tx.clone());
 
         // Writer task
         tokio::spawn(Self::websocket_writer(writer_task_rx, ws_writer));
@@ -103,7 +105,7 @@ impl AgentWebSocket {
         Ok(UnboundedReceiverStream::new(caller_rx))
     }
 
-    pub async fn end_session(&mut self) -> Result<()> {
+    pub async fn stop_conversation(&mut self) -> Result<()> {
         let close_frame = CloseFrame {
             code: CloseCode::Normal,
             reason: Cow::from("user stopped conversation"),
@@ -111,7 +113,7 @@ impl AgentWebSocket {
 
         let close_message = Message::Close(Some(close_frame));
 
-        self.close_socket
+        self.writer_task_tx
             .as_ref()
             .unwrap()
             .send(close_message)
@@ -220,6 +222,16 @@ impl AgentWebSocket {
             let chunk = UserAudioChunk::new(audio_chunk);
             tx_to_writer
                 .send(Message::try_from(chunk)?)
+                .map_err(|_| ConvAIError::SendError)?;
+        }
+        Ok(())
+    }
+
+    /// Send a `ClientToolResult` message to the server.
+    pub async fn send_tool_result(&self, result: ClientToolResult) -> Result<()> {
+        if let Some(tx_to_writer) = &self.writer_task_tx {
+            tx_to_writer
+                .send(Message::try_from(result)?)
                 .map_err(|_| ConvAIError::SendError)?;
         }
         Ok(())
