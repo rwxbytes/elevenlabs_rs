@@ -1,10 +1,9 @@
 use crate::conversations::GetConversationDetailsResponse;
+use axum::body::Body;
 use axum::extract::rejection::FormRejection;
 use axum::extract::ws::rejection::WebSocketUpgradeRejection;
 use axum::extract::ws::{Message, WebSocket};
-use axum::extract::{
-    FromRef, FromRequest, FromRequestParts, Request,  WebSocketUpgrade,
-};
+use axum::extract::{FromRef, FromRequest, FromRequestParts, Request, WebSocketUpgrade};
 use axum::http::request::Parts;
 use axum::http::{Method, StatusCode};
 use axum::response::{IntoResponse, Response};
@@ -13,21 +12,23 @@ use chrono::Utc;
 pub use elevenlabs_convai::convai::*;
 pub use elevenlabs_convai::error::ConvAIError;
 pub use elevenlabs_convai::messages::client_messages::{
-    AgentOverrideData, ConversationInitiationClientData, OverrideData, PromptOverrideData,
+    AgentOverrideData, ClientToolResult, ConversationInitiationClientData, OverrideData,
+    PromptOverrideData,
 };
 pub use elevenlabs_convai::messages::server_messages::{Audio, ConversationInitiationMetadata};
-pub use elevenlabs_convai::{client::AgentWebSocket, messages::server_messages::ServerMessage};
+pub use elevenlabs_convai::{client::AgentWebSocket, messages::server_messages::*};
 pub use elevenlabs_convai::{DefaultVoice, ElevenLabsClient, LegacyVoice};
 use futures_util::{SinkExt, StreamExt};
-pub use rusty_twilio::endpoints::voice::{call::*, stream::*};
+pub use rusty_twilio::endpoints::voice::{call::*, conference::*, stream::*};
 pub use rusty_twilio::error::TwilioError;
-pub use rusty_twilio::twiml::voice::VoiceResponse;
+pub use rusty_twilio::twiml::voice::{Conference, Number, VoiceResponse};
 pub use rusty_twilio::validation::SignatureValidationError;
 pub use rusty_twilio::TwilioClient;
 use secrecy::{ExposeSecret, SecretString};
 use serde::Deserialize;
 use std::collections::BTreeMap;
 use std::future::Future;
+use std::pin::Pin;
 use std::sync::Arc;
 use thiserror::Error;
 use tokio::sync::mpsc::Receiver;
@@ -56,7 +57,7 @@ pub enum Error {
 #[derive(Clone, Debug)]
 pub struct TelephonyState {
     agent_ws: Arc<Mutex<AgentWebSocket>>,
-    twilio_client: TwilioClient,
+    twilio_client: Arc<TwilioClient>,
     convo_init_rx: Arc<Mutex<Option<Receiver<ConversationInitiationClientData>>>>,
     webhook_secret: Option<SecretString>,
 }
@@ -64,7 +65,7 @@ pub struct TelephonyState {
 impl TelephonyState {
     pub fn new(
         agent_ws: Arc<Mutex<AgentWebSocket>>,
-        twilio_client: TwilioClient,
+        twilio_client: Arc<TwilioClient>,
     ) -> Result<Self, Error> {
         if !twilio_client.number().is_some() {
             return Err(Error::TwilioClient(TwilioError::MissingPhoneNumberEnvVar));
@@ -83,7 +84,7 @@ impl TelephonyState {
 
     pub fn from_env() -> Result<Self, Error> {
         let agent_ws = Arc::new(Mutex::new(AgentWebSocket::from_env()?));
-        let twilio_client = TwilioClient::from_env()?;
+        let twilio_client = Arc::new(TwilioClient::from_env()?);
 
         TelephonyState::new(agent_ws, twilio_client)
     }
@@ -136,16 +137,20 @@ pub type Personalization = Json<NativeExtractor>;
 pub struct TwilioParams(TwilioRequestParams);
 
 impl TwilioParams {
-    pub fn connect(
-        self,
-        ws_url: impl Into<String>,
-    ) -> Result<Response<String>, (StatusCode, String)> {
-        let twiml = VoiceResponse::new()
-            .connect(ws_url.into())
+    pub fn connect(self, ws_url: impl Into<String>) -> Result<Body, Error> {
+        Ok(VoiceResponse::new()
+            .connect(Stream::new(ws_url.into()))
             .to_http_response()
-            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
-        Ok(twiml)
+            .map(|r| Body::from(r.into_body()))?)
     }
+
+    pub fn connect_stream(self, stream: Stream) -> Result<Body, Error> {
+        Ok(VoiceResponse::new()
+            .connect(stream)
+            .to_http_response()
+            .map(|r| Body::from(r.into_body()))?)
+    }
+
     pub fn from_map(map: BTreeMap<String, String>) -> Result<Self, String> {
         let params = serde_qs::from_str::<TwilioRequestParams>(
             &serde_qs::to_string(&map).map_err(|e| e.to_string())?,
@@ -250,33 +255,36 @@ where
 }
 
 impl InboundCall {
-    pub fn answer(self, ws_url: impl Into<String>) -> Result<Response<String>, Error> {
+    pub fn answer(self, ws_url: impl Into<String>) -> Result<Body, Error> {
         Ok(VoiceResponse::new()
-            .connect(ws_url.into())
-            .to_http_response()?)
+            .connect(Stream::new(ws_url.into()))
+            .to_http_response()
+            .map(|r| Body::from(r.into_body()))?)
     }
 
-    pub fn answer_if<P>(
-        self,
-        ws_url: impl Into<String>,
-        predicate: P,
-    ) -> Result<Response<String>, Error>
+    pub fn answer_stream(self, stream: Stream) -> Result<Body, Error> {
+        Ok(VoiceResponse::new()
+            .connect(stream)
+            .to_http_response()
+            .map(|r| Body::from(r.into_body()))?)
+    }
+
+    pub fn answer_if<P>(self, ws_url: impl Into<String>, predicate: P) -> Result<Body, Error>
     where
         P: FnOnce(&TwilioRequestParams) -> bool,
     {
         if predicate(&self.params) {
             self.answer(ws_url)
         } else {
-            Ok(VoiceResponse::new().reject().to_http_response()?)
+            Ok(VoiceResponse::new()
+                .reject()
+                .to_http_response()
+                .map(|r| Body::from(r.into_body()))?)
         }
     }
 
     // TODO: change Output to Result as user's async function can fail
-    pub fn answer_and_config<F, Fut>(
-        self,
-        ws_url: impl Into<String>,
-        f: F,
-    ) -> Result<Response<String>, Error>
+    pub fn answer_and_config<F, Fut>(self, ws_url: impl Into<String>, f: F) -> Result<Body, Error>
     where
         F: FnOnce() -> Fut + Send + 'static,
         Fut: Future<Output = ConversationInitiationClientData> + Send,
@@ -291,15 +299,44 @@ impl InboundCall {
         });
 
         Ok(VoiceResponse::new()
-            .connect(ws_url.into())
-            .to_http_response()?)
+            .connect(Stream::new(ws_url.into()))
+            .to_http_response()
+            .map(|r| Body::from(r.into_body()))?)
+    }
+
+    /// Transfer the call to another number immediately
+    /// # Example
+    ///
+    /// ```rust
+    /// use axum::http::StatusCode;
+    /// use axum::response::IntoResponse;
+    /// use elevenlabs_twilio::InboundCall;
+    ///
+    /// async fn call_transfer_handler(inbound_call: InboundCall) -> impl IntoResponse {
+    ///     match inbound_call
+    ///         .transfer_now("+4411111111111")
+    ///         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))
+    ///     {
+    ///         Ok(voice_response) => voice_response.into_response(),
+    ///         Err(err) => {
+    ///             eprintln!("Error: {:?}", err);
+    ///             err.into_response()
+    ///         }
+    ///     }
+    /// }
+    /// ```
+    pub fn transfer_now(self, to: impl Into<String>) -> Result<Body, Error> {
+        Ok(VoiceResponse::new()
+            .dial(Number::new(to.into()))
+            .to_http_response()
+            .map(|r| Body::from(r.into_body()))?)
     }
 }
 
 #[derive(Clone, Debug)]
 pub struct OutboundCall<E> {
     pub inner_extractor: E,
-    pub twilio_client: TwilioClient,
+    pub twilio_client: Arc<TwilioClient>,
     pub number: String,
     pub convo_init_rx: Arc<Mutex<Option<Receiver<ConversationInitiationClientData>>>>,
 }
@@ -316,7 +353,7 @@ where
         info!("Outbound call request");
         let inner_extractor = E::from_request(req, state).await?;
         let t_state = TelephonyState::from_ref(state);
-        let twilio_client = t_state.twilio_client.clone();
+        let twilio_client = Arc::clone(&t_state.twilio_client);
         let number = twilio_client.number().unwrap().to_string();
         let convo_init_rx = t_state.convo_init_rx.clone();
 
@@ -358,12 +395,8 @@ impl<E> OutboundCall<E> {
     pub fn as_inner(&self) -> &E {
         &self.inner_extractor
     }
-    pub async fn ring(
-        self,
-        to: impl Into<String>,
-        twiml_url: impl Into<String>,
-    ) -> Result<CallResponse, Error> {
-        let body = CreateCallBody::new(to, self.number, TwimlSrc::url(twiml_url));
+    pub async fn ring(self, to: &str, twiml_url: &str) -> Result<CallResponse, Error> {
+        let body = CreateCallBody::new(to, &self.number, twiml_url);
         let create_call = CreateCall::new(self.twilio_client.account_sid(), body);
         let call_response = self.twilio_client.hit(create_call).await?;
         Ok(call_response)
@@ -371,8 +404,8 @@ impl<E> OutboundCall<E> {
 
     pub async fn ring_and_config<F>(
         self,
-        to: impl Into<String>,
-        twiml_url: impl Into<String>,
+        to: &str,
+        twiml_url: &str,
         f: F,
     ) -> Result<CallResponse, Error>
     where
@@ -394,7 +427,7 @@ impl<E> OutboundCall<E> {
         from: &str,
         twiml_url: &str,
     ) -> Result<CallResponse, Error> {
-        let create_call_body = CreateCallBody::new(to, from, TwimlSrc::url(twiml_url));
+        let create_call_body = CreateCallBody::new(to, from, twiml_url);
         let create_call = CreateCall::new(self.twilio_client.account_sid(), create_call_body);
         let resp = self.twilio_client.hit(create_call).await?;
         Ok(resp)
@@ -418,65 +451,17 @@ impl<E> OutboundCall<E> {
     }
 }
 
-//pub trait Contacts {
-//    fn number(&self) -> String;
-//    fn twiml_url(&self) -> String;
-//}
-//
-//impl<E: Contacts> OutboundCall<E> {
-//    pub async fn ring(self) -> Result<CallResponse, Error> {
-//        let create_call_body = CreateCallBody::new(
-//            self.inner_extractor.number(),
-//            self.number,
-//            TwimlSrc::url(self.inner_extractor.twiml_url()),
-//        );
-//        let create_call = CreateCall::new(self.twilio_client.account_sid(), create_call_body);
-//        let call_response = self.twilio_client.hit(create_call).await?;
-//        Ok(call_response)
-//    }
-//}
 
-//pub fn set_status_callback(
-//    mut self,
-//    status_callback: impl Into<String>,
-//) -> Result<Self, Error> {
-//    self.stream_noun_builder = Some(
-//        self.stream_noun_builder
-//            .unwrap()
-//            .status_callback(status_callback.into())?,
-//    );
-//    Ok(self)
-//}
-//
-//pub fn set_status_callback_method(mut self, method: impl Into<String>) -> Self {
-//    self.stream_noun_builder = Some(
-//        self.stream_noun_builder
-//            .unwrap()
-//            .status_callback_method(method.into()),
-//    );
-//    self
-//}
-//
-//pub fn set_custom_parameter(
-//    mut self,
-//    key: impl Into<String>,
-//    value: impl Into<String>,
-//) -> Self {
-//    self.stream_noun_builder = Some(
-//        self.stream_noun_builder
-//            .unwrap()
-//            .parameter(key.into(), value.into()),
-//    );
-//    self
-//}
-
-type ServerMessageCallback = Box<dyn FnMut(ServerMessage) + Send + 'static>;
+type ServerMessageCallback = Box<
+    dyn FnMut(ServerMessage, String) -> Pin<Box<dyn Future<Output = ()> + Send>> + Send + 'static,
+>;
 
 type TwilioMessageCallback = Box<dyn FnMut(TwilioMessage) + Send + 'static>;
 
 pub struct TelephonyAgent {
     pub agent_ws: Arc<Mutex<AgentWebSocket>>,
     pub twilio_ws: WebSocketUpgrade,
+    pub twilio_client: Arc<TwilioClient>,
     pub server_message_cb: Option<ServerMessageCallback>,
     pub twilio_message_cb: Option<TwilioMessageCallback>,
     pub convo_init_rx: Option<Receiver<ConversationInitiationClientData>>,
@@ -491,7 +476,7 @@ where
 
     async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
         let t_state = TelephonyState::from_ref(state);
-        let twilio_client = &t_state.twilio_client;
+        let twilio_client = Arc::clone(&t_state.twilio_client);
 
         // TODO: just make it take &Parts ?
         twilio_client
@@ -511,6 +496,7 @@ where
             server_message_cb: None,
             twilio_message_cb: None,
             convo_init_rx,
+            twilio_client,
         })
     }
 }
@@ -545,8 +531,7 @@ impl TelephonyAgent {
         mut e_cb: Option<ServerMessageCallback>,
         mut t_cb: Option<TwilioMessageCallback>,
         convo_init_rx: Option<Receiver<ConversationInitiationClientData>>,
-    ) -> Result<(), Error>
-where {
+    ) -> Result<(), Error> {
         let msg = twilio_socket
             .next()
             .await
@@ -562,6 +547,7 @@ where {
 
         let msg: StartMessage = serde_json::from_str(msg.to_text()?)?;
         let stream_sid = msg.stream_sid;
+        let call_sid = msg.start.call_sid.clone();
         info!("Start message metadata: {:?}", msg.start);
 
         let (twilio_tx, rx) = tokio::sync::mpsc::unbounded_channel();
@@ -571,7 +557,6 @@ where {
 
         let agent_ws_for_stop = Arc::clone(&agent_ws);
 
-        //// TODO: JoinHandle ?
         tokio::spawn(async move {
             while let Some(msg) = twilio_stream.next().await {
                 let msg = msg?;
@@ -588,10 +573,10 @@ where {
                             error!("Failed to send Twilio payload to agent websocket");
                         }
                     }
-                    TwilioMessage::Stop(_) => {
-                        return match agent_ws_for_stop.lock().await.end_session().await {
+                    TwilioMessage::Stop(stop) => {
+                        return match agent_ws_for_stop.lock().await.stop_conversation().await {
                             Ok(_) => {
-                                info!("Twilio's stop message received");
+                                info!("Twilio's stop message received {:?}", stop);
                                 Ok(())
                             }
                             Err(e) => {
@@ -621,16 +606,24 @@ where {
             let mut convai_stream = agent_ws_for_convo
                 .lock()
                 .await
-                .start_session(twilio_rx)
+                .start_conversation(twilio_rx)
                 .await?;
 
             while let Some(msg_result) = convai_stream.next().await {
                 let server_msg = msg_result?;
 
                 if let Some(cb) = e_cb.as_mut() {
-                    cb(server_msg.clone());
+                    match &server_msg {
+                        // most likely expensive so spawn all the time
+                        ServerMessage::ClientToolCall(_) => {
+                            let fut = cb(server_msg.clone(), call_sid.clone());
+                            tokio::spawn(fut);
+                        }
+                        _ => {
+                            cb(server_msg.clone(), call_sid.clone()).await;
+                        }
+                    }
                 }
-
                 match server_msg {
                     ServerMessage::Audio(audio) => {
                         twilio_sink.send((audio, &stream_sid).to_twilio()?).await?;
@@ -665,13 +658,16 @@ pub struct PostCall {
 impl PostCall {
     pub fn summary(&self) -> Option<&str> {
         if let Some(analysis) = &self.payload.data.analysis {
-            return Some(&analysis.transcript_summary);
-        } else { None }
+            Some(&analysis.transcript_summary)
+        } else {
+            None
+        }
     }
 }
 
 use hex::*;
 use hmac::{Hmac, Mac};
+use rusty_twilio::twiml::voice::Stream;
 use sha2::Sha256;
 
 type HmacSha256 = Hmac<Sha256>;
@@ -812,12 +808,12 @@ mod tests {
     use chrono::Utc;
     use hmac::Mac;
     use http_body_util::BodyExt;
+    use serde_json::json;
     use sha1::Sha1;
     use std::future::IntoFuture;
     use tokio::net::TcpListener;
     use tokio_tungstenite::tungstenite;
     use tower::ServiceExt;
-    use serde_json::json;
 
     #[derive(Clone)]
     struct TestAppState {
@@ -828,6 +824,7 @@ mod tests {
         fn new(webhook_secret: &str, auth_token: &str) -> Self {
             let agent_ws = AgentWebSocket::new("test", "test");
             let twilio_client = TwilioClient::new("test", auth_token);
+            let twilio_client = Arc::new(twilio_client);
 
             let webhook_secret = if webhook_secret.is_empty() {
                 None
@@ -859,7 +856,10 @@ mod tests {
                 post(|p: TwilioParams| async {
                     match p.connect("wss://example.com/ws") {
                         Ok(twiml) => twiml.into_response(),
-                        Err(e) => e.into_response(),
+                        Err(e) => {
+                            error!("Failed to connect: {:?}", e);
+                            (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response()
+                        }
                     }
                 }),
             )
