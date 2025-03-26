@@ -199,7 +199,7 @@ impl ElevenLabsEndpoint for DeleteHistoryItem {
 ///         .await?
 ///         .history
 ///         .iter()
-///         .map(|i| i.history_item_id().to_string())
+///         .map(|i| i.history_item_id.to_string())
 ///         .collect::<Vec<String>>();
 ///     let body = DownloadBody::new(history_item_ids);
 ///     let downloaded_items = client.hit(DownloadHistoryItems::new(body)).await?;
