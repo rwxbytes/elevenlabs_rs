@@ -15,6 +15,7 @@ use tokio_stream::wrappers::UnboundedReceiverStream;
 use tokio_tungstenite::tungstenite::protocol::frame::coding::CloseCode;
 use tokio_tungstenite::tungstenite::protocol::{CloseFrame, Message};
 use tokio_tungstenite::{connect_async, MaybeTlsStream, WebSocketStream};
+use tracing::{info, warn};
 
 const WS_BASE_URL: &str = "wss://api.elevenlabs.io";
 const WS_CONVAI_PATH: &str = "/v1/conversational_ai/conversation";
@@ -53,6 +54,12 @@ impl AgentWebSocket {
             writer_task_tx: None,
         }
     }
+
+    pub fn with_agent_id<T: Into<String>>(&mut self, agent_id: T) {
+        self.agent_id = agent_id.into();
+
+    }
+
     /// Sets initial data to be sent to the server when starting a conversation.
     pub fn with_conversation_initiation_client_data(
         &mut self,
@@ -126,8 +133,7 @@ impl AgentWebSocket {
         if let Some(key) = &self.api_key {
             let signed_url = ElevenLabsClient::new(key)
                 .hit(GetSignedUrl::new(&self.agent_id))
-                .await
-                .map_err(|_| ConvAIError::SignedUrlError)?;
+                .await?;
             Ok(signed_url.signed_url)
         } else {
             Ok(format!(
@@ -186,6 +192,7 @@ impl AgentWebSocket {
             Message::Close(frame) => {
                 if let Some(close_frame) = frame {
                     if close_frame.code != CloseCode::Normal {
+                        warn!("WebSocket closed: code={:?}, reason={}", close_frame.code, close_frame.reason);
                         tx_to_caller
                             .send(Err(ConvAIError::NonNormalCloseCode(
                                 close_frame.reason.into_owned(),
@@ -193,6 +200,7 @@ impl AgentWebSocket {
                             .map_err(|_| ConvAIError::SendError)?;
                     }
                 } else {
+                    warn!("WebSocket closed without a close frame");
                     tx_to_caller
                         .send(Err(ConvAIError::ClosedWithoutCloseFrame))
                         .map_err(|_| ConvAIError::SendError)?;
@@ -203,7 +211,8 @@ impl AgentWebSocket {
                     .send(Message::Pong(ping))
                     .map_err(|_| ConvAIError::SendError)?;
             }
-            _ => {
+            unexpected => {
+                warn!("Unexpected websocket message: {:?}", unexpected);
                 tx_to_caller
                     .send(Err(ConvAIError::UnexpectedMessageType))
                     .map_err(|_| ConvAIError::SendError)?;
