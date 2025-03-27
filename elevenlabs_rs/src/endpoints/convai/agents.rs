@@ -242,6 +242,7 @@ pub enum DynamicVar {
     Int(i32),
     Double(f64),
     Bool(bool),
+    Null(Value)
 }
 
 impl DynamicVar {

@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - `termination_reason` to `conversation::Metadata`
 - `send_tool_result` to `AgentWebSocket`
+- variant `DynamicVar::Null` to `DynamicVar`
 ### Changed
 - **Breaking**: `ElevenLabsAgentClient` name to `AgentWebSocket`
 
