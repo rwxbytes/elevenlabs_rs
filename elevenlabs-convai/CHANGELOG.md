@@ -6,6 +6,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 ### Added
 - `send_tool_result` to `AgentWebSocket`
+- getters for `tool_call_id`, `tool_name`, and `parameters` on `ClientToolCall`
 
 ### Changed
 - **Breaking**: `ElevenLabsAgentClient` name to `AgentWebSocket`

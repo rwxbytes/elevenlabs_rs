@@ -213,6 +213,18 @@ pub struct ClientToolCall {
     pub client_tool_call: ClientTool,
 }
 
+impl ClientToolCall {
+    pub fn id(&self) -> &str {
+        &self.client_tool_call.tool_call_id
+    }
+    pub fn name(&self) -> &str {
+        &self.client_tool_call.tool_name
+    }
+    pub fn parameters(&self) -> &serde_json::Value {
+        &self.client_tool_call.parameters
+    }
+}
+
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct ClientTool {
     pub tool_name: String,
