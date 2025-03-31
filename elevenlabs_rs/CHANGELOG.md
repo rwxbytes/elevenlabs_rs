@@ -15,6 +15,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - claude-3.7-sonnet
   - gemini-2.0-flash-lite
 - `DeleteSecret` endpoint
+- `termination_reason` to `conversation::Metadata`
+- variant `DynamicVar::Null` to `DynamicVar`
   
 
 ### Changed
