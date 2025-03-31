@@ -9,6 +9,7 @@ use axum::http::{Method, StatusCode};
 use axum::response::{IntoResponse, Response};
 use axum::{Form, Json};
 use chrono::Utc;
+use dashmap::DashMap;
 pub use elevenlabs_convai::convai::*;
 pub use elevenlabs_convai::error::ConvAIError;
 pub use elevenlabs_convai::messages::client_messages::{
@@ -21,21 +22,21 @@ pub use elevenlabs_convai::{DefaultVoice, ElevenLabsClient, LegacyVoice};
 use futures_util::{SinkExt, StreamExt};
 pub use rusty_twilio::endpoints::voice::{call::*, conference::*, stream::*};
 pub use rusty_twilio::error::TwilioError;
+pub use rusty_twilio::request_parameters::*;
 pub use rusty_twilio::twiml::voice::{Conference, Number, Parameter, Stream, VoiceResponse};
 pub use rusty_twilio::validation::SignatureValidationError;
-pub use rusty_twilio::TwilioClient;
+pub use rusty_twilio::{TwilioClient, TwilioClientExt};
 use secrecy::{ExposeSecret, SecretString};
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, HashMap};
 use std::future::Future;
 use std::ops::Deref;
-use std::pin::Pin;
 use std::sync::Arc;
 use thiserror::Error;
-use tokio::sync::mpsc::{Receiver, UnboundedSender};
+use tokio::sync::mpsc::UnboundedSender;
 use tokio::sync::Mutex;
 use tokio_stream::wrappers::UnboundedReceiverStream;
-use tracing::{error, info};
+use tracing::{error, field, info, instrument, warn, Span};
 
 #[derive(Error, Debug)]
 pub enum Error {
@@ -61,12 +62,15 @@ pub enum Error {
     AgentWebSocketNotSet,
 }
 
+// TODO: Rename ?
+// AgentCallState
+// AgentPhoneManager
 #[derive(Clone, Debug)]
 pub struct TelephonyState {
     // or DashMap?
     pub agent_registry: Arc<Mutex<HashMap<String, Arc<Mutex<AgentWebSocket>>>>>,
-    twilio_client: Arc<TwilioClient>,
-    convo_init_rx: Arc<Mutex<Option<Receiver<ConversationInitiationClientData>>>>,
+    pub convo_init_data_map: Arc<DashMap<String, ConversationInitiationClientData>>,
+    pub twilio_client: Arc<TwilioClient>,
     webhook_secret: Option<SecretString>,
 }
 
@@ -80,26 +84,25 @@ impl TelephonyState {
             return Err(Error::TwilioClient(TwilioError::MissingPhoneNumberEnvVar));
         }
 
-        let convo_init_rx = Arc::new(Mutex::new(None));
-        let webhook_secret = std::env::var("WEBHOOK_SECRET").ok().map(SecretString::from);
-
         let mut agents = HashMap::new();
         agents.insert(key, agent_ws);
+        let agent_registry = Arc::new(Mutex::new(agents));
+
+        let convo_init_data_map = Arc::new(DashMap::new());
+        let webhook_secret = std::env::var("WEBHOOK_SECRET").ok().map(SecretString::from);
 
         Ok(TelephonyState {
-            agent_registry: Arc::new(Mutex::new(agents)),
+            agent_registry,
+            convo_init_data_map,
             twilio_client,
-            convo_init_rx,
             webhook_secret,
         })
     }
 
-    //pub fn from_env(key: String) -> Result<Self, Error> {
-    //    let agent_ws = Arc::new(Mutex::new(AgentWebSocket::from_env()?));
-    //    let twilio_client = Arc::new(TwilioClient::from_env()?);
-
-    //    TelephonyState::new(key, agent_ws, twilio_client)
-    //}
+    pub fn with_webhook_secret(mut self, secret: &str) -> Self {
+        self.webhook_secret = Some(SecretString::from(secret));
+        self
+    }
 
     pub async fn register_agent_ws(
         &self,
@@ -163,7 +166,7 @@ pub struct NativeExtractor {
 
 pub type Personalization = Json<NativeExtractor>;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct TwilioParams {
     pub params: TwilioRequestParams,
     pub twilio_client: Arc<TwilioClient>,
@@ -188,7 +191,7 @@ impl TwilioParams {
         let params = serde_qs::from_str::<TwilioRequestParams>(
             &serde_qs::to_string(&map).map_err(|e| e.to_string())?,
         )
-            .map_err(|e| e.to_string())?;
+        .map_err(|e| e.to_string())?;
         Ok(params)
     }
 
@@ -237,10 +240,10 @@ where
 
         let post_params = if method == Method::POST
             && headers.get("Content-Type").map_or(false, |ct| {
-            ct.to_str()
-                .unwrap_or("")
-                .starts_with("application/x-www-form-urlencoded")
-        }) {
+                ct.to_str()
+                    .unwrap_or("")
+                    .starts_with("application/x-www-form-urlencoded")
+            }) {
             Some(&form_data)
         } else {
             None
@@ -282,7 +285,7 @@ impl IntoResponse for TwilioValidationRejection {
 #[derive(Clone, Debug)]
 pub struct InboundCall {
     pub params: TwilioRequestParams,
-    pub convo_init_rx: Arc<Mutex<Option<Receiver<ConversationInitiationClientData>>>>,
+    pub convo_init_map: Arc<DashMap<String, ConversationInitiationClientData>>,
 }
 
 impl<S> FromRequest<S> for InboundCall
@@ -297,11 +300,11 @@ where
 
         let twilio_params = TwilioParams::from_request(req, state).await?;
         let t_state = TelephonyState::from_ref(state);
-        let convo_init_rx = t_state.convo_init_rx.clone();
+        let convo_init_map = Arc::clone(&t_state.convo_init_data_map);
 
         Ok(InboundCall {
+            convo_init_map,
             params: twilio_params.into_params(),
-            convo_init_rx,
         })
     }
 }
@@ -335,7 +338,6 @@ impl InboundCall {
         }
     }
 
-    // TODO: change Output to Result as user's async function can fail
     pub fn answer_and_config<F, Fut>(
         self,
         ws_url: impl Into<String>,
@@ -343,15 +345,12 @@ impl InboundCall {
     ) -> Result<Response, Error>
     where
         F: FnOnce() -> Fut + Send + 'static,
-        Fut: Future<Output=ConversationInitiationClientData> + Send,
+        Fut: Future<Output = ConversationInitiationClientData> + Send,
     {
+        let call_sid = self.params.call_sid.clone();
+        let convo_init_map = Arc::clone(&self.convo_init_map);
         tokio::spawn(async move {
-            let (tx, rx) = tokio::sync::mpsc::channel(1);
-            *self.convo_init_rx.lock().await = Some(rx);
-            let data = f().await;
-            if tx.send(data).await.is_err() {
-                error!("Failed to send conversation initiation data to telephony state");
-            }
+            convo_init_map.insert(call_sid, f().await);
         });
 
         Ok(VoiceResponse::new()
@@ -394,7 +393,7 @@ pub struct OutboundCall<E> {
     pub inner_extractor: E,
     pub twilio_client: Arc<TwilioClient>,
     pub number: String,
-    pub convo_init_rx: Arc<Mutex<Option<Receiver<ConversationInitiationClientData>>>>,
+    pub convo_init_map: Arc<DashMap<String, ConversationInitiationClientData>>,
 }
 
 impl<S, E> FromRequest<S> for OutboundCall<E>
@@ -411,13 +410,13 @@ where
         let t_state = TelephonyState::from_ref(state);
         let twilio_client = Arc::clone(&t_state.twilio_client);
         let number = twilio_client.number().unwrap().to_string();
-        let convo_init_rx = t_state.convo_init_rx.clone();
+        let convo_init_map = Arc::clone(&t_state.convo_init_data_map);
 
         Ok(OutboundCall {
             inner_extractor,
             twilio_client,
             number,
-            convo_init_rx,
+            convo_init_map,
         })
     }
 }
@@ -436,13 +435,13 @@ where
         let t_state = TelephonyState::from_ref(state);
         let twilio_client = t_state.twilio_client.clone();
         let number = twilio_client.number().unwrap().to_string();
-        let convo_init_rx = t_state.convo_init_rx.clone();
+        let convo_init_map = Arc::clone(&t_state.convo_init_data_map);
 
         Ok(OutboundCall {
             inner_extractor,
             twilio_client,
             number,
-            convo_init_rx,
+            convo_init_map,
         })
     }
 }
@@ -452,9 +451,10 @@ impl<E> OutboundCall<E> {
         &self.inner_extractor
     }
     pub async fn ring(self, to: &str, twiml_url: &str) -> Result<CallResponse, Error> {
-        let body = CreateCallBody::new(to, &self.number, twiml_url);
-        let create_call = CreateCall::new(self.twilio_client.account_sid(), body);
-        let call_response = self.twilio_client.hit(create_call).await?;
+        let call_response = self
+            .twilio_client
+            .create_call_with_url(to, &self.number, twiml_url)
+            .await?;
         Ok(call_response)
     }
 
@@ -467,13 +467,15 @@ impl<E> OutboundCall<E> {
     where
         F: FnOnce() -> ConversationInitiationClientData + Send + 'static,
     {
-        let (tx, rx) = tokio::sync::mpsc::channel(1);
-        *self.convo_init_rx.lock().await = Some(rx);
-        let data = f();
-        if tx.send(data).await.is_err() {
-            error!("Failed to send conversation initiation data to telephony state");
+        let convo_init_map = Arc::clone(&self.convo_init_map);
+        match self.ring(to, twiml_url).await {
+            Ok(call_response) => {
+                let call_sid = call_response.sid.clone();
+                convo_init_map.insert(call_sid, f());
+                Ok(call_response)
+            }
+            Err(e) => Err(e),
         }
-        self.ring(to, twiml_url).await
     }
 
     /// Use a different Twilio phone number to make the call
@@ -483,25 +485,13 @@ impl<E> OutboundCall<E> {
         from: &str,
         twiml_url: &str,
     ) -> Result<CallResponse, Error> {
-        let create_call_body = CreateCallBody::new(to, from, twiml_url);
-        let create_call = CreateCall::new(self.twilio_client.account_sid(), create_call_body);
-        let resp = self.twilio_client.hit(create_call).await?;
-        Ok(resp)
+        let call_response = self
+            .twilio_client
+            .create_call_with_url(to, from, twiml_url)
+            .await?;
+        Ok(call_response)
     }
 
-    //pub async fn ring_if<P>(self, to: &str, twiml_url: &str, predicate: P) -> Option<Result<CallResponse, Error>>
-    //where
-    //    P: FnOnce(E) -> bool,
-    //{
-    //    if predicate(self.inner_extractor) {
-    //        let create_call_body = CreateCallBody::new(to, self.number, TwimlSrc::url(twiml_url));
-    //        let create_call = CreateCall::new(self.twilio_client.account_sid(), create_call_body);
-    //        // TODO: handle error
-    //        Some(Ok(self.twilio_client.hit(create_call).await.unwrap()))
-    //    } else {
-    //        None
-    //    }
-    //}
     pub fn into_inner(self) -> E {
         self.inner_extractor
     }
@@ -513,13 +503,45 @@ type TwilioMessageCallback = Box<dyn FnMut(TwilioMessage) + Send + 'static>;
 
 #[derive(Clone, Debug, Serialize)]
 pub struct PhoneCallTool {
-    pub client_tool: ClientTool,
+    // or ClientTool ?
+    pub client_tool_call: ClientToolCall,
     pub call_sid: String,
     pub conversation_id: Option<String>,
 }
 
+impl PhoneCallTool {
+    pub fn new(
+        client_tool_call: ClientToolCall,
+        call_sid: String,
+        conversation_id: Option<String>,
+    ) -> Self {
+        Self {
+            client_tool_call,
+            call_sid,
+            conversation_id,
+        }
+    }
+}
 
-
+//
+//#[derive(Debug)]
+//pub enum ToolAction {
+//    SendResult(ClientToolResult),
+//    StopConversation,
+//    Continue
+//}
+//
+//
+//pub trait TelephonyTool: Send + Sync {
+//    fn name(&self) -> &str;
+//
+//    async fn execute(
+//        &self,
+//        tool: &PhoneCallTool,
+//        agent_ws: &Arc<Mutex<AgentWebSocket>>,
+//        twilio_client: &TwilioClient,
+//    ) -> Result<ToolAction, Error>;
+//}
 
 pub struct TelephonyAgent {
     pub agent_registry: Arc<Mutex<HashMap<String, Arc<Mutex<AgentWebSocket>>>>>,
@@ -528,8 +550,8 @@ pub struct TelephonyAgent {
     pub twilio_client: Arc<TwilioClient>,
     pub server_message_cb: Option<ServerMessageCallback>,
     pub twilio_message_cb: Option<TwilioMessageCallback>,
-    pub convo_init_rx: Option<Receiver<ConversationInitiationClientData>>,
-    pub tools_tx: Option<UnboundedSender<(ClientToolCall, String, Option<String>)>>,
+    pub convo_init_map: Arc<DashMap<String, ConversationInitiationClientData>>,
+    pub tools_tx: Option<UnboundedSender<PhoneCallTool>>,
 }
 
 impl<S> FromRequestParts<S> for TelephonyAgent
@@ -553,15 +575,15 @@ where
             .map_err(TwilioValidationRejection::WebSocketUpgradeRejection)?;
 
         let agent_registry = Arc::clone(&t_state.agent_registry);
-        let convo_init_rx = t_state.convo_init_rx.lock().await.take();
+        let convo_init_map = Arc::clone(&t_state.convo_init_data_map);
 
         Ok(TelephonyAgent {
             agent_registry,
+            convo_init_map,
             agent_ws: None,
             twilio_ws: ws,
             server_message_cb: None,
             twilio_message_cb: None,
-            convo_init_rx,
             twilio_client,
             tools_tx: None,
         })
@@ -570,7 +592,7 @@ where
 
 impl TelephonyAgent {
     pub async fn set_agent_ws(&mut self, key: &str) -> Result<(), Error> {
-        let mut agent_registry = self.agent_registry.lock().await;
+        let agent_registry = self.agent_registry.lock().await;
         if let Some(agent_ws) = agent_registry.get(key).cloned() {
             self.agent_ws = Some(agent_ws);
             Ok(())
@@ -578,12 +600,13 @@ impl TelephonyAgent {
             Err(Error::AgentWebSocketNotFound(key.to_string()))
         }
     }
+
     pub async fn handle_phone_call(mut self) -> Result<Response, Error> {
         let ws = self.twilio_ws;
         let agent_ws = self.agent_ws.ok_or(Error::AgentWebSocketNotSet)?;
         let server_message_cb = self.server_message_cb.take();
         let twilio_message_cb = self.twilio_message_cb.take();
-        let convo_init_rx = self.convo_init_rx;
+        let convo_init_map = self.convo_init_map;
         let tools_tx = self.tools_tx.take();
 
         let resp = ws.on_upgrade(move |socket| async move {
@@ -592,10 +615,10 @@ impl TelephonyAgent {
                 agent_ws,
                 server_message_cb,
                 twilio_message_cb,
-                convo_init_rx,
+                convo_init_map,
                 tools_tx,
             )
-                .await
+            .await
             {
                 Ok(_) => info!("Phone call established"),
                 Err(e) => error!("Failed to establish phone call: {:?}", e),
@@ -604,13 +627,18 @@ impl TelephonyAgent {
         Ok(resp)
     }
 
+    #[instrument(
+        name = "handle_websockets",
+        skip_all,
+        fields(call_sid = field::Empty, stream_sid = field::Empty)
+    )]
     pub async fn handle_websockets(
         mut twilio_socket: WebSocket,
         agent_ws: Arc<Mutex<AgentWebSocket>>,
-        mut e_cb: Option<ServerMessageCallback>,
-        mut t_cb: Option<TwilioMessageCallback>,
-        convo_init_rx: Option<Receiver<ConversationInitiationClientData>>,
-        tools_tx: Option<UnboundedSender<(ClientToolCall, String, Option<String>)>>,
+        mut server_cb: Option<ServerMessageCallback>,
+        mut twilio_cb: Option<TwilioMessageCallback>,
+        convo_init_map: Arc<DashMap<String, ConversationInitiationClientData>>,
+        tools_tx: Option<UnboundedSender<PhoneCallTool>>,
     ) -> Result<(), Error> {
         let msg = twilio_socket
             .next()
@@ -628,10 +656,23 @@ impl TelephonyAgent {
         let msg: StartMessage = serde_json::from_str(msg.to_text()?)?;
         let stream_sid = msg.stream_sid;
         let call_sid = msg.start.call_sid.clone();
-        info!("Start message metadata: {:?}", msg.start);
+        info!(call_sid = %call_sid, stream_sid = %stream_sid, "Received Start message");
+        // Add CallSid and StreamSid to the current tracing span
+        Span::current().record("call_sid", &call_sid);
+        Span::current().record("stream_sid", &stream_sid);
+
+        // -- Set possible `ConversationInitiationClientData` --
+        let init_data_opt = convo_init_map.remove(&call_sid);
+        if let Some((_, data)) = init_data_opt {
+            let mut agent_ws_locked = agent_ws.lock().await;
+            agent_ws_locked.with_conversation_initiation_client_data(data);
+            info!("Applied conversation initiation data to agent websocket");
+        } else {
+            warn!("No conversation initiation data found for this call.");
+        }
 
         let (twilio_tx, rx) = tokio::sync::mpsc::unbounded_channel();
-        let twilio_rx = UnboundedReceiverStream::new(rx);
+        let twilio_rx_stream = UnboundedReceiverStream::new(rx);
 
         let (mut twilio_sink, mut twilio_stream) = twilio_socket.split();
 
@@ -642,24 +683,23 @@ impl TelephonyAgent {
                 let msg = msg?;
                 let twilio_msg = TwilioMessage::try_from(msg.to_text()?)?;
 
-                if let Some(cb) = t_cb.as_mut() {
+                if let Some(cb) = twilio_cb.as_mut() {
                     cb(twilio_msg.clone());
                 }
 
                 match twilio_msg {
                     TwilioMessage::Media(media_msg) => {
                         let payload = media_msg.media.payload;
+                        // TODO: system end_call tool gives us error here, handle it
                         if twilio_tx.send(payload).is_err() {
                             error!("Failed to send Twilio payload to agent websocket");
+                            break;
                         }
                     }
                     TwilioMessage::Stop(msg) => {
                         return match agent_ws_for_stop.lock().await.stop_conversation().await {
                             Ok(_) => {
-                                info!(
-                                    "Twilio Stop Message for CallSid: {}",
-                                    msg.stop.call_sid
-                                );
+                                info!("Twilio Stop Message for CallSid: {}", msg.stop.call_sid);
                                 Ok(())
                             }
                             Err(e) => {
@@ -674,56 +714,116 @@ impl TelephonyAgent {
             Ok::<(), Error>(())
         });
 
-        if let Some(mut rx) = convo_init_rx {
-            if let Some(convo_init_data) = rx.recv().await {
-                let mut agent_ws = agent_ws.lock().await;
-                agent_ws.with_conversation_initiation_client_data(convo_init_data);
-                info!("Received conversation initiation data");
-            } else {
-                error!("Failed to receive conversation initiation data");
-            }
-        }
-
         let agent_ws_for_convo = Arc::clone(&agent_ws);
         tokio::spawn(async move {
-            let mut convai_stream = agent_ws_for_convo
-                .lock()
-                .await
-                .start_conversation(twilio_rx)
-                .await?;
-
+            let agent_ws = agent_ws_for_convo;
             let mut conversation_id: Option<String> = None;
-            while let Some(msg_result) = convai_stream.next().await {
 
+            let mut agent_ws_locked = agent_ws.lock().await;
+            let convai_stream_result = agent_ws_locked.start_conversation(twilio_rx_stream).await;
+            drop(agent_ws_locked);
+
+            let mut convai_stream = match convai_stream_result {
+                Ok(stream) => stream,
+                Err(e) => {
+                    error!(call_sid = %call_sid, "Failed to start agent conversation: {}", e);
+                    return;
+                }
+            };
+            info!(call_sid = %call_sid, "Agent conversation stream started.");
+
+            while let Some(msg_result) = convai_stream.next().await {
                 match msg_result {
                     Ok(server_msg) => {
-                        if let Some(cb) = e_cb.as_mut() {
+                        if let Some(cb) = server_cb.as_mut() {
                             cb(server_msg.clone());
                         }
 
                         match server_msg {
                             ServerMessage::Audio(audio) => {
-                                twilio_sink.send((audio, &stream_sid).to_twilio()?).await?;
+                                let twilio_audio_msg = match (audio, &stream_sid).to_twilio() {
+                                    Ok(msg) => msg,
+                                    Err(e) => {
+                                        error!(call_sid = %call_sid, "Failed to create Twilio media message: {}", e);
+                                        continue; // Skip sending this message
+                                    }
+                                };
+                                if let Err(e) = twilio_sink.send(twilio_audio_msg).await {
+                                    error!(call_sid = %call_sid, "Failed to send audio to Twilio: {}", e);
+                                    break;
+                                }
                             }
                             ServerMessage::Interruption(_) => {
+                                info!(call_sid = %call_sid, "Received agent Interruption");
                                 let clear_msg = ClearMessage::new(&stream_sid);
-                                let json = serde_json::to_string(&clear_msg)?;
-                                twilio_sink.send(Message::Text(json.into())).await?;
+                                match serde_json::to_string(&clear_msg) {
+                                    Ok(json) => {
+                                        if let Err(e) =
+                                            twilio_sink.send(Message::Text(json.into())).await
+                                        {
+                                            error!(call_sid = %call_sid, "Failed to send Clear message to Twilio: {}", e);
+                                            break;
+                                        }
+                                    }
+                                    Err(e) => {
+                                        error!(call_sid = %call_sid, "Failed to serialize Clear message: {}", e)
+                                    }
+                                }
                             }
                             ServerMessage::ClientToolCall(tool_call) => {
-                                if let Some(tools_tx) = &tools_tx {
-                                    if tools_tx
-                                        .send((tool_call, call_sid.clone(), conversation_id.clone()))
-                                        .is_err()
-                                    {
-                                        error!("Failed to send tool call");
+                                match &tools_tx {
+                                    Some(tools_tx) => {
+                                        info!(call_sid = %call_sid, tool.name = %tool_call.name(), tool.id = %tool_call.id(), "Received agent tool call");
+                                        let phone_call_tool = PhoneCallTool::new(
+                                            tool_call,
+                                            call_sid.clone(),
+                                            conversation_id.clone(),
+                                        );
+                                        if tools_tx.send(phone_call_tool).is_err() {
+                                            error!(call_sid = %call_sid, "Failed to send tool call to receiver)");
+                                        }
                                     }
-                                } else {
-                                    error!(
-                                "Tools channel not set, received tool call: {:?}",
-                                tool_call.name()
-                            );
+                                    None => {
+                                        error!(call_sid = %call_sid, tool.name = %tool_call.name(), tool.id = %tool_call.id(), "Received tool call but tools_tx channel is not configured.");
+                                        // Send tool error back to agent
+                                        let tool_result = ClientToolResult::new(tool_call.id())
+                                            .is_error(true)
+                                            .with_result(
+                                                "Tool processing channel not available".to_string(),
+                                            );
+                                        let agent_ws_locked = agent_ws.lock().await;
+                                        if let Err(e) =
+                                            agent_ws_locked.send_tool_result(tool_result).await
+                                        {
+                                            error!(call_sid=%call_sid, "Failed to send tool error back to agent: {}", e);
+                                        }
+                                    }
                                 }
+                                //if let Some(tools_tx) = &tools_tx {
+                                //    info!(call_sid = %call_sid, tool.name = %tool_call.name(), tool.id = %tool_call.id(), "Received agent tool call");
+                                //    let phone_call_tool = PhoneCallTool::new(
+                                //        tool_call,
+                                //        call_sid.clone(),
+                                //        conversation_id.clone(),
+                                //    );
+                                //    if tools_tx.send(phone_call_tool).is_err() {
+                                //        error!(call_sid = %call_sid, "Failed to send tool call to receiver)");
+                                //    }
+                                //} else {
+                                //    error!(call_sid = %call_sid, tool.name = %tool_call.name(), tool.id = %tool_call.id(), "Received tool call but tools_tx channel is not configured.");
+                                //    // Send tool error back to agent
+                                //    let tool_result = ClientToolResult::new(tool_call.id())
+                                //        .is_error(true)
+                                //        .with_result(
+                                //            "Tool processing channel not available".to_string(),
+                                //        );
+                                //    let agent_ws_locked = agent_ws.lock().await;
+                                //    if let Err(e) =
+                                //        agent_ws_locked.send_tool_result(tool_result).await
+                                //    {
+                                //        error!(call_sid=%call_sid, "Failed to send tool error back to agent: {}", e);
+                                //    }
+                                //}
                             }
                             ServerMessage::ConversationInitiationMetadata(metadata) => {
                                 info!("Received conversation initiation metadata");
@@ -737,13 +837,12 @@ impl TelephonyAgent {
                         }
                     }
                     Err(e) => {
-                        //TODO: need to send cancellation token to twilio
-                        error!("Failed to receive message from agent websocket: {}", e);
-                        return Err(e.into());
+                        // Should we return error from core client on different ws close codes?
+                        error!(call_sid = %call_sid, "Failed to receive message from aget websocket: {}", e);
+                        break;
                     }
                 }
             }
-            Ok::<(), Error>(())
         });
         Ok(())
     }
@@ -761,7 +860,7 @@ pub struct PostCallPayload {
 pub struct PostCall {
     pub payload: PostCallPayload,
     pub twilio_client: Arc<TwilioClient>,
-    pub convo_init_rx: Arc<Mutex<Option<Receiver<ConversationInitiationClientData>>>>,
+    pub convo_init_map: Arc<DashMap<String, ConversationInitiationClientData>>,
     pub agent_registry: Arc<Mutex<HashMap<String, Arc<Mutex<AgentWebSocket>>>>>,
 }
 
@@ -796,9 +895,6 @@ where
     async fn from_request(req: Request, state: &S) -> Result<Self, Self::Rejection> {
         info!("Post call request");
         let t_state = TelephonyState::from_ref(state);
-        let twilio_client = Arc::clone(&t_state.twilio_client);
-        let convo_init_rx = t_state.convo_init_rx.clone();
-        let agent_registry = Arc::clone(&t_state.agent_registry);
 
         let secret_str = t_state
             .webhook_secret
@@ -882,10 +978,14 @@ where
         let payload = serde_json::from_str(&body_str)
             .map_err(|e| PostCallRejection::BadRequest(format!("Invalid JSON payload: {}", e)))?;
 
+        let twilio_client = Arc::clone(&t_state.twilio_client);
+        let convo_init_map = Arc::clone(&t_state.convo_init_data_map);
+        let agent_registry = Arc::clone(&t_state.agent_registry);
+
         Ok(PostCall {
             payload,
             twilio_client,
-            convo_init_rx,
+            convo_init_map,
             agent_registry,
         })
     }
@@ -944,23 +1044,31 @@ mod tests {
 
     impl TestAppState {
         fn new(webhook_secret: &str, auth_token: &str) -> Self {
-            let agent_ws = AgentWebSocket::new("test", "test");
-            let twilio_client = TwilioClient::new("test", auth_token);
-            let twilio_client = Arc::new(twilio_client);
+            let agent_ws = Arc::new(Mutex::new(AgentWebSocket::new("test", "test")));
+            let twilio_client =
+                Arc::new(TwilioClient::new("test", auth_token).with_number("1234567890"));
 
-            let webhook_secret = if webhook_secret.is_empty() {
-                None
+            let test_app = if webhook_secret.is_empty() {
+                let mut agents = HashMap::new();
+                agents.insert("test".to_string(), agent_ws);
+                let agent_registry = Arc::new(Mutex::new(agents));
+
+                let sub_state = TelephonyState {
+                    agent_registry,
+                    convo_init_data_map: Arc::new(Default::default()),
+                    twilio_client,
+                    webhook_secret: None,
+                };
+
+                TestAppState { sub_state }
             } else {
-                Some(SecretString::from(webhook_secret))
+                let sub_state = TelephonyState::new("test".to_string(), agent_ws, twilio_client)
+                    .expect("Failed to create telephony state")
+                    .with_webhook_secret(webhook_secret);
+                TestAppState { sub_state }
             };
 
-            let sub_state = TelephonyState {
-                agent_ws: Arc::new(Mutex::new(agent_ws)),
-                twilio_client,
-                convo_init_rx: Arc::new(Mutex::new(None)),
-                webhook_secret,
-            };
-            TestAppState { sub_state }
+            test_app
         }
     }
 
@@ -1292,7 +1400,8 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn twilio_params_extractor_is_rejecting_with_bad_request_when_twilio_signature_is_invalid() {
+    async fn twilio_params_extractor_is_rejecting_with_bad_request_when_twilio_signature_is_invalid(
+    ) {
         let app_state = TestAppState::new("test_secret", "test_auth_token");
         let params = required_twilio_params_for_deserialization();
         let form_data = serde_urlencoded::to_string(&params).unwrap();
