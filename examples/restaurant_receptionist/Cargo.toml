@@ -6,14 +6,13 @@ publish = false
 
 [dependencies]
 tokio = "1.43.0"
-elevenlabs-convai = { path = "../../elevenlabs-convai"}
-elevenlabs_rs = { path = "../../elevenlabs_rs", features = ["convai"] }
+elevenlabs_twilio = { path = "../../integrations/twilio" }
 axum = { version = "0.8.1", features = ["ws", "form"] }
 futures-util = "0.3.30"
 serde = { version = "1.0.217", features = ["derive"] }
 serde_json = "1.0.134"
 tokio-stream = "0.1.17"
-thiserror = "1.0.69"
 surrealdb = { version = "2.1.4", features = ["kv-mem"] }
 chrono = "0.4.39"
-url = "2.5.4"
+tracing = "0.1.41"
+tracing-subscriber = "0.3.19"

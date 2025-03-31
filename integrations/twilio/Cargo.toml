@@ -1,0 +1,37 @@
+[package]
+name = "elevenlabs_twilio"
+authors = ["rwxbytes"]
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+repository = "https://github.com/rwxbytes/elevenlabs_rs"
+description = "A lib crate for the integration of ElevenLabs and Twilio"
+
+[dependencies]
+axum = { version = "0.8.1", features = ["ws"] }
+elevenlabs-convai = {path = "../../elevenlabs-convai"}
+rusty_twilio = {git = "https://github.com/rwxbytes/rusty_twilio", branch = "master"}
+serde = { version = "1.0.217", features = ["derive"] }
+serde_json = "1.0.138"
+tokio = "1.43.0"
+tokio-stream = "0.1.17"
+futures-util = "0.3.30"
+thiserror = "2.0.11"
+tracing = "0.1.41"
+chrono = "0.4.40"
+hmac = "0.12.1"
+sha2 = "0.10.8"
+hex = "0.4.3"
+secrecy = "0.10.3"
+serde_qs = "0.14.0"
+tracing-subscriber = { version = "0.3.19", features = ["env-filter"] }
+dashmap = "6.1.0"
+
+[dev-dependencies]
+http-body-util = "0.1.2"
+hyper-util = { version = "0.1.10", features = ["client", "http1", "client-legacy"] }
+serde_urlencoded = "0.7.1"
+tower = { version = "0.5.2", features = ["util"] }
+sha1 = "0.10.6"
+base64 = "0.22.1"
+tokio-tungstenite = "0.26.2"

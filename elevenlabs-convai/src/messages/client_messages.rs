@@ -219,8 +219,11 @@ impl ExtraBody {
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct ClientToolResult {
     r#type: String,
-    pub client_tool_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tool_call_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub result: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub is_error: Option<bool>,
 }
 
@@ -228,7 +231,7 @@ impl Default for ClientToolResult {
     fn default() -> Self {
         ClientToolResult {
             r#type: CLIENT_TOOL_RESULT.to_string(),
-            client_tool_id: None,
+            tool_call_id: None,
             result: None,
             is_error: None,
         }
@@ -236,17 +239,33 @@ impl Default for ClientToolResult {
 }
 
 impl ClientToolResult {
+
+    pub fn new(id: impl Into<String>) -> Self {
+        ClientToolResult {
+            r#type: CLIENT_TOOL_RESULT.to_string(),
+            tool_call_id: Some(id.into()),
+            result: None,
+            is_error: None,
+        }
+    }
     pub fn with_client_tool_id(mut self, client_tool_id: String) -> Self {
-        self.client_tool_id = Some(client_tool_id);
+        self.tool_call_id = Some(client_tool_id);
         self
     }
     pub fn with_result(mut self, result: String) -> Self {
         self.result = Some(result);
         self
     }
-    pub fn with_is_error(mut self, is_error: bool) -> Self {
+    pub fn is_error(mut self, is_error: bool) -> Self {
         self.is_error = Some(is_error);
         self
+    }
+}
+
+impl TryFrom<ClientToolResult> for Message {
+    type Error = ConvAIError;
+    fn try_from(result: ClientToolResult) -> Result<Self, Self::Error> {
+        Ok(Message::Text(serde_json::to_string(&result)?))
     }
 }
 

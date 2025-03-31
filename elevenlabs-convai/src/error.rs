@@ -9,8 +9,8 @@ pub enum ConvAIError {
     #[error("environment variable error: {0}")]
     EnvError(#[from] std::env::VarError),
 
-    //#[error("reqwest error: {0}")]
-    //ReqwestError(#[from] reqwest::Error),
+    #[error("boxed error: {0}")]
+    Boxed(#[from] Box<dyn std::error::Error + Send + Sync>),
 
     #[error("websocket error: {0}")]
     WebSocketError(#[source] tungstenite::Error),

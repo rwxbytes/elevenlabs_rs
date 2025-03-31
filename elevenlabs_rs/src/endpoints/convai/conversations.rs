@@ -236,6 +236,7 @@ pub struct Metadata {
     pub feedback: Option<ConvoMetadataFeedback>,
     pub authorization_method: Option<AuthorizationMethod>,
     pub charging: Option<Charging>,
+    pub termination_reason: Option<String>,
 }
 
 #[derive(Clone, Debug, Deserialize)]

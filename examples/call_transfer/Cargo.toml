@@ -1,16 +1,16 @@
 [package]
-name = "outbound_call"
+name = "call_transfer"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 publish = false
 
 [dependencies]
 elevenlabs_twilio = { path = "../../integrations/twilio" }
 axum = { version = "0.8.1", features = ["ws"] }
 tokio = "1.42.0"
-futures-util = "0.3.30"
-tokio-stream = "0.1.17"
 tracing = "0.1.41"
 tracing-subscriber = "0.3.19"
-serde = { version = "1.0.217", features = ["derive"] }
+futures = "0.3.31"
 serde_json = "1.0.139"
+serde = { version = "1.0.217", features = ["derive"] }
+dotenv = "0.15.0"
