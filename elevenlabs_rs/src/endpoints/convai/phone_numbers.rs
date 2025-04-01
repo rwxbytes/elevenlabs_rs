@@ -57,9 +57,10 @@ impl CreatePhoneNumberBody {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
-#[serde(rename_all = "lowercase")]
+#[serde(rename_all = "snake_case")]
 pub enum PhoneNumberProvider {
     Twilio,
+    SipTrunk,
 }
 
 impl TryFrom<&CreatePhoneNumberBody> for RequestBody {
