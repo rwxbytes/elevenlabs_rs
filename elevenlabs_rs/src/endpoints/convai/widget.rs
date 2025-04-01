@@ -81,7 +81,7 @@ pub struct WidgetResponse {
 ///
 /// # Example
 ///
-/// ```
+/// ```no_run
 /// use elevenlabs_rs::endpoints::convai::widget::{CreateWidgetAvatar, CreateWidgetAvatarBody};
 /// use elevenlabs_rs::{ElevenLabsClient, Result};
 ///

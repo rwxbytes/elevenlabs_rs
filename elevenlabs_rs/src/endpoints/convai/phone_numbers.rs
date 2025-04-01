@@ -134,7 +134,7 @@ pub struct PhoneNumberResponse {
     pub assigned_agent: Option<AssignedAgent>,
 }
 
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct AssignedAgent {
     pub agent_id: String,
     pub agent_name: String,

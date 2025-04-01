@@ -2119,7 +2119,7 @@ pub struct Metadata {
     pub created_at_unix_secs: u64,
 }
 
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct PhoneNumber {
     pub phone_number: String,
     pub provider: PhoneNumberProvider,
