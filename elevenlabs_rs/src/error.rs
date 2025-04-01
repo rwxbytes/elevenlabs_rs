@@ -1,3 +1,4 @@
+use serde::Deserialize;
 use serde_json::Value;
 use thiserror::Error;
 
@@ -23,7 +24,6 @@ pub enum Error {
     GeneratedVoiceIDHeaderNotFound,
 }
 
-
 #[derive(Error, Debug)]
 pub enum WebSocketError {
     #[error("NonNormalCloseCode: {0}")]
@@ -34,14 +34,5 @@ pub enum WebSocketError {
     UnexpectedMessageType,
 }
 
-#[derive(Debug, Error)]
-pub enum ConvAIError {
-    #[error("JSON deserialization error: {0}")]
-    SerdeError(#[from] serde_json::Error),
-    #[error("Missing or invalid 'type' field in the response")]
-    InvalidTypeField,
-    #[error("Unknown response type: {0}")]
-    UnknownResponseType(String),
-    #[error("WebSocket message error: {0}")]
-    WebSocketError(String),
-}
+
+
