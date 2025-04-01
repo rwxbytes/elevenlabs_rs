@@ -60,13 +60,32 @@ impl From<SpeechToTextModel> for String {
 #[derive(Clone, Debug)]
 pub struct CreateTranscript {
     pub body: CreateTranscriptBody,
+    pub query: Option<CreateTranscriptQuery>,
 }
 
 impl CreateTranscript {
     pub fn new(body: CreateTranscriptBody) -> Self {
-        Self { body }
+        Self { body, query: None }
     }
 }
+
+#[derive(Clone, Debug, Default)]
+pub struct CreateTranscriptQuery {
+    params: QueryValues,
+}
+
+impl CreateTranscriptQuery {
+    /// When enable_logging is set to false zero retention mode will be used for the request.
+    /// This will mean history features are unavailable for this request, including request stitching.
+    /// Zero retention mode may only be used by enterprise customers.
+    pub fn enable_logging(mut self, enable: bool) -> Self {
+        self.params.push(("enable_logging", enable.to_string()));
+        self
+    }
+}
+
+
+
 
 #[derive(Clone, Debug, Default, Serialize)]
 pub struct CreateTranscriptBody {

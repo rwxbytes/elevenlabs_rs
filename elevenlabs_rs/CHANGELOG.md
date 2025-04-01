@@ -33,6 +33,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `url`
   - query `output_format` to `CreateSoundEffect`
   - variant `SipTrunk` to `PhoneNumberProvider`
+  - query `enable_logging` to `CreateTranscript`
   
 
 ### Changed
