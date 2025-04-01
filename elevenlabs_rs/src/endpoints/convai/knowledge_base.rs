@@ -1,5 +1,5 @@
 use super::*;
-use crate::endpoints::convai::agents::AccessLevel;
+use crate::endpoints::convai::agents::{AccessInfo, AccessLevel};
 use crate::error::Error;
 use std::path::Path;
 use std::string::ToString;
@@ -62,8 +62,17 @@ pub struct GetKnowledgeBaseDocResponse {
     pub r#type: KnowledgeBaseType,
     pub extracted_inner_html: String,
     pub name: String,
-    pub access_level: AccessLevel,
+    pub access_info: AccessInfo,
     pub prompt_injectable: bool,
+    pub metadata: DocMetadata,
+    pub url: Option<String>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct DocMetadata {
+    pub created_at_unix_secs: u64,
+    pub last_updated_at_unix_secs: u64,
+    pub size_bytes: u64,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -379,9 +388,10 @@ pub struct Document {
     pub id: String,
     pub r#type: KnowledgeBaseType,
     pub name: String,
-    pub access_level: AccessLevel,
+    pub access_info: AccessInfo,
     pub dependent_agents: Vec<DependentAgent>,
     pub prompt_injectable: bool,
+    pub metadata: DocMetadata,
 }
 
 /// Get a list of agents depending on this knowledge base document.
@@ -510,7 +520,7 @@ impl ElevenLabsEndpoint for DeleteKnowledgeBaseDoc {
 /// #[tokio::main]
 /// async fn main() -> Result<()> {
 ///   let client = ElevenLabsClient::from_env()?;
-///   let endpoint = ComputeRAGIndex::new("documentation_id", RAGModel::E5Mistral7BInstruct);
+///   let endpoint = ComputeRAGIndex::new("documentation_id", EmbeddingModel::E5Mistral7BInstruct);
 ///   let resp = client.hit(endpoint).await?;
 ///   println!("{:#?}", resp);
 ///   Ok(())
@@ -576,16 +586,20 @@ impl From<String> for ComputeRAGIndexBody {
         Self { model }
     }
 }
-#[derive(Debug, Clone, Serialize, Display)]
-pub enum RAGModel {
+#[derive(Clone,Debug, Deserialize,Display, Serialize, )]
+#[serde(rename_all = "snake_case")]
+pub enum EmbeddingModel {
     #[strum(to_string = "e5_mistral_7b_instruct")]
+    #[serde(rename = "e5_mistral_7b_instruct")]
     E5Mistral7BInstruct,
-    #[strum(to_string = "gte_Qwen2_15B_instruct")]
-    GteQwen2_15BInstruct,
+    #[strum(to_string = "multilingual_e5_large_instruct")]
+    #[serde(rename = "multilingual_e5_large_instruct")]
+    MultilingualE5LargeInstruct,
+
 }
 
-impl From<RAGModel> for ComputeRAGIndexBody {
-    fn from(model: RAGModel) -> Self {
+impl From<EmbeddingModel> for ComputeRAGIndexBody {
+    fn from(model: EmbeddingModel) -> Self {
         Self {
             model: model.to_string(),
         }

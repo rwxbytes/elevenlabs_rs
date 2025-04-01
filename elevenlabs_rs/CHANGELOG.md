@@ -28,6 +28,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `show_page_show_terms`
   - `mic_muting_enabled`
 - Opus format variants to `OutputFormat`
+- fields to `GetKnowledgeBaseDocResponse`
+  - `metadata`
+  - `url`
   
 
 ### Changed
@@ -46,10 +49,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The fields on `Saftey` and types.
   - `ivc` to `is_blocked_ivc`
   - `non_ivc` to `is_blocked_non_ivc`
+- `RagModel` to `EmbeddingModel`
 
 ### Fixed
 - The api key field on `CustomLLM` and its type
 - `dynamic_variable_placeholders` field on `DynamicVariables`. The last letter was missing
+- `access_level` field to `access_info` on `GetKnowledgeBaseDocResponse`
 
 ### Removed
 - **Breaking:**`GetVoiceQuery` as now deprecated
