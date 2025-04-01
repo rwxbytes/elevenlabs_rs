@@ -1,7 +1,7 @@
 pub(crate) use crate::client::Result;
-pub(crate) use crate::shared::url::*;
 #[allow(unused_imports)]
 pub(crate) use crate::shared::response_bodies::*;
+pub(crate) use crate::shared::url::*;
 pub(crate) use bytes::Bytes;
 pub(crate) use reqwest::{
     multipart::{Form, Part},
@@ -28,7 +28,6 @@ pub enum RequestBody {
 
 #[allow(async_fn_in_trait)]
 pub trait ElevenLabsEndpoint {
-
     const BASE_URL: &'static str = "https://api.elevenlabs.io";
 
     const PATH: &'static str;
@@ -63,13 +62,7 @@ pub trait ElevenLabsEndpoint {
         url.set_path(&path);
 
         if let Some(query_params) = self.query_params() {
-            let query_string = query_params
-                .into_iter()
-                .map(|(k, v)| format!("{}={}", k, v))
-                .collect::<Vec<_>>()
-                .join("&");
-
-            url.set_query(Some(&query_string))
+            url.query_pairs_mut().extend_pairs(query_params.into_iter());
         }
 
         url
