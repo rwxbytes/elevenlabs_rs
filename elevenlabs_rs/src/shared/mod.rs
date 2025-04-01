@@ -58,6 +58,8 @@ pub mod query_params {
         Mp3_44100Hz128kbps,
         #[strum(to_string = "mp3_44100_192")]
         Mp3_44100Hz192kbps,
+        #[strum(to_string = "pcm_8000")]
+        Pcm8000Hz,
         #[strum(to_string = "pcm_16000")]
         Pcm16000Hz,
         #[strum(to_string = "pcm_22050")]
@@ -68,6 +70,16 @@ pub mod query_params {
         Pcm44100Hz,
         #[strum(to_string = "ulaw_8000")]
         MuLaw8000Hz,
+        #[strum(to_string = "opus_48000_32")]
+        Opus48000Hz32kbps,
+        #[strum(to_string = "opus_48000_64")]
+        Opus48000Hz64kbps,
+        #[strum(to_string = "opus_48000_96")]
+        Opus48000Hz96kbps,
+        #[strum(to_string = "opus_48000_128")]
+        Opus48000Hz128kbps,
+        #[strum(to_string = "opus_48000_192")]
+        Opus48000Hz192kbps,
     }
 }
 

@@ -27,6 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - fields to `Widget`
   - `show_page_show_terms`
   - `mic_muting_enabled`
+- Opus format variants to `OutputFormat`
   
 
 ### Changed
@@ -55,6 +56,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Breaking:** `secrets` field from `GetAgentResponse` and `UpdateAgentBody`
 - **Breaking:** `secrets` field from `GetSettingsResponse` and `UpdateSettingsBody`
 - `knowledge_base_document_ids` field from `PromptConfig`
+-  Commented out the `convai::tools` module for a while
 
 ## [0.5.1] - 2025-02-28
 ### Added
