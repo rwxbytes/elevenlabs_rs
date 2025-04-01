@@ -31,6 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - fields to `GetKnowledgeBaseDocResponse`
   - `metadata`
   - `url`
+  - query `output_format` to `CreateSoundEffect`
   
 
 ### Changed
@@ -50,6 +51,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `ivc` to `is_blocked_ivc`
   - `non_ivc` to `is_blocked_non_ivc`
 - `RagModel` to `EmbeddingModel`
+- `TextToSoundEffects` to `CreateSoundEffect`
 
 ### Fixed
 - The api key field on `CustomLLM` and its type
