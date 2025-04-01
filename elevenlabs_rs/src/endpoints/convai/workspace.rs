@@ -5,6 +5,7 @@ use super::{
     *,
 };
 use std::collections::HashMap;
+use crate::endpoints::convai::agents::PhoneNumber;
 
 /// Retrieve Convai settings for the workspace
 ///
@@ -337,6 +338,7 @@ pub struct UsedBy {
     pub tools: Vec<UsedTools>,
     pub agent_tools: Vec<AgentTool>,
     pub others: Vec<String>,
+    pub phone_numbers: Vec<PhoneNumber>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
