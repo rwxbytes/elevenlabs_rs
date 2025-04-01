@@ -17,6 +17,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `DeleteSecret` endpoint
 - `termination_reason` to `conversation::Metadata`
 - variant `DynamicVar::Null` to `DynamicVar`
+- variant `Pcm8000hz` to `ConvAIAudioFormat`
+- fields to `PromtpConfig`
+  - `ignore_default_personality`
+  - `rag`
+- field `usage_mode` to `KnowledgeBase`
+- field `dynamic_variables` to `Tool`
+- field `workspace_overrides` to `PlatformSettings`
+- fields to `Widget`
+  - `show_page_show_terms`
+  - `mic_muting_enabled`
   
 
 ### Changed
@@ -32,14 +42,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `description`
   - `preview_url`
   - `rate`
+- The fields on `Saftey` and types.
+  - `ivc` to `is_blocked_ivc`
+  - `non_ivc` to `is_blocked_non_ivc`
 
 ### Fixed
 - The api key field on `CustomLLM` and its type
+- `dynamic_variable_placeholders` field on `DynamicVariables`. The last letter was missing
 
 ### Removed
 - **Breaking:**`GetVoiceQuery` as now deprecated
 - **Breaking:** `secrets` field from `GetAgentResponse` and `UpdateAgentBody`
 - **Breaking:** `secrets` field from `GetSettingsResponse` and `UpdateSettingsBody`
+- `knowledge_base_document_ids` field from `PromptConfig`
 
 ## [0.5.1] - 2025-02-28
 ### Added

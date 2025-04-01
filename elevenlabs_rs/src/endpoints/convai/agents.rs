@@ -1,7 +1,9 @@
 //! Agents endpoints
 
 use super::*;
+use crate::endpoints::convai::knowledge_base::EmbeddingModel;
 use crate::endpoints::convai::phone_numbers::{AssignedAgent, PhoneNumberProvider};
+use crate::endpoints::convai::workspace::{ConversationInitiationClientDataWebhook, Webhooks};
 use crate::shared::DictionaryLocator;
 use std::collections::HashMap;
 
@@ -157,17 +159,24 @@ impl ElevenLabsEndpoint for DeleteAgent {
 }
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
+/// Conversation configuration for an agent
 pub struct ConversationConfig {
+    /// Agent specific configuration
     #[serde(skip_serializing_if = "Option::is_none")]
     pub agent: Option<AgentConfig>,
+    /// Configuration for conversational transcription
     #[serde(skip_serializing_if = "Option::is_none")]
     pub asr: Option<ASR>,
+    /// Configuration for conversational events
     #[serde(skip_serializing_if = "Option::is_none")]
     pub conversation: Option<Conversation>,
+    /// Configuration for conversational text to speech
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tts: Option<TTSConfig>,
+    /// Configuration for turn detection
     #[serde(skip_serializing_if = "Option::is_none")]
     pub turn: Option<Turn>,
+    /// Language presets for conversations
     #[serde(skip_serializing_if = "Option::is_none")]
     pub language_presets: Option<HashMap<String, LanguagePreset>>,
 }
@@ -201,35 +210,33 @@ impl ConversationConfig {
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 pub struct AgentConfig {
-    //pub server: Option<ServerConfig>,
-    /// The system prompt is used to determine the persona of the agent and the context of the conversation.
+    /// The prompt for the agent
     #[serde(skip_serializing_if = "Option::is_none")]
     pub prompt: Option<PromptConfig>,
-    /// The first message the agent will say.
-    ///
-    /// If empty the agent will wait for the user to start the conversation.
+    /// If non-empty, the first message the agent will say.
+    /// If empty, the agent waits for the user to start the discussion.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub first_message: Option<String>,
-    /// The language of the agent.
-    ///
-    /// The agent will use English as the default language.
+    /// Language of the agent - used for ASR and TTS
     #[serde(skip_serializing_if = "Option::is_none")]
     pub language: Option<String>,
+    /// Configuration for dynamic variables
+    ///
+    /// See [Dynamic Variables](https://elevenlabs.io/docs/conversational-ai/customization/personalization/dynamic-variables)
     #[serde(skip_serializing_if = "Option::is_none")]
-    /// See [Dynamic Variables](https://elevenlabs.io/docs/conversational-ai/customization/dynamic-variables)
     pub dynamic_variables: Option<DynamicVariables>,
 }
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 pub struct DynamicVariables {
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub dynamic_variable_placeholder: Option<HashMap<String, DynamicVar>>,
+    pub dynamic_variable_placeholders: Option<HashMap<String, DynamicVar>>,
 }
 
 impl DynamicVariables {
     pub fn new(placeholders: HashMap<String, DynamicVar>) -> Self {
         DynamicVariables {
-            dynamic_variable_placeholder: Some(placeholders),
+            dynamic_variable_placeholders: Some(placeholders),
         }
     }
 }
@@ -241,7 +248,7 @@ pub enum DynamicVar {
     Int(i32),
     Double(f64),
     Bool(bool),
-    Null(Value)
+    Null(Value),
 }
 
 impl DynamicVar {
@@ -276,11 +283,6 @@ impl AgentConfig {
         }
     }
 
-    //pub fn with_server(mut self, server: ServerConfig) -> Self {
-    //    self.server = Some(server);
-    //    self
-    //}
-
     pub fn with_prompt(mut self, prompt: PromptConfig) -> Self {
         self.prompt = Some(prompt);
         self
@@ -302,50 +304,73 @@ impl AgentConfig {
     }
 }
 
-//#[derive(Clone, Debug, Default, Deserialize, Serialize)]
-//pub struct ServerConfig {
-//    pub server_events: Vec<ServerEvent>,
-//    pub url: String,
-//    pub secret: String,
-//    pub timeout: u32,
-//    pub num_retries: u32,
-//    pub error_message: String,
-//}
-//
-//#[derive(Clone, Debug, Deserialize, Serialize)]
-//#[serde(rename_all = "snake_case")]
-//pub enum ServerEvent {
-//    Interruption,
-//    Turn,
-//    TurnAbandoned,
-//}
-
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 pub struct PromptConfig {
-    /// Provide the LLM with domain-specific information to help it answer questions more accurately.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub knowledge_base: Option<Vec<KnowledgeBase>>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub llm: Option<LLM>,
-    /// Configure the maximum number of tokens that the LLM can predict.
-    /// A limit will be applied if the value is greater than 0.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub max_tokens: Option<i32>,
-    /// System prompt is used to determine the persona of the agent and the context of the conversation.
+    /// The prompt for the agent
     #[serde(skip_serializing_if = "Option::is_none")]
     pub prompt: Option<String>,
-    /// Temperature is a parameter that controls the creativity
-    /// or randomness of the responses generated by the LLM.
+    /// The LLM to query with the prompt and the chat history
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub llm: Option<LLM>,
+    /// The temperature for the LLM
     #[serde(skip_serializing_if = "Option::is_none")]
     pub temperature: Option<f32>,
+    /// If greater than 0, maximum number of tokens the LLM can predict
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub max_tokens: Option<i32>,
+    /// A list of tools that the agent can use over the course of the conversation
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tools: Option<Vec<Tool>>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub custom_llm: Option<CustomLLM>,
+    /// A list of IDs of tools used by the agent
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tool_ids: Option<Vec<String>>,
+    /// A list of knowledge bases to be used by the agent
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub knowledge_base_document_ids: Option<Vec<String>>,
+    pub knowledge_base: Option<Vec<KnowledgeBase>>,
+    /// Definition for a custom LLM if LLM field is set to ‘CUSTOM_LLM’
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub custom_llm: Option<CustomLLM>,
+    /// Whether to ignore the default personality
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub ignore_default_personality: Option<bool>,
+    /// Configuration for RAG
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub rag: Option<RAG>,
+}
+
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+pub struct RAG {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub enabled: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub embedding_model: Option<EmbeddingModel>,
+    /// Maximum vector distance of retrieved chunks.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub max_vector_distance: Option<f32>,
+    /// Maximum total length of document chunks retrieved from RAG.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub max_documents_length: Option<u32>,
+}
+
+impl RAG {
+    pub fn enabled(mut self, enabled: bool) -> Self {
+        self.enabled = Some(enabled);
+        self
+    }
+    pub fn with_embedding_model(mut self, embedding_model: EmbeddingModel) -> Self {
+        self.embedding_model = Some(embedding_model);
+        self
+    }
+
+    pub fn with_max_vector_distance(mut self, max_vector_distance: f32) -> Self {
+        self.max_vector_distance = Some(max_vector_distance);
+        self
+    }
+
+    pub fn with_max_documents_length(mut self, max_documents_length: u32) -> Self {
+        self.max_documents_length = Some(max_documents_length);
+        self
+    }
 }
 
 impl PromptConfig {
@@ -389,8 +414,13 @@ impl PromptConfig {
         self
     }
 
-    pub fn with_knowledge_base_document_ids(mut self, kb_ids: Vec<String>) -> Self {
-        self.knowledge_base_document_ids = Some(kb_ids);
+    pub fn ignore_default_personality(mut self, boolean: bool) -> Self {
+        self.ignore_default_personality = Some(boolean);
+        self
+    }
+
+    pub fn with_rag(mut self, rag: RAG) -> Self {
+        self.rag = Some(rag);
         self
     }
 }
@@ -399,7 +429,15 @@ impl PromptConfig {
 pub struct KnowledgeBase {
     pub id: String,
     pub name: String,
+    pub usage_mode: Option<UsageMode>,
     pub r#type: KnowledgeBaseType,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum UsageMode {
+    Prompt,
+    Auto,
 }
 
 #[derive(Copy, Clone, Debug, Deserialize, Serialize)]
@@ -414,6 +452,7 @@ impl KnowledgeBase {
         KnowledgeBase {
             id: id.into(),
             name: name.into(),
+            usage_mode: None,
             r#type: KnowledgeBaseType::File,
         }
     }
@@ -422,8 +461,14 @@ impl KnowledgeBase {
         KnowledgeBase {
             id: id.into(),
             name: name.into(),
+            usage_mode: None,
             r#type: KnowledgeBaseType::Url,
         }
+    }
+
+    pub fn with_usage_mode(mut self, usage_mode: UsageMode) -> Self {
+        self.usage_mode = Some(usage_mode);
+        self
     }
 }
 
@@ -441,13 +486,13 @@ pub enum LLM {
     #[serde(rename = "gpt-3.5-turbo")]
     Gpt3_5Turbo,
     #[serde(rename = "gemini-1.5-pro")]
-    #[default]
     Gemini1_5Pro,
     #[serde(rename = "gemini-1.5-flash")]
     Gemini1_5Flash,
     #[serde(rename = "gemini-1.0-pro")]
     Gemini1_0Pro,
     #[serde(rename = "gemini-2.0-flash-001")]
+    #[default]
     Gemini2_0Flash001,
     #[serde(rename = "gemini-2.0-flash-lite")]
     Gemini2_0FlashLite,
@@ -455,6 +500,8 @@ pub enum LLM {
     Claude3_5Sonnet,
     #[serde(rename = "claude-3-7-sonnet")]
     Claude3_7Sonnet,
+    #[serde(rename = "claude-3-5-sonnet-v1")]
+    Claude3_5SonnetV1,
     #[serde(rename = "claude-3-haiku")]
     Claude3Haiku,
     #[serde(rename = "grok-beta")]
@@ -476,6 +523,8 @@ pub struct Tool {
     parameters: Option<ClientToolParams>,
     #[serde(skip_serializing_if = "Option::is_none")]
     response_timeout_secs: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    dynamic_variables: Option<DynamicVariables>,
 }
 
 impl Tool {
@@ -488,6 +537,7 @@ impl Tool {
             expects_response: None,
             parameters: None,
             response_timeout_secs: None,
+            dynamic_variables: None,
         }
     }
 
@@ -500,6 +550,7 @@ impl Tool {
             expects_response: client_tool.expects_response,
             parameters: client_tool.parameters,
             response_timeout_secs: client_tool.response_timeout_secs,
+            dynamic_variables: client_tool.dynamic_variables,
         }
     }
 
@@ -512,6 +563,7 @@ impl Tool {
             expects_response: None,
             parameters: None,
             response_timeout_secs: None,
+            dynamic_variables: None,
         }
     }
 }
@@ -522,6 +574,8 @@ pub struct WebHook {
     api_schema: ApiSchema,
     description: String,
     name: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub dynamic_variables: Option<DynamicVariables>,
     r#type: ToolType,
 }
 
@@ -532,6 +586,7 @@ impl WebHook {
             description: description.into(),
             name: name.into(),
             r#type: ToolType::Webhook,
+            dynamic_variables: None,
         }
     }
 }
@@ -556,6 +611,7 @@ pub struct ClientTool {
     pub expects_response: Option<bool>,
     pub parameters: Option<ClientToolParams>,
     pub response_timeout_secs: Option<u32>,
+    pub dynamic_variables: Option<DynamicVariables>,
     r#type: ToolType,
 }
 
@@ -567,6 +623,7 @@ impl ClientTool {
             expects_response: None,
             parameters: None,
             response_timeout_secs: None,
+            dynamic_variables: None,
             r#type: ToolType::Client,
         }
     }
@@ -851,8 +908,6 @@ impl ApiSchema {
     }
 }
 
-
-
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 pub enum ApiMethod {
     #[default]
@@ -918,6 +973,7 @@ pub enum DataType {
     String,
     Object,
     Array,
+    Double,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -1005,12 +1061,16 @@ pub enum ToolType {
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 pub struct ASR {
+    /// The quality of the transcription.
     #[serde(skip_serializing_if = "Option::is_none")]
     quality: Option<AsrQuality>,
+    /// The provider of the transcription service
     #[serde(skip_serializing_if = "Option::is_none")]
     provider: Option<AsrProvider>,
+    /// The format of the audio to be transcribed
     #[serde(skip_serializing_if = "Option::is_none")]
     user_input_audio_format: Option<ConvAIAudioFormat>,
+    /// Keywords to boost prediction probability for
     #[serde(skip_serializing_if = "Vec::is_empty")]
     keywords: Vec<String>,
 }
@@ -1057,6 +1117,8 @@ pub enum AsrProvider {
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 pub enum ConvAIAudioFormat {
+    #[serde(rename = "pcm_8000")]
+    Pcm8000hz,
     #[default]
     #[serde(rename = "pcm_16000")]
     Pcm16000hz,
@@ -1072,8 +1134,10 @@ pub enum ConvAIAudioFormat {
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Conversation {
+    /// The events that will be sent to the client
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub client_events: Vec<ClientEvent>,
+    /// The maximum duration of a conversation in seconds
     #[serde(skip_serializing_if = "Option::is_none")]
     pub max_duration_seconds: Option<u32>,
 }
@@ -1101,7 +1165,7 @@ impl Default for Conversation {
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 pub struct TTSConfig {
-    /// The voice model to use for the agent.
+    /// The model to use for TTS
     ///
     /// Default: `ConvAIModel::ElevenTurboV2`
     ///
@@ -1111,31 +1175,37 @@ pub struct TTSConfig {
     /// - `ConvAIModel::ElevenFlashV2_5`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub model_id: Option<ConvAIModel>,
-    /// The voice ID to use for the agent.
+    /// The voice ID to use for TTS
     ///
-    ///  Default: `DefaultVoice::Eric` i.e. `cjVigY5qzO86Huf0OWal`
+    /// Default: `DefaultVoice::Eric` i.e. `cjVigY5qzO86Huf0OWal`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub voice_id: Option<String>,
-    /// The output format you want to use for ElevenLabs text to speech
+    /// The audio format to use for TTS
     ///
-    ///  Default: `ConvAIAudioFormat::Pcm16000hz`
+    /// Default: `ConvAIAudioFormat::Pcm16000hz`
     ///
     /// #### Additional Variants
+    /// - `ConvAIAudioFormat::Pcm8000hz`
     /// - `ConvAIAudioFormat::Pcm22050hz`
     /// - `ConvAIAudioFormat::Pcm24000hz`
     /// - `ConvAIAudioFormat::Pcm44100hz`
     /// - `ConvAIAudioFormat::Ulaw8000hz`
     #[serde(skip_serializing_if = "Option::is_none")]
     pub agent_output_audio_format: Option<ConvAIAudioFormat>,
+    /// The optimization for streaming latency
     #[serde(skip_serializing_if = "Option::is_none")]
     pub optimize_streaming_latency: Option<u32>,
+    /// The stability of generated speech
     #[serde(skip_serializing_if = "Option::is_none")]
     pub stability: Option<f32>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    /// The speed of generated speech
     pub speed: Option<f32>,
+    /// The similarity boost for generated speech
     #[serde(skip_serializing_if = "Option::is_none")]
     pub similarity_boost: Option<f32>,
     #[serde(skip_serializing_if = "Vec::is_empty")]
+    /// The pronunciation dictionary locators
     pub pronunciation_dictionary_locators: Vec<DictionaryLocator>,
 }
 
@@ -1220,8 +1290,10 @@ pub enum ConvAIModel {
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 pub struct Turn {
     #[serde(skip_serializing_if = "Option::is_none")]
+    /// Maximum wait time for the user’s reply before re-engaging the user
     pub turn_timeout: Option<f32>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    /// The mode of turn detection
     pub mode: Option<TurnMode>,
 }
 
@@ -1296,6 +1368,8 @@ pub struct PlatformSettings {
     pub privacy: Option<Privacy>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub call_limits: Option<CallLimits>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub workspace_overrides: Option<WorkspaceOverrides>,
 }
 
 impl PlatformSettings {
@@ -1336,6 +1410,16 @@ impl PlatformSettings {
 
     pub fn with_privacy(mut self, privacy: Privacy) -> Self {
         self.privacy = Some(privacy);
+        self
+    }
+
+    pub fn with_call_limits(mut self, call_limits: CallLimits) -> Self {
+        self.call_limits = Some(call_limits);
+        self
+    }
+
+    pub fn with_workspace_overrides(mut self, workspace_overrides: WorkspaceOverrides) -> Self {
+        self.workspace_overrides = Some(workspace_overrides);
         self
     }
 }
@@ -1386,51 +1470,46 @@ pub type DataCollection = HashMap<String, CustomData>;
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct CustomData {
-    description: String,
-    r#type: CustomDataType,
-    dynamic_variable: Option<String>,
-}
-
-// TODO: not needed if `DataType` enum remains private and internally used for all
-#[derive(Clone, Debug, Deserialize, Serialize)]
-#[serde(rename_all = "snake_case")]
-enum CustomDataType {
-    Boolean,
-    Integer,
-    Number,
-    String,
+    pub description: String,
+    pub r#type: DataType,
+    pub dynamic_variable: Option<String>,
+    pub constant: Option<DataType>,
 }
 
 impl CustomData {
     pub fn new_boolean(description: impl Into<String>) -> Self {
         CustomData {
             description: description.into(),
-            r#type: CustomDataType::Boolean,
+            r#type: DataType::Boolean,
             dynamic_variable: None,
+            constant: None,
         }
     }
 
     pub fn new_integer(description: impl Into<String>) -> Self {
         CustomData {
             description: description.into(),
-            r#type: CustomDataType::Integer,
+            r#type: DataType::Integer,
             dynamic_variable: None,
+            constant: None,
         }
     }
 
     pub fn new_number(description: impl Into<String>) -> Self {
         CustomData {
             description: description.into(),
-            r#type: CustomDataType::Number,
+            r#type: DataType::Number,
             dynamic_variable: None,
+            constant: None,
         }
     }
 
     pub fn new_string(description: impl Into<String>) -> Self {
         CustomData {
             description: description.into(),
-            r#type: CustomDataType::String,
+            r#type: DataType::String,
             dynamic_variable: None,
+            constant: None,
         }
     }
 
@@ -1638,130 +1717,9 @@ impl Ban {
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 pub struct Safety {
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub ivc: Option<IVC>,
+    pub is_blocked_ivc: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub non_ivc: Option<NonIVC>,
-}
-
-impl Safety {
-    pub fn with_ivc(mut self, ivc: IVC) -> Self {
-        self.ivc = Some(ivc);
-        self
-    }
-
-    pub fn with_non_ivc(mut self, non_ivc: NonIVC) -> Self {
-        self.non_ivc = Some(non_ivc);
-        self
-    }
-}
-
-#[derive(Clone, Debug, Default, Deserialize, Serialize)]
-pub struct IVC {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub is_unsafe: Option<bool>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub llm_reason: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    safety_prompt_version: Option<u32>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub matched_rule_id: Option<Vec<MatchedRule>>,
-}
-
-impl IVC {
-    pub fn with_is_unsafe(mut self, is_unsafe: bool) -> Self {
-        self.is_unsafe = Some(is_unsafe);
-        self
-    }
-
-    pub fn with_llm_reason(mut self, llm_reason: impl Into<String>) -> Self {
-        self.llm_reason = Some(llm_reason.into());
-        self
-    }
-
-    pub fn with_safety_prompt_version(mut self, safety_prompt_version: u32) -> Self {
-        self.safety_prompt_version = Some(safety_prompt_version);
-        self
-    }
-
-    pub fn with_matched_rule_ids<'a, I: IntoIterator<Item = &'a str>>(
-        mut self,
-        matched_rule_ids: I,
-    ) -> Self {
-        let matched_rule_ids = matched_rule_ids.into_iter().map(MatchedRule::new).collect();
-
-        self.matched_rule_id = Some(matched_rule_ids);
-        self
-    }
-}
-
-#[derive(Clone, Debug, Default, Deserialize, Serialize)]
-pub struct NonIVC {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub is_unsafe: Option<bool>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub llm_reason: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    safety_prompt_version: Option<u32>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub matched_rule_id: Option<Vec<MatchedRule>>,
-}
-
-impl NonIVC {
-    pub fn with_is_unsafe(mut self, is_unsafe: bool) -> Self {
-        self.is_unsafe = Some(is_unsafe);
-        self
-    }
-
-    pub fn with_llm_reason(mut self, llm_reason: impl Into<String>) -> Self {
-        self.llm_reason = Some(llm_reason.into());
-        self
-    }
-
-    pub fn with_safety_prompt_version(mut self, safety_prompt_version: u32) -> Self {
-        self.safety_prompt_version = Some(safety_prompt_version);
-        self
-    }
-
-    pub fn with_matched_rule_ids<'a, I: IntoIterator<Item = &'a str>>(
-        mut self,
-        matched_rule_ids: I,
-    ) -> Self {
-        let matched_rule_ids = matched_rule_ids.into_iter().map(MatchedRule::new).collect();
-
-        self.matched_rule_id = Some(matched_rule_ids);
-        self
-    }
-}
-
-#[derive(Clone, Debug, Deserialize, Serialize)]
-#[serde(rename_all = "snake_case")]
-pub enum MatchedRule {
-    SexualMinors,
-    ForgetModeration,
-    Extremism,
-    ScamFraud,
-    Political,
-    SelfHarm,
-    IllegalDistributionMedical,
-    SexualAdults,
-    Unknown,
-}
-
-impl MatchedRule {
-    pub fn new(id: &str) -> Self {
-        match id {
-            "sexual_minors" => MatchedRule::SexualMinors,
-            "forget_moderation" => MatchedRule::ForgetModeration,
-            "extremism" => MatchedRule::Extremism,
-            "scam_fraud" => MatchedRule::ScamFraud,
-            "political" => MatchedRule::Political,
-            "self_harm" => MatchedRule::SelfHarm,
-            "illegal_distribution_medical" => MatchedRule::IllegalDistributionMedical,
-            "sexual_adults" => MatchedRule::SexualAdults,
-            "unknown" => MatchedRule::Unknown,
-            _ => MatchedRule::Unknown,
-        }
-    }
+    pub is_blocked_non_ivc: Option<bool>,
 }
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
@@ -1801,6 +1759,30 @@ impl CallLimits {
 
     pub fn with_daily_limit(mut self, daily_limit: u32) -> Self {
         self.daily_limit = Some(daily_limit);
+        self
+    }
+}
+
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+pub struct WorkspaceOverrides {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub conversation_initiation_client_data_webhook:
+        Option<ConversationInitiationClientDataWebhook>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub webhooks: Option<Webhooks>,
+}
+
+impl WorkspaceOverrides {
+    pub fn with_conversation_initiation_client_data_webhook(
+        mut self,
+        webhook: ConversationInitiationClientDataWebhook,
+    ) -> Self {
+        self.conversation_initiation_client_data_webhook = Some(webhook);
+        self
+    }
+
+    pub fn with_webhooks(mut self, webhooks: Webhooks) -> Self {
+        self.webhooks = Some(webhooks);
         self
     }
 }
@@ -1848,6 +1830,8 @@ pub struct Widget {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub shareable_page_text: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub show_page_show_terms: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub terms_text: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub terms_html: Option<String>,
@@ -1857,6 +1841,8 @@ pub struct Widget {
     pub show_avatar_when_collapsed: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub disable_banner: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub mic_muting_enabled: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub language_selector: Option<bool>,
 }
