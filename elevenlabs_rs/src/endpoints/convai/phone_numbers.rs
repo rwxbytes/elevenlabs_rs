@@ -114,7 +114,7 @@ pub struct CreatePhoneNumberResponse {
 pub struct ListPhoneNumbers;
 
 impl ElevenLabsEndpoint for ListPhoneNumbers {
-    const PATH: &'static str = "/v1/convai/phone-numbers";
+    const PATH: &'static str = "/v1/convai/phone-numbers/";
 
     const METHOD: Method = Method::GET;
 

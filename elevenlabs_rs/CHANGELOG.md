@@ -142,6 +142,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - **Breaking** The `GetAgentResponse` by wrapping the `Vec<Secret>` in an `Option`
 - The `GetVoiceResponse` by wrapping `VoiceVerification` optional fields in `Option`s 
+- `ListPhoneNumbers`, it was missing the trailing slash in the path
 ### Security
 
 ## [0.4.1] - 2025-02-06
