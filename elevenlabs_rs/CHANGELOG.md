@@ -35,6 +35,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - variant `SipTrunk` to `PhoneNumberProvider`
 - query `enable_logging` to `CreateTranscript`
 - field `phone_numbers` to `UsedBy`
+- endpoints in `workspace` module:
+  - `GetResource`
+  - `ShareWorkspaceResource`
+  - `UnshareWorkspaceResource`
   
 
 ### Changed

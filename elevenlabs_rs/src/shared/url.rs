@@ -35,6 +35,8 @@ pub(crate) enum PathParam {
     PronunciationDictionaryID,
     #[strum(serialize = ":public_user_id")]
     PublicUserID,
+    #[strum(serialize = ":resource_id")]
+    ResourceID,
     #[strum(serialize = ":sample_id")]
     SampleID,
     #[strum(serialize = ":secret_id")]

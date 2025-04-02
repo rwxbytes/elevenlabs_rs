@@ -1,4 +1,9 @@
 //! The workspace endpoints
+
+use std::collections::HashMap;
+use strum::Display;
+use std::string::ToString;
+use crate::endpoints::convai::agents::AccessLevel;
 use super::*;
 
 /// Sends an email invitation to join your workspace to the provided email.
@@ -240,4 +245,244 @@ pub enum WorkspaceRole {
     WorkspaceAdmin,
     WorkspaceMember,
 }
+
+/// Gets the metadata of a resource by ID.
+///
+/// # Example
+///
+/// ```no_run
+/// use elevenlabs_rs::{ElevenLabsClient, Result};
+/// use elevenlabs_rs::endpoints::admin::workspace::{GetResource, GetResourceQuery, ResourceType};
+///
+/// #[tokio::main]
+/// async fn main() -> Result<()> {
+///    let c = ElevenLabsClient::from_env()?;
+///    let q = GetResourceQuery::default().with_resource_type(ResourceType::Voice);
+///    let endpoint = GetResource::new("id", q);
+///
+///    let resp = c.hit(endpoint).await?;
+///
+///   println!("{:#?}", resp);
+///
+///   Ok(())
+/// }
+/// ```
+/// See [Get Resource API reference](https://elevenlabs.io/docs/api-reference/workspace/get-resource)
+#[derive(Debug, Clone)]
+pub struct GetResource {
+    resource_id: String,
+    query: GetResourceQuery,
+}
+
+impl GetResource {
+    pub fn new(resource_id: impl Into<String>, query: impl Into<GetResourceQuery>) -> Self {
+        Self { resource_id: resource_id.into(), query: query.into() }
+    }
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct GetResourceQuery {
+    pub params: QueryValues
+}
+
+impl GetResourceQuery {
+    pub fn with_resource_type(mut self, resource_type: ResourceType) -> Self {
+        self.params.push(("resource_type", resource_type.to_string()));
+        self
+    }
+}
+
+#[derive(Debug, Clone, Deserialize, Display, Serialize)]
+#[serde(rename_all = "snake_case")]
+#[strum(serialize_all = "snake_case")]
+pub enum ResourceType {
+    Voice,
+    PronunciationDictionary,
+    Dubbing,
+    Project,
+    ConvaiAgents,
+    ConvaiKnowledgeBaseDocuments,
+    ConvaiTools,
+    ConvaiSettings,
+    ConvaiSecrets,
+    MusicLatent,
+    ConvaiPhoneNumbers
+}
+
+impl ElevenLabsEndpoint for GetResource {
+    const PATH: &'static str = "/v1/workspace/resources/:resource_id";
+
+    const METHOD: Method = Method::GET;
+
+    type ResponseBody = ResourceResponseBody;
+
+    fn query_params(&self) -> Option<QueryValues> {
+        Some(self.query.params.clone())
+    }
+
+    fn path_params(&self) -> Vec<(&'static str, &str)> {
+        vec![self.resource_id.and_param(PathParam::ResourceID)]
+    }
+
+    async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
+        Ok(resp.json().await?)
+    }
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct ResourceResponseBody {
+    pub resource_id: String,
+    pub resource_type: ResourceType,
+    pub role_to_group_ids: HashMap<String, Vec<String>>,
+    pub share_options: Vec<ShareOption>,
+    pub creator_user_id: String,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct ShareOption {
+    pub name: String,
+    pub id: String,
+    pub r#type: PrincipalRole,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum PrincipalRole {
+    User,
+    Group,
+    Key
+}
+
+/// See [Share Workspace Resource API reference](https://elevenlabs.io/docs/api-reference/workspace/share-workspace-resource)
+#[derive(Debug, Clone)]
+pub struct ShareWorkspaceResource {
+    resource_id: String,
+    body: ShareWorkspaceResourceBody,
+}
+
+impl ShareWorkspaceResource {
+    pub fn new(resource_id: impl Into<String>, body: ShareWorkspaceResourceBody) -> Self {
+        Self { resource_id: resource_id.into(), body: body.into() }
+    }
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct ShareWorkspaceResourceBody {
+    pub role: AccessLevel,
+    pub resource_type: ResourceType,
+    user_email: Option<String>,
+    group_email: Option<String>,
+    workspace_api_key_id: Option<String>,
+}
+
+impl ShareWorkspaceResourceBody {
+    pub fn new(role: AccessLevel, resource_type: ResourceType) -> Self {
+        Self { role, resource_type, user_email: None, group_email: None, workspace_api_key_id: None }
+    }
+
+    pub fn with_user_email(mut self, user_email: &str) -> Self {
+        self.user_email = Some(user_email.to_string());
+        self
+    }
+
+    pub fn with_group_email(mut self, group_email: &str) -> Self {
+        self.group_email = Some(group_email.to_string());
+        self
+    }
+
+    pub fn with_workspace_api_key_id(mut self, workspace_api_key_id: &str) -> Self {
+        self.workspace_api_key_id = Some(workspace_api_key_id.to_string());
+        self
+    }
+}
+
+impl ElevenLabsEndpoint for ShareWorkspaceResource {
+    const PATH: &'static str = "/v1/workspace/resources/:resource_id/share";
+
+    const METHOD: Method = Method::POST;
+
+    type ResponseBody = ShareWorkspaceResourceResponse;
+
+    fn path_params(&self) -> Vec<(&'static str, &str)> {
+        vec![self.resource_id.and_param(PathParam::ResourceID)]
+    }
+
+    async fn request_body(&self) -> Result<RequestBody> {
+        Ok(RequestBody::Json(serde_json::to_value(&self.body)?))
+    }
+
+    async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
+        Ok(resp.json().await?)
+    }
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct ShareWorkspaceResourceResponse {
+    pub key: String,
+}
+
+#[derive(Debug, Clone)]
+pub struct UnshareWorkspaceResource {
+    resource_id: String,
+    body: UnshareWorkspaceResourceBody,
+}
+
+impl UnshareWorkspaceResource {
+    pub fn new(resource_id: impl Into<String>, body: UnshareWorkspaceResourceBody) -> Self {
+        Self { resource_id: resource_id.into(), body: body.into() }
+    }
+}
+
+/// See [Unshare Workspace Resource API reference](https://elevenlabs.io/docs/api-reference/workspace/unshare-workspace-resource)
+#[derive(Debug, Clone, Serialize)]
+pub struct UnshareWorkspaceResourceBody {
+    pub resource_type: ResourceType,
+    pub user_email: Option<String>,
+    pub group_email: Option<String>,
+    pub workspace_api_key_id: Option<String>,
+}
+
+impl UnshareWorkspaceResourceBody {
+    pub fn new(resource_type: ResourceType) -> Self {
+        Self { resource_type, user_email: None, group_email: None, workspace_api_key_id: None }
+    }
+
+    pub fn with_user_email(mut self, user_email: &str) -> Self {
+        self.user_email = Some(user_email.to_string());
+        self
+    }
+
+    pub fn with_group_email(mut self, group_email: &str) -> Self {
+        self.group_email = Some(group_email.to_string());
+        self
+    }
+
+    pub fn with_workspace_api_key_id(mut self, workspace_api_key_id: &str) -> Self {
+        self.workspace_api_key_id = Some(workspace_api_key_id.to_string());
+        self
+    }
+}
+
+impl ElevenLabsEndpoint for UnshareWorkspaceResource {
+    const PATH: &'static str = "/v1/workspace/resources/:resource_id/unshare";
+
+    const METHOD: Method = Method::POST;
+
+    type ResponseBody = ShareWorkspaceResourceResponse;
+
+    fn path_params(&self) -> Vec<(&'static str, &str)> {
+        vec![self.resource_id.and_param(PathParam::ResourceID)]
+    }
+
+    async fn request_body(&self) -> Result<RequestBody> {
+        Ok(RequestBody::Json(serde_json::to_value(&self.body)?))
+    }
+
+    async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
+        Ok(resp.json().await?)
+    }
+}
+
+
+
 
