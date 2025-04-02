@@ -244,10 +244,12 @@ impl From<LegacyVoice> for String {
 }
 
 /// Voice settings
-#[derive(Debug, Serialize, Deserialize, PartialEq, Clone)]
+#[derive(Debug, Default, Serialize, Deserialize, PartialEq, Clone)]
 pub struct VoiceSettings {
-    pub similarity_boost: f32,
-    pub stability: f32,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub similarity_boost: Option<f32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub stability: Option<f32>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub style: Option<f32>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -257,28 +259,19 @@ pub struct VoiceSettings {
 }
 
 impl VoiceSettings {
-    pub fn new(stability: f32, similarity: f32) -> Self {
-        VoiceSettings {
-            similarity_boost: similarity,
-            stability,
-            style: None,
-            use_speaker_boost: None,
-            speed: None,
-        }
-    }
     pub fn with_similarity_boost(mut self, similarity_boost: f32) -> Self {
-        self.similarity_boost = similarity_boost;
+        self.similarity_boost = Some(similarity_boost);
         self
     }
     pub fn with_stability(mut self, stability: f32) -> Self {
-        self.stability = stability;
+        self.stability = Some(stability);
         self
     }
     pub fn with_style(mut self, style: f32) -> Self {
         self.style = Some(style);
         self
     }
-    pub fn with_use_speaker_boost(mut self, use_speaker_boost: bool) -> Self {
+    pub fn use_speaker_boost(mut self, use_speaker_boost: bool) -> Self {
         self.use_speaker_boost = Some(use_speaker_boost);
         self
     }
@@ -286,18 +279,6 @@ impl VoiceSettings {
     pub fn with_speed(mut self, speed: f32) -> Self {
         self.speed = Some(speed);
         self
-    }
-}
-
-impl Default for VoiceSettings {
-    fn default() -> Self {
-        VoiceSettings {
-            similarity_boost: 0.75,
-            stability: 0.5,
-            style: Some(0.5),
-            use_speaker_boost: Some(true),
-            speed: Some(1.0),
-        }
     }
 }
 
@@ -310,8 +291,9 @@ pub struct VerifiedLanguage {
 }
 
 /// Voice category
-#[derive(Debug, Deserialize, Serialize, PartialEq, Clone)]
+#[derive(Debug, Display, Deserialize, Serialize, PartialEq, Clone)]
 #[serde(rename_all = "snake_case")]
+#[strum(serialize_all = "snake_case")]
 pub enum VoiceCategory {
     Generated,
     Cloned,
@@ -364,8 +346,9 @@ pub struct FineTuning {
 }
 
 /// Fine-Tuning state
-#[derive(Clone, Debug, Deserialize, PartialEq)]
+#[derive(Clone, Display, Debug, Deserialize, PartialEq)]
 #[serde(rename_all = "snake_case")]
+#[strum(serialize_all = "snake_case")]
 pub enum FineTuningState {
     NotStarted,
     Queued,
@@ -373,6 +356,8 @@ pub enum FineTuningState {
     FineTuned,
     Failed,
     Delayed,
+    Draft,
+    NotVerified,
 }
 
 /// Verification attempt

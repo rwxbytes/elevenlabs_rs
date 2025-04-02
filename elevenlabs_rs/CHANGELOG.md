@@ -46,6 +46,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `quality`
   - `seed`
   - `guidance_scale`
+  - endpoint `GetVoices` (uses the V2 API)
+  - a few queries to `GetVoices`
+  - endpoint `GetDefaultVoiceSettings`
   
 
 ### Changed
@@ -67,6 +70,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `RagModel` to `EmbeddingModel`
 - `TextToSoundEffects` to `CreateSoundEffect`
 - `metadata` and `transcript` on `GetConversationDetails` are now optional
+- `similarity_boost` and `stability` on `VoiceSettings` are now optional
 
 ### Fixed
 - The api key field on `CustomLLM` and its type

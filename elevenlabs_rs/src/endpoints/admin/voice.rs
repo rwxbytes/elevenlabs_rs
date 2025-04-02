@@ -2,23 +2,27 @@
 use super::*;
 use crate::endpoints::admin::voice_library::SharedVoice;
 pub use crate::shared::{
-    FineTuning, SafetyControl, Sharing, VerifiedLanguage, VoiceCategory, VoiceSample,
-    VoiceSettings, VoiceVerification,
+    FineTuning, FineTuningState, SafetyControl, Sharing, VerifiedLanguage, VoiceCategory,
+    VoiceSample, VoiceSettings, VoiceVerification,
 };
 use std::collections::HashMap;
 use std::path::Path;
+use strum::Display;
 
 /// Gets a list of all available voices for a user.
 ///
 /// # Example
 /// ```no_run
 /// use elevenlabs_rs::{ElevenLabsClient, Result};
-/// use elevenlabs_rs::endpoints::admin::voice::{GetVoices, GetVoicesQuery};
+/// use elevenlabs_rs::endpoints::admin::voice::{GetVoices, GetVoicesQuery, VoiceCategory, VoiceType};
 ///
 /// #[tokio::main]
 /// async fn main() -> Result<()> {
 ///    let c = ElevenLabsClient::from_env()?;
-///    let query = GetVoicesQuery::default().show_legacy(true);
+///    let query = GetVoicesQuery::default()
+///       .with_voice_type(VoiceType::Community)
+///       .with_voice_category(VoiceCategory::Professional)
+///       .with_page_size(2);
 ///    let endpoint = GetVoices::with_query(query);
 ///    let voices = c.hit(endpoint).await?;
 ///    println!("{:#?}", voices);
@@ -42,14 +46,51 @@ pub struct GetVoicesQuery {
     params: QueryValues,
 }
 impl GetVoicesQuery {
-    pub fn show_legacy(mut self, show_legacy: bool) -> Self {
-        self.params.push(("show_legacy", show_legacy.to_string()));
+    pub fn with_next_page_token(mut self, next_page_token: impl Into<String>) -> Self {
+        self.params
+            .push(("next_page_token", next_page_token.into()));
+        self
+    }
+    pub fn with_page_size(mut self, page_size: u32) -> Self {
+        self.params.push(("page_size", page_size.to_string()));
+        self
+    }
+    pub fn with_sort(mut self, sort: impl Into<String>) -> Self {
+        self.params.push(("sort", sort.into()));
+        self
+    }
+
+    pub fn with_sort_direction(mut self, sort_direction: impl Into<String>) -> Self {
+        self.params.push(("sort_direction", sort_direction.into()));
+        self
+    }
+
+    pub fn with_voice_type(mut self, voice_type: VoiceType) -> Self {
+        self.params.push(("voice_type", voice_type.to_string()));
+        self
+    }
+
+    pub fn with_voice_category(mut self, voice_category: VoiceCategory) -> Self {
+        self.params
+            .push(("voice_category", voice_category.to_string()));
+        self
+    }
+
+    pub fn with_fine_tuning_state(mut self, fine_tuning_state: FineTuningState) -> Self {
+        self.params
+            .push(("fine_tuning_state", fine_tuning_state.to_string()));
+        self
+    }
+
+    pub fn include_total_count(mut self, include_total_count: bool) -> Self {
+        self.params
+            .push(("include_total_count", include_total_count.to_string()));
         self
     }
 }
 
 impl ElevenLabsEndpoint for GetVoices {
-    const PATH: &'static str = "/v1/voices";
+    const PATH: &'static str = "/v2/voices";
 
     const METHOD: Method = Method::GET;
 
@@ -62,6 +103,32 @@ impl ElevenLabsEndpoint for GetVoices {
         Ok(resp.json().await?)
     }
 }
+
+#[derive(Debug, Display, Deserialize, Clone)]
+#[serde(rename_all = "snake_case")]
+#[strum(serialize_all = "snake_case")]
+pub enum VoiceType {
+    Personal,
+    Community,
+    Default,
+    Workspace,
+}
+
+#[derive(Debug, Clone,)]
+pub struct GetDefaultVoiceSettings;
+
+impl ElevenLabsEndpoint for GetDefaultVoiceSettings {
+    const PATH: &'static str = "/v1/voices/settings/default";
+
+    const METHOD: Method = Method::GET;
+
+    type ResponseBody = VoiceSettings;
+
+    async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
+        Ok(resp.json().await?)
+    }
+}
+
 
 /// Returns the [`VoiceSettings`] for a voice.
 ///
@@ -208,9 +275,9 @@ impl ElevenLabsEndpoint for DeleteVoice {
 /// #[tokio::main]
 /// async fn main() -> Result<()> {
 ///   let c = ElevenLabsClient::from_env()?;
-///   let body = EditVoiceSettingsBody::new(1.0, 0.85)
-///        .with_style(0.25)
-///        .with_use_speaker_boost(true);
+///   let body = EditVoiceSettingsBody::default()
+///        .with_speed(0.8)
+///        .use_speaker_boost(true);
 ///   let endpoint = EditVoiceSettings::new("some_voice_id", body);
 ///   let resp = c.hit(endpoint).await?;
 ///   println!("{:#?}", resp);
@@ -253,24 +320,30 @@ impl ElevenLabsEndpoint for EditVoiceSettings {
 }
 
 /// Edit voice settings body
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct EditVoiceSettingsBody {
     inner: VoiceSettings,
 }
 
 impl EditVoiceSettingsBody {
-    pub fn new(stability: f32, similarity: f32) -> Self {
-        EditVoiceSettingsBody {
-            inner: VoiceSettings::new(stability, similarity),
-        }
+    pub fn with_similarity_boost(mut self, similarity_boost: f32) -> Self {
+        self.inner.similarity_boost = Some(similarity_boost);
+        self
     }
-
+    pub fn with_stability(mut self, stability: f32) -> Self {
+        self.inner.stability = Some(stability);
+        self
+    }
     pub fn with_style(mut self, style: f32) -> Self {
         self.inner.style = Some(style);
         self
     }
-    pub fn with_use_speaker_boost(mut self, use_speaker_boost: bool) -> Self {
+    pub fn use_speaker_boost(mut self, use_speaker_boost: bool) -> Self {
         self.inner.use_speaker_boost = Some(use_speaker_boost);
+        self
+    }
+    pub fn with_speed(mut self, speed: f32) -> Self {
+        self.inner.speed = Some(speed);
         self
     }
 }
@@ -485,6 +558,9 @@ impl ElevenLabsEndpoint for EditVoice {
 #[derive(Clone, Debug, Deserialize)]
 pub struct GetVoicesResponse {
     pub voices: Vec<GetVoiceResponse>,
+    pub has_more: bool,
+    pub total_count: u32,
+    pub next_page_token: Option<String>,
 }
 
 /// Voice response body
