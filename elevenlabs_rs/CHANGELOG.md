@@ -40,6 +40,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `ShareWorkspaceResource`
   - `UnshareWorkspaceResource`
 - builder method `with_language_presets(HashMap<String, LanguagePreset>)` to `ConversationConfig`
+- field `phone_call` to `GetConversationDetails`
   
 
 ### Changed
@@ -60,6 +61,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `non_ivc` to `is_blocked_non_ivc`
 - `RagModel` to `EmbeddingModel`
 - `TextToSoundEffects` to `CreateSoundEffect`
+- `metadata` and `transcript` on `GetConversationDetails` are now optional
 
 ### Fixed
 - The api key field on `CustomLLM` and its type

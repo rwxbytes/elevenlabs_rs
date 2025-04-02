@@ -198,8 +198,8 @@ pub struct GetConversationDetailsResponse {
     pub agent_id: String,
     pub conversation_id: String,
     pub status: ConvoStatus,
-    pub transcript: Vec<Transcript>,
-    pub metadata: Metadata,
+    pub transcript: Option<Vec<Transcript>>,
+    pub metadata: Option<Metadata>,
     pub analysis: Option<Analysis>,
     pub conversation_initiation_client_data: Option<ConvoInitClientData>,
 }
@@ -237,6 +237,28 @@ pub struct Metadata {
     pub authorization_method: Option<AuthorizationMethod>,
     pub charging: Option<Charging>,
     pub termination_reason: Option<String>,
+    pub phone_call: Option<PhoneCall>,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+#[serde(untagged)]
+pub enum PhoneCall {
+    Twilio {
+        r#type: String,
+        agent_number: String,
+        call_sid: String,
+        direction: Direction,
+        external_number: String,
+        phone_number_id: String,
+        stream_sid: String,
+    }
+}
+
+#[derive(Clone, Debug, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum Direction {
+    Inbound,
+    Outbound,
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -347,8 +369,6 @@ pub struct PromptOverrideData {
 pub struct TTSOverrideData {
     pub voice_id: Option<String>,
 }
-
-
 
 /// Delete a particular conversation
 ///
@@ -488,7 +508,6 @@ impl ElevenLabsEndpoint for GetSignedUrl {
 
     fn query_params(&self) -> Option<QueryValues> {
         Some(self.query.params.clone())
-
     }
 
     async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
@@ -597,7 +616,7 @@ impl IntoIterator for GetConversationDetailsResponse {
     type IntoIter = std::vec::IntoIter<Self::Item>;
 
     fn into_iter(self) -> Self::IntoIter {
-        self.transcript.into_iter()
+        self.transcript.unwrap_or_default().into_iter()
     }
 }
 
@@ -606,6 +625,6 @@ impl<'a> IntoIterator for &'a GetConversationDetailsResponse {
     type IntoIter = std::slice::Iter<'a, Transcript>;
 
     fn into_iter(self) -> Self::IntoIter {
-        self.transcript.iter()
+        self.transcript.as_deref().unwrap_or_default().iter()
     }
 }
