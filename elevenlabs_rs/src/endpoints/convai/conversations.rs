@@ -201,7 +201,7 @@ pub struct GetConversationDetailsResponse {
     pub transcript: Option<Vec<Transcript>>,
     pub metadata: Option<Metadata>,
     pub analysis: Option<Analysis>,
-    pub conversation_initiation_client_data: Option<ConvoInitClientData>,
+    pub conversation_initiation_client_data: Option<ConversationInitiationClientData>,
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -251,7 +251,7 @@ pub enum PhoneCall {
         external_number: String,
         phone_number_id: String,
         stream_sid: String,
-    }
+    },
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -340,32 +340,32 @@ pub enum Score {
     Dislike,
 }
 
-#[derive(Debug, Clone, Deserialize)]
-pub struct ConvoInitClientData {
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct ConversationInitiationClientData {
     pub conversation_config_override: Option<ConfigOverrideData>,
     pub custom_llm_extra_body: Option<HashMap<String, Value>>,
     pub dynamic_variables: Option<HashMap<String, DynamicVar>>,
 }
 
-#[derive(Clone, Debug, Default, Deserialize)]
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
 pub struct ConfigOverrideData {
     pub agent: Option<AgentOverrideData>,
     pub tts: Option<TTSOverrideData>,
 }
 
-#[derive(Clone, Debug, Default, Deserialize)]
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
 pub struct AgentOverrideData {
     pub prompt: Option<PromptOverrideData>,
     pub first_message: Option<String>,
     pub language: Option<String>,
 }
 
-#[derive(Clone, Debug, Default, Deserialize)]
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
 pub struct PromptOverrideData {
     pub prompt: Option<String>,
 }
 
-#[derive(Clone, Debug, Default, Deserialize)]
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
 pub struct TTSOverrideData {
     pub voice_id: Option<String>,
 }
@@ -591,6 +591,99 @@ impl TryInto<RequestBody> for &SendConversationFeedbackBody {
     fn try_into(self) -> Result<RequestBody> {
         Ok(RequestBody::Json(serde_json::to_value(self)?))
     }
+}
+
+/// Handle an outbound call via Twilio
+///
+/// # Example
+///
+/// ```no_run
+///
+/// use elevenlabs_rs::endpoints::convai::conversations::{
+///    OutboundCallViaTwilio, OutboundCallViaTwilioBody,
+/// };
+/// use elevenlabs_rs::{ElevenLabsClient, Result};
+///
+/// #[tokio::main]
+/// async fn main() -> Result<()> {
+///    let client = ElevenLabsClient::from_env()?;
+///    let body = OutboundCallViaTwilioBody::new(
+///       "agent_id",
+///       "agent_phone_number_id",
+///       "to_number",
+///    );
+///    let endpoint = OutboundCallViaTwilio::new(body);
+///    let resp = client.hit(endpoint).await?;
+///    println!("{:?}", resp);
+///    Ok(())
+/// }
+/// ```
+/// See [Outbound Call Via Twilio API reference](https://elevenlabs.io/docs/api-reference/conversations/twilio-outbound-call)
+#[derive(Clone, Debug)]
+pub struct OutboundCallViaTwilio {
+    body: OutboundCallViaTwilioBody,
+}
+
+impl OutboundCallViaTwilio {
+    pub fn new(body: OutboundCallViaTwilioBody) -> Self {
+        Self { body }
+    }
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct OutboundCallViaTwilioBody {
+    pub agent_id: String,
+    pub agent_phone_number_id: String,
+    pub to_number: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub conversation_initiation_client_data: Option<ConversationInitiationClientData>,
+}
+
+impl OutboundCallViaTwilioBody {
+    pub fn new(
+        agent_id: impl Into<String>,
+        agent_phone_number_id: impl Into<String>,
+        to_number: impl Into<String>,
+    ) -> Self {
+        Self {
+            agent_id: agent_id.into(),
+            agent_phone_number_id: agent_phone_number_id.into(),
+            to_number: to_number.into(),
+            conversation_initiation_client_data: None,
+        }
+    }
+
+    pub fn with_conversation_initiation_client_data(
+        mut self,
+        data: ConversationInitiationClientData,
+    ) -> Self {
+        self.conversation_initiation_client_data = Some(data);
+        self
+    }
+}
+
+impl ElevenLabsEndpoint for OutboundCallViaTwilio {
+    const PATH: &'static str = "/v1/convai/twilio/outbound_call";
+
+    const METHOD: Method = Method::POST;
+
+    type ResponseBody = OutboundCallViaTwilioResponse;
+
+    async fn request_body(&self) -> Result<RequestBody> {
+        Ok(RequestBody::Json(serde_json::to_value(&self.body)?))
+    }
+
+    async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
+        Ok(resp.json().await?)
+    }
+}
+
+#[derive(Clone, Debug, Deserialize)]
+pub struct OutboundCallViaTwilioResponse {
+    pub success: bool,
+    pub message: String,
+    #[serde(rename = "callSid")]
+    pub call_sid: String,
 }
 
 impl IntoIterator for GetConversationsResponse {

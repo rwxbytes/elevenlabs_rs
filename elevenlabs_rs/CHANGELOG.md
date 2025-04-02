@@ -46,9 +46,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `quality`
   - `seed`
   - `guidance_scale`
-  - endpoint `GetVoices` (uses the V2 API)
-  - a few queries to `GetVoices`
-  - endpoint `GetDefaultVoiceSettings`
+- endpoint `GetVoices` (uses the V2 API)
+- a few queries to `GetVoices`
+- endpoint `GetDefaultVoiceSettings`
+- endpoint `OutboundCallViaTwilio`
   
 
 ### Changed
