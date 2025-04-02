@@ -206,6 +206,11 @@ impl ConversationConfig {
         self.turn = Some(turn);
         self
     }
+
+    pub fn with_language_presets(mut self, language_presets: HashMap<String, LanguagePreset>) -> Self {
+        self.language_presets = Some(language_presets);
+        self
+    }
 }
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]

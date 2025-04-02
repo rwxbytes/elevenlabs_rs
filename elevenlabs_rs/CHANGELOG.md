@@ -39,6 +39,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `GetResource`
   - `ShareWorkspaceResource`
   - `UnshareWorkspaceResource`
+- builder method `with_language_presets(HashMap<String, LanguagePreset>)` to `ConversationConfig`
   
 
 ### Changed
