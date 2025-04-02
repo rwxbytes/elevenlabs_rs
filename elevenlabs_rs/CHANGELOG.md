@@ -41,6 +41,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `UnshareWorkspaceResource`
 - builder method `with_language_presets(HashMap<String, LanguagePreset>)` to `ConversationConfig`
 - field `phone_call` to `GetConversationDetails`
+- fields to `TextToVoiceBody`
+  - `loudness`
+  - `quality`
+  - `seed`
+  - `guidance_scale`
   
 
 ### Changed

@@ -94,10 +94,20 @@ impl TextToVoice {
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct TextToVoiceBody {
+    voice_description: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     text: Option<String>,
-    voice_description: String,
-    auto_generate_text: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    auto_generate_text: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    loudness: Option<f32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    quality: Option<f32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    seed: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    guidance_scale: Option<f32>,
+
 }
 
 impl TextToVoiceBody {
@@ -105,17 +115,36 @@ impl TextToVoiceBody {
         Self {
             text: None,
             voice_description: voice_description.into(),
-            auto_generate_text: false,
+            auto_generate_text: None,
+            loudness: None,
+            quality: None,
+            seed: None,
+            guidance_scale: None,
         }
     }
 
     pub fn with_auto_generated_text(mut self) -> Self {
-        self.auto_generate_text = true;
+        self.auto_generate_text = Some(true);
         self
     }
-
     pub fn with_text(mut self, text: impl Into<String>) -> Self {
         self.text = Some(text.into());
+        self
+    }
+    pub fn with_loudness(mut self, loudness: f32) -> Self {
+        self.loudness = Some(loudness);
+        self
+    }
+    pub fn with_quality(mut self, quality: f32) -> Self {
+        self.quality = Some(quality);
+        self
+    }
+    pub fn with_seed(mut self, seed: u32) -> Self {
+        self.seed = Some(seed);
+        self
+    }
+    pub fn with_guidance_scale(mut self, guidance_scale: f32) -> Self {
+        self.guidance_scale = Some(guidance_scale);
         self
     }
 }
@@ -248,7 +277,6 @@ impl ElevenLabsEndpoint for SaveVoiceFromPreview {
     const METHOD: Method = Method::POST;
 
     type ResponseBody = SaveVoiceFromPreviewResponse;
-    //type ResponseBody = Value;
 
     async fn request_body(&self) -> Result<RequestBody> {
         Ok(RequestBody::Json(serde_json::to_value(&self.body)?))
