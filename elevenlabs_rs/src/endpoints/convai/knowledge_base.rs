@@ -657,3 +657,32 @@ pub enum RAGIndexStatus {
     Failed,
     Succeeded,
 }
+
+#[derive(Debug, Clone)]
+pub struct GetDocumentContent {
+    pub documentation_id: String,
+}
+
+impl GetDocumentContent {
+    pub fn new(documentation_id: impl Into<String>) -> Self {
+        Self {
+            documentation_id: documentation_id.into(),
+        }
+    }
+}
+
+impl ElevenLabsEndpoint for GetDocumentContent {
+    const PATH: &'static str = "v1/convai/knowledge-base/:documentation_id/content";
+
+    const METHOD: Method = Method::GET;
+
+    type ResponseBody = String;
+
+    fn path_params(&self) -> Vec<(&'static str, &str)> {
+        vec![self.documentation_id.and_param(PathParam::DocumentationID)]
+    }
+
+    async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
+        Ok(resp.text().await?)
+    }
+}
