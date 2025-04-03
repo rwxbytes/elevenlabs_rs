@@ -111,8 +111,9 @@ pub struct CreateDictionaryResponse {
     pub id: String,
     pub name: String,
     pub created_by: String,
-    pub creation_time_unix: i64,
+    pub creation_time_unix: u64,
     pub version_id: String,
+    pub version_rules_num: u32,
     pub description: Option<String>,
 }
 
@@ -230,6 +231,7 @@ impl Rule {
 pub struct RulesResponse {
     pub id: String,
     pub version_id: String,
+    pub version_rules_num: u32,
 }
 
 ///  Remove rules from the pronunciation dictionary
@@ -454,6 +456,16 @@ impl GetDictionariesQuery {
         self.params.push(("cursor", cursor.to_string()));
         self
     }
+    pub fn with_sort(mut self, sort: &str) -> Self {
+        self.params.push(("sort", sort.to_string()));
+        self
+    }
+
+    pub fn with_sort_direction(mut self, sort_direction: &str) -> Self {
+        self.params.push(("sort_direction", sort_direction.to_string()));
+        self
+    }
+
 }
 
 impl ElevenLabsEndpoint for GetDictionaries {
@@ -485,10 +497,13 @@ pub struct GetDictionariesResponse {
 pub struct DictionaryMetadataResponse {
     pub id: String,
     pub latest_version_id: String,
+    pub latest_version_rules_num: u32,
     pub name: String,
     pub created_by: String,
-    pub creation_time_unix: i64,
+    pub creation_time_unix: u64,
+    pub archived_time_unix: Option<u64>,
     pub description: Option<String>,
+
 }
 
 impl IntoIterator for GetDictionariesResponse {
