@@ -5,6 +5,7 @@ use crate::endpoints::convai::agents::{DynamicVar, LiteralJsonSchema};
 use std::collections::HashMap;
 use std::string::ToString;
 use strum::Display;
+use crate::endpoints::convai::knowledge_base::EmbeddingModel;
 
 /// Get all conversations of agents that user owns. With option to restrict to a specific agent.
 ///
@@ -300,8 +301,31 @@ pub struct Transcript {
     pub tool_calls: Option<Vec<ToolCall>>,
     pub tool_results: Option<Vec<ToolResult>>,
     pub feedback: Option<TranscriptFeedback>,
-    pub conversation_turn_metrics: Option<HashMap<String, Value>>,
+    pub conversation_turn_metrics: Option<ConversationTurnMetrics>,
+    pub rag_retrieval_info: Option<RAGRetrievalInfo>,
 }
+
+#[derive(Clone, Debug, Deserialize)]
+pub struct RAGRetrievalInfo {
+    pub chunks: Vec<Chunk>,
+    pub embedding_model: EmbeddingModel,
+    pub retrieval_query: String,
+    pub rag_latency_secs: f32,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+pub struct Chunk {
+    pub chunk_id: String,
+    pub document_id: String,
+    pub vector_distance: f32,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+pub struct ConversationTurnMetrics {
+    metrics: Option<HashMap<String, Value>>,
+
+}
+
 
 #[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq)]
 #[serde(rename_all = "lowercase")]
@@ -309,7 +333,6 @@ pub enum Role {
     Agent,
     User,
 }
-
 #[derive(Clone, Debug, Deserialize)]
 pub struct ToolCall {
     pub request_id: String,

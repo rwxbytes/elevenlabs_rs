@@ -56,6 +56,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - endpoints in `knowledge_base` module:
   - `GetDocumentContent`
   - `GetDocumentChunk`
+- field `rag_retrieval_info` to `Transcript`
   
 
 ### Changed
