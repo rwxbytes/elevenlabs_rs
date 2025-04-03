@@ -53,7 +53,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - field `version_rules_num` to `CreateDictionaryResponse` and `RulesResponse`
 - fields `latest_version_rules_num` and `archived_time_unix` to `DictionaryMetadataResponse`
 - query methods `with_sort` and `with_sort_direction` to `GetDictionariesQuery`
-- endpoint `GetDocumentContent`
+- endpoints in `knowledge_base` module:
+  - `GetDocumentContent`
+  - `GetDocumentChunk`
   
 
 ### Changed

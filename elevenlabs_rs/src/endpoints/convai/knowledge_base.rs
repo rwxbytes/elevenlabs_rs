@@ -658,6 +658,7 @@ pub enum RAGIndexStatus {
     Succeeded,
 }
 
+/// See [Get Document Content API reference](https://elevenlabs.io/docs/api-reference/knowledge-base/get-knowledge-base-document-content).
 #[derive(Debug, Clone)]
 pub struct GetDocumentContent {
     pub documentation_id: String,
@@ -686,3 +687,46 @@ impl ElevenLabsEndpoint for GetDocumentContent {
         Ok(resp.text().await?)
     }
 }
+
+/// See [Get Document Chunk API reference](https://elevenlabs.io/docs/api-reference/knowledge-base/get-knowledge-base-document-part-by-id).
+#[derive(Debug, Clone)]
+pub struct GetDocumentChunk {
+    pub documentation_id: String,
+    pub chunk_id: String,
+}
+
+impl GetDocumentChunk {
+    pub fn new(documentation_id: impl Into<String>, chunk_id: impl Into<String>) -> Self {
+        Self {
+            documentation_id: documentation_id.into(),
+            chunk_id: chunk_id.into(),
+        }
+    }
+}
+
+impl ElevenLabsEndpoint for GetDocumentChunk {
+    const PATH: &'static str = "v1/convai/knowledge-base/:documentation_id/chunk/:chunk_id";
+
+    const METHOD: Method = Method::GET;
+
+    type ResponseBody = GetDocumentChunkResponse;
+
+    fn path_params(&self) -> Vec<(&'static str, &str)> {
+        vec![
+            self.documentation_id.and_param(PathParam::DocumentationID),
+            self.chunk_id.and_param(PathParam::ChunkID),
+        ]
+    }
+
+    async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
+        Ok(resp.json().await?)
+    }
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct GetDocumentChunkResponse {
+    pub id: String,
+    pub name: String,
+    pub content: String,
+}
+
