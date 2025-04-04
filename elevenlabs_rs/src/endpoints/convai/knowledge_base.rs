@@ -534,7 +534,6 @@ impl ElevenLabsEndpoint for DeleteKnowledgeBaseDoc {
 pub struct ComputeRAGIndex {
     documentation_id: String,
     body: ComputeRAGIndexBody,
-    query: Option<ComputeRAGIndexQuery>,
 }
 
 impl ComputeRAGIndex {
@@ -542,14 +541,9 @@ impl ComputeRAGIndex {
         Self {
             documentation_id: documentation_id.into(),
             body: body.into(),
-            query: None,
         }
     }
 
-    pub fn with_query(mut self, query: ComputeRAGIndexQuery) -> Self {
-        self.query = Some(query);
-        self
-    }
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -606,19 +600,6 @@ impl From<EmbeddingModel> for ComputeRAGIndexBody {
     }
 }
 
-#[derive(Debug, Clone)]
-pub struct ComputeRAGIndexQuery {
-    pub params: QueryValues,
-}
-
-impl ComputeRAGIndexQuery {
-    /// In case the document is indexed and for some reason you want to reindex it, set this param as true.
-    pub fn force_reindex(mut self) -> Self {
-        self.params.push(("force_reindex", true.to_string()));
-        self
-    }
-}
-
 impl ElevenLabsEndpoint for ComputeRAGIndex {
     const PATH: &'static str = "v1/convai/knowledge-base/:documentation_id/rag-index";
 
@@ -626,9 +607,6 @@ impl ElevenLabsEndpoint for ComputeRAGIndex {
 
     type ResponseBody = ComputeRAGIndexResponse;
 
-    fn query_params(&self) -> Option<QueryValues> {
-        self.query.as_ref().map(|q| q.params.clone())
-    }
 
     fn path_params(&self) -> Vec<(&'static str, &str)> {
         vec![self.documentation_id.and_param(PathParam::DocumentationID)]

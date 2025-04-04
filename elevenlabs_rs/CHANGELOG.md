@@ -95,6 +95,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Breaking:** `secrets` field from `GetSettingsResponse` and `UpdateSettingsBody`
 - `knowledge_base_document_ids` field from `PromptConfig`
 -  Commented out the `convai::tools` module for a while
+- `ComputeRAGIndexQuery`
 
 ## [0.5.1] - 2025-02-28
 ### Added
