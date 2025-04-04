@@ -33,26 +33,70 @@ impl CreatePhoneNumber {
 }
 
 #[derive(Clone, Debug, Serialize)]
-pub struct CreatePhoneNumberBody {
-    pub phone_number: String,
-    pub provider: PhoneNumberProvider,
-    pub label: String,
-    pub sid: String,
-    pub token: String,
+pub enum CreatePhoneNumberBody {
+    Twilio {
+        phone_number: String,
+        label: String,
+        sid: String,
+        token: String,
+        provider: PhoneNumberProvider,
+    },
+    SipTrunk {
+        phone_number: String,
+        label: String,
+        termination_uri: String,
+        provider: PhoneNumberProvider,
+        credentials: Option<SipTrunkCredentials>,
+    },
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct SipTrunkCredentials {
+    pub username: String,
+    pub password: String,
 }
 
 impl CreatePhoneNumberBody {
+    pub fn new_twilio(
+        phone_number: impl Into<String>,
+        label: impl Into<String>,
+        sid: impl Into<String>,
+        token: impl Into<String>,
+    ) -> Self {
+        Self::Twilio {
+            phone_number: phone_number.into(),
+            label: label.into(),
+            sid: sid.into(),
+            token: token.into(),
+            provider: PhoneNumberProvider::Twilio,
+        }
+    }
     pub fn from_twilio_env(
         phone_number: impl Into<String>,
         label: impl Into<String>,
     ) -> Result<Self> {
-        Ok(Self {
+        Ok(Self::Twilio {
             phone_number: phone_number.into(),
             provider: PhoneNumberProvider::Twilio,
             label: label.into(),
             sid: std::env::var("TWILIO_ACCOUNT_SID").map_err(|_| "TWILIO_ACCOUNT_SID not set")?,
             token: std::env::var("TWILIO_AUTH_TOKEN").map_err(|_| "TWILIO_AUTH_TOKEN not set")?,
         })
+    }
+
+    pub fn new_sip_trunk(
+        phone_number: impl Into<String>,
+        label: impl Into<String>,
+        termination_uri: impl Into<String>,
+        credentials: Option<SipTrunkCredentials>,
+    ) -> Self {
+        Self::SipTrunk {
+            phone_number: phone_number.into(),
+            label: label.into(),
+            termination_uri: termination_uri.into(),
+            provider: PhoneNumberProvider::SipTrunk,
+            credentials,
+        }
     }
 }
 

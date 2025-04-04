@@ -57,6 +57,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `GetDocumentContent`
   - `GetDocumentChunk`
 - field `rag_retrieval_info` to `Transcript`
+- variant `SipTrunk` to `CreatePhoneNumberBody`
   
 
 ### Changed
@@ -79,6 +80,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `TextToSoundEffects` to `CreateSoundEffect`
 - `metadata` and `transcript` on `GetConversationDetails` are now optional
 - `similarity_boost` and `stability` on `VoiceSettings` are now optional
+- `CreatePhoneNumberBody` from a struct to an enum containing the following variants:
+  - `CreatePhoneNumberBody::Twilio` 
+  - `CreatePhoneNumberBody::SipTrunk` 
 
 ### Fixed
 - The api key field on `CustomLLM` and its type
