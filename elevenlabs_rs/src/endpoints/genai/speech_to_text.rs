@@ -19,11 +19,11 @@ impl From<SpeechToTextModel> for String {
 }
 
 /// Transcribe an audio or video file.
-/// 
+///
 /// # Example
-/// 
+///
 /// ```no_run
-/// 
+///
 /// use elevenlabs_rs::{ElevenLabsClient, Result,};
 /// use elevenlabs_rs::endpoints::genai::speech_to_text::*;
 ///
@@ -84,9 +84,6 @@ impl CreateTranscriptQuery {
     }
 }
 
-
-
-
 #[derive(Clone, Debug, Default, Serialize)]
 pub struct CreateTranscriptBody {
     model_id: String,
@@ -96,8 +93,103 @@ pub struct CreateTranscriptBody {
     num_speakers: Option<u32>,
     timestamps_granularity: Option<Granularity>,
     diarize: Option<bool>,
+    additional_formats: Option<Vec<AdditionalFormat>>,
     #[serde(skip)]
     prefer_video: Option<bool>,
+}
+
+
+#[derive(Clone, Debug, Default, Serialize)]
+pub struct FormatCommonOptions {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub include_speakers: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub include_timestamps: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub max_segment_chars: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub max_segment_duration_s: Option<f32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub segment_on_silence_longer_than_s: Option<f32>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+#[serde(tag = "format", rename_all = "snake_case")]
+pub enum AdditionalFormat {
+    Docx {
+        #[serde(flatten)]
+        common_opts: FormatCommonOptions,
+    },
+    Html {
+        #[serde(flatten)]
+        common_opts: FormatCommonOptions,
+    },
+    Pdf {
+        #[serde(flatten)]
+        common_opts: FormatCommonOptions,
+    },
+    SegmentedJson {
+        #[serde(skip_serializing_if = "Option::is_none")]
+        max_segment_chars: Option<u32>,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        max_segment_duration_s: Option<f32>,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        segment_on_silence_longer_than_s: Option<f32>,
+    },
+    Srt {
+        #[serde(flatten)]
+        common_opts: FormatCommonOptions,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        max_character_per_line: Option<u32>,
+    },
+    Txt {
+        #[serde(flatten)]
+        common_opts: FormatCommonOptions,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        max_character_per_line: Option<u32>,
+    },
+}
+
+impl AdditionalFormat {
+    pub fn new_docx() -> Self {
+        Self::Docx {
+            common_opts: FormatCommonOptions::default(),
+        }
+    }
+
+    pub fn new_html() -> Self {
+        Self::Html {
+            common_opts: FormatCommonOptions::default(),
+        }
+    }
+
+    pub fn new_pdf() -> Self {
+        Self::Pdf {
+            common_opts: FormatCommonOptions::default(),
+        }
+    }
+
+    pub fn new_segmented_json() -> Self {
+        Self::SegmentedJson {
+            max_segment_chars: None,
+            max_segment_duration_s: None,
+            segment_on_silence_longer_than_s: None,
+        }
+    }
+
+    pub fn new_srt() -> Self {
+        Self::Srt {
+            common_opts: FormatCommonOptions::default(),
+            max_character_per_line: None,
+        }
+    }
+
+    pub fn new_txt() -> Self {
+        Self::Txt {
+            common_opts: FormatCommonOptions::default(),
+            max_character_per_line: None,
+        }
+    }
 }
 
 #[derive(Clone, Debug, Serialize, Display)]
@@ -151,6 +243,41 @@ impl CreateTranscriptBody {
         self.diarize = Some(diarize);
         self
     }
+
+    /// Add additional formats to the request.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// # use elevenlabs_rs::endpoints::genai::speech_to_text::*;
+    /// let mut additional_formats = Vec::new();
+    ///
+    /// let mut docx = AdditionalFormat::new_docx();
+    /// if let AdditionalFormat::Docx {common_opts} = &mut docx {
+    ///     common_opts.include_speakers = Some(false);
+    ///     common_opts.include_timestamps = Some(false);
+    /// };
+    ///
+    /// let mut srt = AdditionalFormat::new_srt();
+    /// if let AdditionalFormat::Srt {mut max_character_per_line, ..} = &mut srt {
+    ///     max_character_per_line = Some(40);
+    /// };
+    ///
+    /// let segmented_json = AdditionalFormat::new_segmented_json();
+    ///
+    /// additional_formats.push(docx);
+    /// additional_formats.push(srt);
+    /// additional_formats.push(segmented_json);
+    ///
+    /// let body = CreateTranscriptBody::new(SpeechToTextModel::ScribeV1, "file")
+    ///     .with_diarize(true) // Must be set to true to use additional formats
+    ///     .with_additional_formats(additional_formats);
+    /// ```
+    pub fn with_additional_formats(mut self, additional_formats: Vec<AdditionalFormat>) -> Self {
+        self.additional_formats = Some(additional_formats);
+        self
+    }
+
     pub fn prefer_video(mut self) -> Self {
         self.prefer_video = Some(true);
         self
@@ -179,6 +306,16 @@ pub struct CreateTranscriptResponse {
     pub language_probability: f32,
     pub text: String,
     pub words: Vec<Word>,
+    pub additional_formats: Option<Vec<RequestedAdditionalFormat>>,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+pub struct RequestedAdditionalFormat {
+    pub requested_format: String,
+    pub file_extension: String,
+    pub content_type: String,
+    pub is_base64_encoded: bool,
+    pub content: String,
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -254,6 +391,11 @@ impl TryFrom<CreateTranscriptBody> for RequestBody {
 
         if let Some(diarize) = body.diarize {
             form = form.text("diarize", diarize.to_string());
+        }
+
+        if let Some(additional_formats) = body.additional_formats {
+            let additional_formats_json = serde_json::to_string(&additional_formats)?;
+            form = form.text("additional_formats", additional_formats_json);
         }
 
         Ok(RequestBody::Multipart(form))

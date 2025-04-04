@@ -59,6 +59,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - field `rag_retrieval_info` to `Transcript`
 - variant `SipTrunk` to `CreatePhoneNumberBody`
 - variant `Text` to `KnowledgeBaseDocType`
+- field `additional_formats` to `CreateTranscriptBody` and `CreateTranscriptResponse`
   
 
 ### Changed
