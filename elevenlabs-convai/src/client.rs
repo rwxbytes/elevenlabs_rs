@@ -1,6 +1,6 @@
 use crate::error::ConvAIError;
 use crate::messages::client_messages::{
-    ClientToolResult, ConversationInitiationClientData, Pong, UserAudioChunk,
+    ClientToolResult, ContextualUpdate, ConversationInitiationClientData, Pong, UserAudioChunk,
 };
 use crate::messages::server_messages::ServerMessage;
 use crate::Result;
@@ -28,10 +28,10 @@ type WebSocketReader = SplitStream<WebSocketStream<MaybeTlsStream<TcpStream>>>;
 /// Represents a client for interacting with the ElevenLabs Conversational AI.
 #[derive(Debug)]
 pub struct AgentWebSocket {
-    api_key: Option<String>,
-    agent_id: String,
-    writer_task_tx: Option<UnboundedSender<Message>>,
-    conversation_initiation_client_data: Option<ConversationInitiationClientData>,
+    pub api_key: Option<String>,
+    pub agent_id: String,
+    pub writer_task_tx: Option<UnboundedSender<Message>>,
+    pub conversation_initiation_client_data: Option<ConversationInitiationClientData>,
 }
 
 impl AgentWebSocket {
@@ -57,7 +57,6 @@ impl AgentWebSocket {
 
     pub fn with_agent_id<T: Into<String>>(&mut self, agent_id: T) {
         self.agent_id = agent_id.into();
-
     }
 
     /// Sets initial data to be sent to the server when starting a conversation.
@@ -192,7 +191,10 @@ impl AgentWebSocket {
             Message::Close(frame) => {
                 if let Some(close_frame) = frame {
                     if close_frame.code != CloseCode::Normal {
-                        warn!("WebSocket closed: code={:?}, reason={}", close_frame.code, close_frame.reason);
+                        warn!(
+                            "WebSocket closed: code={:?}, reason={}",
+                            close_frame.code, close_frame.reason
+                        );
                         tx_to_caller
                             .send(Err(ConvAIError::NonNormalCloseCode(
                                 close_frame.reason.into_owned(),
@@ -241,6 +243,16 @@ impl AgentWebSocket {
         if let Some(tx_to_writer) = &self.writer_task_tx {
             tx_to_writer
                 .send(Message::try_from(result)?)
+                .map_err(|_| ConvAIError::SendError)?;
+        }
+        Ok(())
+    }
+
+    /// Send a `ContextualUpdate` message to the server.
+    pub async fn send_context_update(&self, context: impl Into<String>) -> Result<()> {
+        if let Some(tx_to_writer) = &self.writer_task_tx {
+            tx_to_writer
+                .send(Message::try_from(ContextualUpdate::new(context))?)
                 .map_err(|_| ConvAIError::SendError)?;
         }
         Ok(())

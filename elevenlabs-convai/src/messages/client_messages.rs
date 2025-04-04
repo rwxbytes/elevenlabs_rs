@@ -5,6 +5,7 @@ use std::collections::HashMap;
 const PONG: &str = "pong";
 const CONVERSATION_INITIATION_CLIENT_DATA: &str = "conversation_initiation_client_data";
 const CLIENT_TOOL_RESULT: &str = "client_tool_result";
+const CONTEXTUAL_UPDATE: &str = "contextual_update";
 
 /// An enum for new types of individual client messages.
 #[derive(Clone, Debug)]
@@ -17,6 +18,8 @@ pub enum ClientMessage {
     ConversationInitiationClientData(ConversationInitiationClientData),
     /// A new type of `ClientToolResult`
     ClientToolResult(ClientToolResult),
+    /// A new type of `ContextualUpdate`
+    ContextualUpdate(ContextualUpdate),
 }
 
 /// See [User Audio Chunks API reference](https://elevenlabs.io/docs/conversational-ai/api-reference/websocket#user-audio-chunk)
@@ -256,7 +259,7 @@ impl ClientToolResult {
         self.result = Some(result);
         self
     }
-    pub fn is_error(mut self, is_error: bool) -> Self {
+    pub fn has_error(mut self, is_error: bool) -> Self {
         self.is_error = Some(is_error);
         self
     }
@@ -273,5 +276,27 @@ impl TryFrom<ConversationInitiationClientData> for Message {
     type Error = ConvAIError;
     fn try_from(data: ConversationInitiationClientData) -> Result<Self, Self::Error> {
         Ok(Message::Text(serde_json::to_string(&data)?))
+    }
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct ContextualUpdate {
+    r#type: String,
+    pub text: String,
+}
+
+impl ContextualUpdate {
+    pub fn new(text: impl Into<String>) -> Self {
+        ContextualUpdate {
+            r#type: CONTEXTUAL_UPDATE.to_string(),
+            text: text.into(),
+        }
+    }
+}
+
+impl TryFrom<ContextualUpdate> for Message {
+    type Error = ConvAIError;
+    fn try_from(update: ContextualUpdate) -> Result<Self, Self::Error> {
+        Ok(Message::Text(serde_json::to_string(&update)?))
     }
 }

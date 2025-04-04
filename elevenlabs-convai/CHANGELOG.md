@@ -7,10 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - `send_tool_result` to `AgentWebSocket`
 - getters for `tool_call_id`, `tool_name`, and `parameters` on `ClientToolCall`
+- `ContextualUpdate` in `client_message` module
+- `send_context_update` to `AgentWebSocket`
 
 ### Changed
 - **Breaking**: `ElevenLabsAgentClient` name to `AgentWebSocket`
-- `with_is_error` to `is_error` on `ClientToolResult`
+- `with_is_error` to `has_error` on `ClientToolResult`
 
 ### Fixed
 - `tool_call_id` on `ClientToolResult`, it was `client_tool_id`
