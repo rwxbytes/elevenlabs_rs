@@ -99,6 +99,8 @@ pub struct TextToSpeechBody {
     next_request_ids: Option<Vec<String>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     apply_text_normalization: Option<Normalization>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    apply_language_text_normalization: Option<bool>,
 }
 
 impl TryFrom<&TextToSpeechBody> for RequestBody {
@@ -158,6 +160,10 @@ impl TextToSpeechBody {
 
     pub fn with_text_normalization(mut self, normalization: Normalization) -> Self {
         self.apply_text_normalization = Some(normalization);
+        self
+    }
+    pub fn with_language_text_normalization(mut self, enable: bool) -> Self {
+        self.apply_language_text_normalization = Some(enable);
         self
     }
 }

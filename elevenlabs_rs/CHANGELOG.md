@@ -61,6 +61,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - variant `Text` to `KnowledgeBaseDocType`
 - field `additional_formats` to `CreateTranscriptBody` and `CreateTranscriptResponse`
 - field `locale` to `SharedVoice`
+- field `apply_language_text_normalization` to `TextToSpeechBody`
   
 
 ### Changed
