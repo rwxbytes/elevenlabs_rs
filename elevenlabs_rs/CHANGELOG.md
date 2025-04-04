@@ -58,6 +58,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `GetDocumentChunk`
 - field `rag_retrieval_info` to `Transcript`
 - variant `SipTrunk` to `CreatePhoneNumberBody`
+- variant `Text` to `KnowledgeBaseDocType`
   
 
 ### Changed
@@ -66,6 +67,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Breaking**: `CreateKnowledgeBase` to `CreateKnowledgeBaseDoc`
 - **Breaking**: `CreateKnowledgeBaseBody` to `CreateKnowledgeBaseDocBody`
 - **Breaking**: `CreateKnowledgeBaseResponse` to `CreateKnowledgeBaseDocResponse`
+-  `KnowledgeBaseType` to `KnowledgeBaseDocType`
 - **Breaking**: `LLM::Gemini2_0FlashExp` to `LLM::Gemini2_0Flash001`
 - **Breaking**: Moved `Secret`, `UsedBy`, `AgentTool`, and `SecretType` from `convai::agents` to `convai::workspace`
 - The fields on `SharedVoice` are now optional:
@@ -83,6 +85,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `CreatePhoneNumberBody` from a struct to an enum containing the following variants:
   - `CreatePhoneNumberBody::Twilio` 
   - `CreatePhoneNumberBody::SipTrunk` 
+
 
 ### Fixed
 - The api key field on `CustomLLM` and its type

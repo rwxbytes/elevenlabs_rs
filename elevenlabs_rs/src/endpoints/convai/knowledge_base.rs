@@ -59,7 +59,7 @@ impl ElevenLabsEndpoint for GetKnowledgeBaseDoc {
 #[derive(Debug, Clone, Deserialize)]
 pub struct GetKnowledgeBaseDocResponse {
     pub id: String,
-    pub r#type: KnowledgeBaseType,
+    pub r#type: KnowledgeBaseDocType,
     pub extracted_inner_html: String,
     pub name: String,
     pub access_info: AccessInfo,
@@ -94,9 +94,10 @@ pub enum DependentAgentType {
 
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "lowercase")]
-pub enum KnowledgeBaseType {
+pub enum KnowledgeBaseDocType {
     File,
     Url,
+    Text,
 }
 
 ///
@@ -386,12 +387,13 @@ pub struct ListKnowledgeBaseDocsResponse {
 #[derive(Debug, Clone, Deserialize)]
 pub struct Document {
     pub id: String,
-    pub r#type: KnowledgeBaseType,
+    pub r#type: KnowledgeBaseDocType,
     pub name: String,
     pub access_info: AccessInfo,
     pub dependent_agents: Vec<DependentAgent>,
     pub prompt_injectable: bool,
     pub metadata: DocMetadata,
+    pub url: Option<String>,
 }
 
 /// Get a list of agents depending on this knowledge base document.
