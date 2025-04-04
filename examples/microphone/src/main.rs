@@ -13,8 +13,8 @@ type BoxError = Box<dyn std::error::Error + Send + Sync>;
 
 #[tokio::main]
 async fn main() -> Result<(), BoxError> {
-    let mut client = AgentWebSocket::new("apikey", "agent_id");
-    //let mut client = ElevenLabsAgentClient::from_env()?;
+    let mut client = AgentWebSocket::new("api_key", "agent_id");
+    //let mut client = AgentWebSocket::from_env()?;
 
     // Set up microphone and play input audio stream
     let (mic, audio_rx) = audio_input::DefaultMicrophoneManager::new();
@@ -25,7 +25,7 @@ async fn main() -> Result<(), BoxError> {
         .expect("microphone stream failed to play");
 
     // Start audio processing task to encode audio samples
-    let (mut audio_processor, encoded_audio_tx) = audio_helpers::AudioProcessor::new(audio_rx);
+    let (mut audio_processor, encoded_audio_rx) = audio_helpers::AudioProcessor::new(audio_rx);
     tokio::spawn(async move {
         audio_processor.start(input_sample_rate).await;
     });
@@ -38,8 +38,8 @@ async fn main() -> Result<(), BoxError> {
         .play()
         .expect("speaker stream failed to play");
 
-    // Have a chinwag
-    let mut convo = client.start_session(encoded_audio_tx).await?;
+    // Start convo
+    let mut convo = client.start_conversation(encoded_audio_rx).await?;
 
     // change the sample rate according to your agent's TTS output format
     let tts_output_format = SampleRate(16000);

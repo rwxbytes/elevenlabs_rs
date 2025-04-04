@@ -6,10 +6,11 @@ publish = false
 
 [dependencies]
 elevenlabs-convai = { path = "../../elevenlabs-convai"}
-tokio = "1.42.0"
+tokio = { version = "1.42.0", features = ["macros", "rt-multi-thread"] }
 cpal = "0.15.3"
 dasp = { version = "0.11.0", features = ["signal", "interpolate-linear", "interpolate", "ring_buffer", "slice"] }
 bytemuck = "1.21.0"
 base64 = "0.22.1"
 futures-util = "0.3.30"
 tokio-stream = "0.1.16"
+reqwest = { version = "0.12", features = ["default-tls", "json"] }

@@ -1,3 +1,4 @@
+use axum::http::StatusCode;
 use axum::{
     extract::FromRef,
     response::{IntoResponse, Response},
@@ -7,7 +8,11 @@ use axum::{
 use elevenlabs_twilio::*;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
-use tracing::info;
+use std::sync::Arc;
+use std::time::Duration;
+use tokio::sync::Mutex;
+use tokio::time::timeout;
+use tracing::{error, info};
 
 #[derive(Clone, Debug)]
 pub struct AppState {
@@ -27,8 +32,13 @@ static TWIML_CONNECT_URL: &str = "https://your-ngrok/twiml";
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     tracing_subscriber::fmt().init();
 
+    let agent = Arc::new(Mutex::new(AgentWebSocket::from_env()?));
+    let tc = Arc::new(TwilioClient::from_env()?);
+
+    let sub_state = TelephonyState::new("outbound_agent".to_string(), agent, tc)?;
+
     let app_state = AppState {
-        telephony_state: TelephonyState::from_env()?,
+        telephony_state: sub_state,
     };
 
     let router = Router::new()
@@ -37,7 +47,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .route("/ws", get(agent_handler))
         .with_state(app_state);
 
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await?;
+    let listener = tokio::net::TcpListener::bind("0.0.0.0:80").await?;
     info!("Listening on {}", listener.local_addr()?);
     axum::serve(listener, router).await?;
 
@@ -79,7 +89,7 @@ async fn outbound_call_handler(
     let f = move || ConversationInitiationClientData::from(user_request);
 
     let resp = outbound_call
-        .ring_and_config(number, TWIML_CONNECT_URL, f)
+        .ring_and_config(&number, TWIML_CONNECT_URL, f)
         .await
         .unwrap();
 
@@ -93,11 +103,16 @@ async fn outbound_call_handler(
 async fn twiml_handler(params: TwilioParams) -> impl IntoResponse {
     match params.connect(WS_URL) {
         Ok(twilml) => twilml.into_response(),
-        Err(e) => e.into_response(),
+        Err(_) => StatusCode::INTERNAL_SERVER_ERROR.into_response(),
     }
 }
 
 async fn agent_handler(mut agent: TelephonyAgent) -> Response {
+    if let Err(e) = agent.set_agent_ws("outbound_agent").await {
+        error!("Error setting agent websocket for outbound agent: {}", e);
+        return StatusCode::INTERNAL_SERVER_ERROR.into_response();
+    }
+
     let cb = |msg: ServerMessage| match msg {
         ServerMessage::AgentResponse(inner) => {
             println!(
@@ -115,5 +130,15 @@ async fn agent_handler(mut agent: TelephonyAgent) -> Response {
     };
 
     agent.server_message_cb = Some(Box::new(cb));
-    agent.handle_phone_call().await
+
+    match agent.handle_phone_call().await {
+        Ok(response) => {
+            info!("WebSocket upgrade response generated");
+            response
+        }
+        Err(e) => {
+            error!("Error handling phone call: {}", e);
+            StatusCode::INTERNAL_SERVER_ERROR.into_response()
+        }
+    }
 }

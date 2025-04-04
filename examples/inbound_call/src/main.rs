@@ -1,8 +1,8 @@
+use std::sync::Arc;
 use axum::http::StatusCode;
 use axum::{extract::FromRef, response::IntoResponse, routing::post, Router};
-use elevenlabs_twilio::{
-    ConversationInitiationClientData, Personalization, PostCall, TelephonyState,
-};
+use tokio::sync::Mutex;
+use elevenlabs_twilio::{AgentWebSocket, ConversationInitiationClientData, Personalization, PostCall, TelephonyState, TwilioClient};
 use tracing::info;
 
 #[derive(Debug, Clone)]
@@ -20,9 +20,14 @@ impl FromRef<AppState> for TelephonyState {
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     tracing_subscriber::fmt().init();
 
-    let telephony_state = TelephonyState::from_env()?;
+    let agent = Arc::new(Mutex::new(AgentWebSocket::from_env()?));
+    let tc = Arc::new(TwilioClient::from_env()?);
 
-    let app_state = AppState { telephony_state };
+    let sub_state = TelephonyState::new("inbound_agent".to_string(), agent, tc)?;
+
+    let app_state = AppState {
+        telephony_state: sub_state,
+    };
 
     // Change routes according to your Conversational AI workspace settings
     let app = Router::new()
