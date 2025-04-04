@@ -134,6 +134,7 @@ pub struct SharedVoice {
     pub category: SharedVoiceCategory,
     //#[serde(deserialize_with = "Language::from_code")]
     pub language: Option<String>,
+    pub locale: Option<String>,
     pub description: Option<String>,
     pub preview_url: Option<String>,
     pub usage_character_count_1y: f32,

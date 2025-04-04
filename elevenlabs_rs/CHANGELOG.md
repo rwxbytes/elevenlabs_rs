@@ -60,6 +60,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - variant `SipTrunk` to `CreatePhoneNumberBody`
 - variant `Text` to `KnowledgeBaseDocType`
 - field `additional_formats` to `CreateTranscriptBody` and `CreateTranscriptResponse`
+- field `locale` to `SharedVoice`
   
 
 ### Changed
