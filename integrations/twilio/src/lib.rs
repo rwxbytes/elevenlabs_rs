@@ -799,31 +799,6 @@ impl TelephonyAgent {
                                         }
                                     }
                                 }
-                                //if let Some(tools_tx) = &tools_tx {
-                                //    info!(call_sid = %call_sid, tool.name = %tool_call.name(), tool.id = %tool_call.id(), "Received agent tool call");
-                                //    let phone_call_tool = PhoneCallTool::new(
-                                //        tool_call,
-                                //        call_sid.clone(),
-                                //        conversation_id.clone(),
-                                //    );
-                                //    if tools_tx.send(phone_call_tool).is_err() {
-                                //        error!(call_sid = %call_sid, "Failed to send tool call to receiver)");
-                                //    }
-                                //} else {
-                                //    error!(call_sid = %call_sid, tool.name = %tool_call.name(), tool.id = %tool_call.id(), "Received tool call but tools_tx channel is not configured.");
-                                //    // Send tool error back to agent
-                                //    let tool_result = ClientToolResult::new(tool_call.id())
-                                //        .is_error(true)
-                                //        .with_result(
-                                //            "Tool processing channel not available".to_string(),
-                                //        );
-                                //    let agent_ws_locked = agent_ws.lock().await;
-                                //    if let Err(e) =
-                                //        agent_ws_locked.send_tool_result(tool_result).await
-                                //    {
-                                //        error!(call_sid=%call_sid, "Failed to send tool error back to agent: {}", e);
-                                //    }
-                                //}
                             }
                             ServerMessage::ConversationInitiationMetadata(metadata) => {
                                 info!("Received conversation initiation metadata");
