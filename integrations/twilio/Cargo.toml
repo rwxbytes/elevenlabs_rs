@@ -9,7 +9,7 @@ description = "A lib crate for the integration of ElevenLabs and Twilio"
 
 [dependencies]
 axum = { version = "0.8.1", features = ["ws"] }
-elevenlabs-convai = {path = "../../elevenlabs-convai"}
+elevenlabs-convai = "0.3.0"
 rusty_twilio = "0.1.1"
 serde = { version = "1.0.217", features = ["derive"] }
 serde_json = "1.0.138"
