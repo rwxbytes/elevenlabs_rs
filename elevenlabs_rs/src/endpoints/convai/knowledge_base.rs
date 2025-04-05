@@ -1,5 +1,6 @@
 use super::*;
-use crate::endpoints::convai::agents::{AccessInfo, AccessLevel};
+use crate::endpoints::convai::agents::AccessInfo;
+use crate::shared::AccessLevel;
 use crate::error::Error;
 use std::path::Path;
 use std::string::ToString;

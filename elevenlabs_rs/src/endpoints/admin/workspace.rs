@@ -3,7 +3,7 @@
 use std::collections::HashMap;
 use strum::Display;
 use std::string::ToString;
-use crate::endpoints::convai::agents::AccessLevel;
+use crate::shared::AccessLevel;
 use super::*;
 
 /// Sends an email invitation to join your workspace to the provided email.

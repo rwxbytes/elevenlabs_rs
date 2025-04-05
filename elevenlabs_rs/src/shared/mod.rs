@@ -532,6 +532,16 @@ impl DictionaryLocator {
     }
 }
 
+/// Access Level
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum AccessLevel {
+    Admin,
+    Editor,
+    Viewer,
+}
+
+
 /// Language
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 pub enum Language {

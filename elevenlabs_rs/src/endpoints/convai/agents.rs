@@ -4,7 +4,7 @@ use super::*;
 use crate::endpoints::convai::knowledge_base::EmbeddingModel;
 use crate::endpoints::convai::phone_numbers::{AssignedAgent, PhoneNumberProvider};
 use crate::endpoints::convai::workspace::{ConversationInitiationClientDataWebhook, Webhooks};
-use crate::shared::DictionaryLocator;
+use crate::shared::{DictionaryLocator, AccessLevel};
 use std::collections::HashMap;
 
 /// Create an agent from a config object
@@ -2217,14 +2217,6 @@ pub struct AccessInfo {
     pub creator_name: String,
     pub creator_email: String,
     pub role: AccessLevel,
-}
-
-#[derive(Clone, Debug, Deserialize, Serialize)]
-#[serde(rename_all = "lowercase")]
-pub enum AccessLevel {
-    Admin,
-    Editor,
-    Viewer,
 }
 
 #[derive(Clone, Debug, Default, Serialize)]
