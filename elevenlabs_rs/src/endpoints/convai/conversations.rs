@@ -322,7 +322,7 @@ pub struct Chunk {
 
 #[derive(Clone, Debug, Deserialize)]
 pub struct ConversationTurnMetrics {
-    metrics: Option<HashMap<String, Value>>,
+    pub metrics: Option<HashMap<String, Value>>,
 
 }
 

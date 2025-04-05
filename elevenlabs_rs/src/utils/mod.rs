@@ -31,7 +31,7 @@ where
     tokio::spawn(async move {
         pin_mut!(text_stream);
         while let Some(text) = text_stream.next().await {
-            if buf.ends_with(&splitters) {
+            if buf.ends_with(splitters) {
                 tx.send(format!("{} ", buf.as_str())).unwrap();
                 buf = text
             } else if text.starts_with(splitters) {

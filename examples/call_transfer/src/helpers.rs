@@ -15,7 +15,7 @@ pub(crate) async fn send_tool_error(
     message: &str,
 ) {
     let error_result = ClientToolResult::new(tool_id)
-        .is_error(true)
+        .has_error(true)
         .with_result(message.to_string());
     if let Err(e) = agent_ws.lock().await.send_tool_result(error_result).await {
         error!("Error sending tool error result: {:?}", e);

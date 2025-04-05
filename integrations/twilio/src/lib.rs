@@ -80,7 +80,7 @@ impl TelephonyState {
         agent_ws: Arc<Mutex<AgentWebSocket>>,
         twilio_client: Arc<TwilioClient>,
     ) -> Result<Self, Error> {
-        if !twilio_client.number().is_some() {
+        if twilio_client.number().is_none() {
             return Err(Error::TwilioClient(TwilioError::MissingPhoneNumberEnvVar));
         }
 
@@ -239,7 +239,7 @@ where
             .0;
 
         let post_params = if method == Method::POST
-            && headers.get("Content-Type").map_or(false, |ct| {
+            && headers.get("Content-Type").is_some_and(|ct| {
                 ct.to_str()
                     .unwrap_or("")
                     .starts_with("application/x-www-form-urlencoded")
@@ -787,7 +787,7 @@ impl TelephonyAgent {
                                         error!(call_sid = %call_sid, tool.name = %tool_call.name(), tool.id = %tool_call.id(), "Received tool call but tools_tx channel is not configured.");
                                         // Send tool error back to agent
                                         let tool_result = ClientToolResult::new(tool_call.id())
-                                            .is_error(true)
+                                            .has_error(true)
                                             .with_result(
                                                 "Tool processing channel not available".to_string(),
                                             );
@@ -813,7 +813,7 @@ impl TelephonyAgent {
                     }
                     Err(e) => {
                         // Should we return error from core client on different ws close codes?
-                        error!(call_sid = %call_sid, "Failed to receive message from aget websocket: {}", e);
+                        error!(call_sid = %call_sid, "Failed to receive message from a get websocket: {}", e);
                         break;
                     }
                 }
@@ -848,7 +848,7 @@ impl PostCall {
         }
     }
 
-    pub async fn create_call<'a>(&self, body: CreateCallBody<'a>) -> Result<CallResponse, Error> {
+    pub async fn create_call(&self, body: CreateCallBody<'_>) -> Result<CallResponse, Error> {
         let create_call = CreateCall::new(self.twilio_client.account_sid(), body);
         Ok(self.twilio_client.hit(create_call).await?)
     }

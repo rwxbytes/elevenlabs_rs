@@ -15,7 +15,7 @@ use tokio_stream::wrappers::UnboundedReceiverStream;
 use tokio_tungstenite::tungstenite::protocol::frame::coding::CloseCode;
 use tokio_tungstenite::tungstenite::protocol::{CloseFrame, Message};
 use tokio_tungstenite::{connect_async, MaybeTlsStream, WebSocketStream};
-use tracing::{info, warn};
+use tracing::warn;
 
 const WS_BASE_URL: &str = "wss://api.elevenlabs.io";
 const WS_CONVAI_PATH: &str = "/v1/conversational_ai/conversation";
