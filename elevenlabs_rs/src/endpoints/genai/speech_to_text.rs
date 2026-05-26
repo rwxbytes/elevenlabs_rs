@@ -329,7 +329,7 @@ pub struct Word {
 }
 
 #[derive(Clone, Debug, Deserialize)]
-#[serde(rename_all = "lowercase")]
+#[serde(rename_all = "snake_case")]
 pub enum WordType {
     Word,
     Spacing,
