@@ -10,6 +10,8 @@ pub enum ServerMessage {
     ClientToolCall(ClientToolCall),
     ConversationInitiationMetadata(ConversationInitiationMetadata),
     Interruption(Interruption),
+    McpConnectionStatus(McpConnectionStatus),
+    McpToolCall(McpToolCall),
     Ping(Ping),
     TentativeAgent(TentativeAgentResponse),
     TurnProbability(TurnProbability),
@@ -92,6 +94,32 @@ impl ServerMessage {
     pub fn as_interruption(&self) -> Option<&Interruption> {
         match self {
             ServerMessage::Interruption(interruption) => Some(interruption),
+            _ => None,
+        }
+    }
+
+    /// Indicates if the message is a MCP connection status response
+    pub fn is_mcp_connection_status(&self) -> bool {
+        matches!(*self, ServerMessage::McpConnectionStatus(_))
+    }
+
+    /// If the `ServerMessage` is a `McpConnectionStatus`, then it returns it, otherwise it returns `None`
+    pub fn as_mcp_connection_status(&self) -> Option<&McpConnectionStatus> {
+        match self {
+            ServerMessage::McpConnectionStatus(mcp_connection_status) => Some(mcp_connection_status),
+            _ => None,
+        }
+    }
+
+    /// Indicates if the message is a MCP tool call response
+    pub fn is_mcp_tool_call(&self) -> bool {
+        matches!(*self, ServerMessage::McpToolCall(_))
+    }
+
+    /// If the `ServerMessage` is a `McpToolCall`, then it returns it, otherwise it returns `None`
+    pub fn as_mcp_tool_call(&self) -> Option<&McpToolCall> {
+        match self {
+            ServerMessage::McpToolCall(mcp_tool_call) => Some(mcp_tool_call),
             _ => None,
         }
     }
@@ -254,6 +282,42 @@ pub struct Interruption {
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct InterruptionEvent {
     pub event_id: u32,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct McpConnectionStatus {
+    pub r#type: String,
+    pub mcp_connection_status: McpConnectionStatusEvent,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct McpConnectionStatusEvent {
+    pub integrations: Vec<IntegrationStatus>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct IntegrationStatus {
+    pub integration_id: String,
+    pub integration_type: String,
+    pub is_connected: bool,
+    pub tool_count: u32,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct McpToolCall {
+    pub r#type: String,
+    pub mcp_tool_call: McpToolCallEvent,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct McpToolCallEvent {
+    pub service_id: String,
+    pub tool_call_id: String,
+    pub tool_name: String,
+    pub tool_description: Option<String>,
+    pub parameters: serde_json::Value,
+    pub timestamp: String,
+    pub state: String,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
