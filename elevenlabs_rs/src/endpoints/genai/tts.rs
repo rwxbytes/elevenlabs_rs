@@ -1,6 +1,5 @@
 //! The text-to-speech endpoints
 use super::*;
-use crate::endpoints::admin::pronunciation::GetDictionariesResponse;
 use crate::endpoints::ElevenLabsEndpoint;
 use crate::shared::{query_params::OutputFormat, DictionaryLocator, VoiceSettings};
 use async_stream::try_stream;
@@ -203,8 +202,9 @@ impl DictionaryLocators {
     }
 }
 
-impl From<GetDictionariesResponse> for DictionaryLocators {
-    fn from(response: GetDictionariesResponse) -> Self {
+#[cfg(feature = "admin")]
+impl From<crate::endpoints::admin::pronunciation::GetDictionariesResponse> for DictionaryLocators {
+    fn from(response: crate::endpoints::admin::pronunciation::GetDictionariesResponse) -> Self {
         let mut locators = Self::default();
         response.into_iter().take(3).for_each(|dict| {
             locators.push(DictionaryLocator::new(&dict.id, &dict.latest_version_id));

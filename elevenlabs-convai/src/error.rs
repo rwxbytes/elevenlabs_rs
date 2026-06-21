@@ -13,7 +13,7 @@ pub enum ConvAIError {
     Boxed(#[from] Box<dyn std::error::Error + Send + Sync>),
 
     #[error("websocket error: {0}")]
-    WebSocketError(#[source] tungstenite::Error),
+    WebSocketError(#[source] Box<tungstenite::Error>),
 
     #[error("websocket connection closed with a non-normal close code: {0}")]
     NonNormalCloseCode(String),
@@ -32,4 +32,10 @@ pub enum ConvAIError {
 
     #[error("failed to get signed url")]
     SignedUrlError,
+}
+
+impl From<tungstenite::Error> for ConvAIError {
+    fn from(error: tungstenite::Error) -> Self {
+        Self::WebSocketError(Box::new(error))
+    }
 }

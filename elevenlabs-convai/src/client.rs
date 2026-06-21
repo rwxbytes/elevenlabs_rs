@@ -78,9 +78,7 @@ impl AgentWebSocket {
     {
         let url = self.get_url().await?;
 
-        let (socket, _) = connect_async(url)
-            .await
-            .map_err(ConvAIError::WebSocketError)?;
+        let (socket, _) = connect_async(url).await.map_err(ConvAIError::from)?;
         let (mut ws_writer, ws_reader) = socket.split();
 
         // Send the conversation initiation message to the server if it exists
@@ -88,7 +86,7 @@ impl AgentWebSocket {
             ws_writer
                 .send(Message::try_from(data.clone())?)
                 .await
-                .map_err(ConvAIError::WebSocketError)?;
+                .map_err(ConvAIError::from)?;
         }
 
         let (caller_tx, caller_rx) = unbounded_channel::<Result<ServerMessage>>();
@@ -148,10 +146,7 @@ impl AgentWebSocket {
         mut ws_writer: WebSocketWriter,
     ) -> Result<()> {
         while let Some(message) = rx.recv().await {
-            ws_writer
-                .send(message)
-                .await
-                .map_err(ConvAIError::WebSocketError)?;
+            ws_writer.send(message).await.map_err(ConvAIError::from)?;
         }
         Ok(())
     }
@@ -163,7 +158,7 @@ impl AgentWebSocket {
         tx_to_writer: UnboundedSender<Message>,
     ) -> Result<()> {
         while let Some(message) = ws_reader.next().await {
-            let message = message.map_err(ConvAIError::WebSocketError)?;
+            let message = message.map_err(ConvAIError::from)?;
             Self::process_websocket_message(message, &tx_to_caller, &tx_to_writer)?;
         }
         Ok(())

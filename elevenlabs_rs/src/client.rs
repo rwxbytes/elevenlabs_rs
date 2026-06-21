@@ -1,13 +1,17 @@
-#![allow(unused_imports)]
 #[cfg(feature = "ws")]
 use crate::endpoints::genai::tts::ws::*;
 use crate::endpoints::{ElevenLabsEndpoint, RequestBody};
 use crate::error::Error::HttpError;
+#[cfg(feature = "ws")]
 use crate::error::WebSocketError;
+#[cfg(feature = "ws")]
 use futures_util::{pin_mut, SinkExt, Stream, StreamExt};
 use reqwest::{header::CONTENT_TYPE, Method};
+#[cfg(feature = "ws")]
 use tokio::task::JoinHandle;
+#[cfg(feature = "ws")]
 use tokio_tungstenite::tungstenite::protocol::frame::coding::CloseCode;
+#[cfg(feature = "ws")]
 use tokio_tungstenite::{connect_async, tungstenite::protocol::Message};
 
 pub type Result<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync>>;

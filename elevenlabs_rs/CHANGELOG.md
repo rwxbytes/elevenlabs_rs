@@ -15,12 +15,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - helper methods to `TextToDialogueWithTimestampsResponse`: `audio`, `segment_text`, `segments_with_text`
 - `VoiceSegment::duration` method
 - `dialogue_karaoke` example
+- public `accent` field on `VerifiedLanguage`
 
 ### Changed
 - **Breaking**: `Alignment` timestamp fields and the `Timestamps` iterator item are now `f64` (were `f32`)
+- Internal workspace dependencies now resolve to local workspace members during development
 
 ### Fixed
 - Streaming-with-timestamps JSON parser (in `tts` and `text_to_dialogue`) now buffers across network chunk boundaries instead of assuming one chunk is exactly one message; `segment_text` offsets per-chunk character indices so it is correct for stream chunks
+- Standalone feature builds, including `genai` without `admin`
+- Workspace check and clippy failures in examples and integrations
 
 ## [0.6.0] - 2025-04-05
 

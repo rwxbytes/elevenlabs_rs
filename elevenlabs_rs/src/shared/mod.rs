@@ -1,15 +1,16 @@
 #![allow(deprecated)]
-#![allow(unused_imports)]
-#![allow(dead_code)]
 
 use serde::{Deserialize, Serialize, Serializer};
+#[cfg(any(feature = "admin", feature = "genai"))]
 use serde_json::Value;
+#[cfg(any(feature = "admin", feature = "genai"))]
 use std::collections::HashMap;
-use std::string::ToString;
 use strum::Display;
 
+#[cfg(any(feature = "admin", feature = "convai", feature = "genai"))]
 pub(crate) mod url;
 
+#[cfg(any(feature = "admin", feature = "genai"))]
 pub mod response_bodies {
     use serde::Deserialize;
     #[derive(Clone, Debug, Deserialize)]
@@ -18,7 +19,6 @@ pub mod response_bodies {
     }
 }
 
-#[allow(dead_code)]
 pub mod query_params {
     use super::*;
 
@@ -281,14 +281,16 @@ impl VoiceSettings {
 }
 
 /// Verified language
+#[cfg(feature = "admin")]
 #[derive(Clone, Debug, Deserialize)]
 pub struct VerifiedLanguage {
     pub language: String,
     pub model_id: String,
-    accent: Option<String>,
+    pub accent: Option<String>,
 }
 
 /// Voice category
+#[cfg(any(feature = "admin", feature = "genai"))]
 #[derive(Debug, Display, Deserialize, Serialize, PartialEq, Clone)]
 #[serde(rename_all = "snake_case")]
 #[strum(serialize_all = "snake_case")]
@@ -302,6 +304,7 @@ pub enum VoiceCategory {
 }
 
 /// Voice sample
+#[cfg(any(feature = "admin", feature = "genai"))]
 #[derive(Deserialize, Debug, Clone, PartialEq)]
 pub struct VoiceSample {
     pub sample_id: Option<String>,
@@ -312,6 +315,7 @@ pub struct VoiceSample {
 }
 
 /// Safety control
+#[cfg(any(feature = "admin", feature = "genai"))]
 #[derive(Debug, Deserialize, Serialize, PartialEq, Clone)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum SafetyControl {
@@ -324,6 +328,7 @@ pub enum SafetyControl {
 }
 
 /// Fine-Tuning
+#[cfg(any(feature = "admin", feature = "genai"))]
 #[derive(Clone, Debug, Deserialize)]
 pub struct FineTuning {
     pub is_allowed_to_fine_tune: Option<bool>,
@@ -344,6 +349,7 @@ pub struct FineTuning {
 }
 
 /// Fine-Tuning state
+#[cfg(any(feature = "admin", feature = "genai"))]
 #[derive(Clone, Display, Debug, Deserialize, PartialEq)]
 #[serde(rename_all = "snake_case")]
 #[strum(serialize_all = "snake_case")]
@@ -359,6 +365,7 @@ pub enum FineTuningState {
 }
 
 /// Verification attempt
+#[cfg(any(feature = "admin", feature = "genai"))]
 #[derive(Clone, Debug, Deserialize)]
 pub struct VerificationAttempt {
     pub text: String,
@@ -370,6 +377,7 @@ pub struct VerificationAttempt {
 }
 
 /// Recording
+#[cfg(any(feature = "admin", feature = "genai"))]
 #[derive(Clone, Debug, Deserialize)]
 pub struct Recording {
     pub recording_id: String,
@@ -380,6 +388,7 @@ pub struct Recording {
 }
 
 /// Manual verification
+#[cfg(any(feature = "admin", feature = "genai"))]
 #[derive(Clone, Debug, Deserialize)]
 pub struct ManualVerification {
     pub extra_text: String,
@@ -388,6 +397,7 @@ pub struct ManualVerification {
 }
 
 /// Manual verification file
+#[cfg(any(feature = "admin", feature = "genai"))]
 #[derive(Clone, Debug, Deserialize)]
 pub struct ManualVerificationFile {
     pub file_id: String,
@@ -397,6 +407,7 @@ pub struct ManualVerificationFile {
     pub upload_date_unix: u64,
 }
 
+#[cfg(any(feature = "admin", feature = "genai"))]
 #[derive(Debug, Clone, Deserialize)]
 pub struct Sharing {
     pub status: Option<SharingStatus>,
@@ -434,6 +445,7 @@ pub struct Sharing {
 }
 
 /// Sharing status
+#[cfg(any(feature = "admin", feature = "genai"))]
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum SharingStatus {
@@ -444,6 +456,7 @@ pub enum SharingStatus {
 }
 
 /// Review status
+#[cfg(any(feature = "admin", feature = "genai"))]
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum ReviewStatus {
@@ -455,6 +468,7 @@ pub enum ReviewStatus {
 }
 
 /// Moderation check
+#[cfg(any(feature = "admin", feature = "genai"))]
 #[derive(Debug, Clone, Deserialize)]
 pub struct ModerationCheck {
     pub date_checked_unix: Option<u64>,
@@ -469,6 +483,7 @@ pub struct ModerationCheck {
 }
 
 /// Reader restricted on
+#[cfg(any(feature = "admin", feature = "genai"))]
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub struct ReaderRestrictedOn {
@@ -477,6 +492,7 @@ pub struct ReaderRestrictedOn {
 }
 
 /// Resource type
+#[cfg(any(feature = "admin", feature = "genai"))]
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum ResourceType {
@@ -485,6 +501,7 @@ pub enum ResourceType {
 }
 
 /// Voice Verification
+#[cfg(any(feature = "admin", feature = "genai"))]
 #[derive(Debug, Clone, Deserialize)]
 pub struct VoiceVerification {
     pub requires_verification: bool,
@@ -496,6 +513,7 @@ pub struct VoiceVerification {
 }
 
 /// Age
+#[cfg(feature = "admin")]
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "snake_case")]
 pub enum Age {
@@ -504,6 +522,7 @@ pub enum Age {
     Old,
 }
 
+#[cfg(feature = "admin")]
 impl Age {
     pub fn as_str(&self) -> &str {
         match self {
@@ -515,12 +534,14 @@ impl Age {
 }
 
 /// Dictionary locator
+#[cfg(any(feature = "admin", feature = "convai", feature = "genai"))]
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct DictionaryLocator {
     pronunciation_dictionary_id: String,
     version_id: String,
 }
 
+#[cfg(any(feature = "admin", feature = "convai", feature = "genai"))]
 impl DictionaryLocator {
     pub fn new(dictionary_id: &str, version_id: &str) -> Self {
         DictionaryLocator {
@@ -531,6 +552,7 @@ impl DictionaryLocator {
 }
 
 /// Access Level
+#[cfg(any(feature = "admin", feature = "convai"))]
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "lowercase")]
 pub enum AccessLevel {

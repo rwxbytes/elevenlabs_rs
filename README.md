@@ -1,2 +1,1 @@
-# Contributing
-Contributions are coveted across the workspace. Branch from develop, submit to develop.
+An unofficial lib crate for [ElevenLabs](https://elevenlabs.io/)

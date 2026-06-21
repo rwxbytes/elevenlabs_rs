@@ -2,38 +2,25 @@ mod handlers;
 mod helpers;
 mod toolkit;
 
-use axum::body::Body;
-use axum::extract::State;
-use axum::http::StatusCode;
 use axum::{
-    Form, Json, Router,
+    Router,
     extract::FromRef,
-    response::{IntoResponse, Response},
     routing::{get, post},
 };
 use dotenv::dotenv;
-use elevenlabs_twilio::TwilioClientExt;
 use elevenlabs_twilio::agents::DynamicVar;
 use elevenlabs_twilio::*;
-use serde::{Deserialize, Serialize};
-use serde_json::json;
 use std::collections::{HashMap, VecDeque};
 use std::env;
-use std::ops::Deref;
 use std::sync::Arc;
 use tokio::sync::Mutex;
-use tracing::{Instrument, Span, debug, error, field, info, instrument, warn};
+use tracing::info;
 use tracing_subscriber::{EnvFilter, fmt, prelude::*};
 
 // --- Agent Names/Types (Registered in TelephonyState) ---
 const ASSESSMENT_AGENT: &str = "assessment_agent";
 const WARM_TRANSFER_AGENT: &str = "warm_transfer_agent";
 const WAIT_MANAGEMENT_AGENT: &str = "wait_management_agent";
-
-// --- Agent Tool Names ---
-const TOOL_PUT_CALLER_IN_CONFERENCE: &str = "put_caller_in_conference";
-const TOOL_PUT_HUMAN_OPERATOR_IN_CONFERENCE: &str = "put_human_operator_in_conference";
-const SYSTEM_TOOL_END_CALL: &str = "end_call";
 
 // --- Participant Labels ---
 const LABEL_CALLER: &str = "Caller";
@@ -225,7 +212,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         &elevenlabs_api_key,
         &config.assessment_agent_id,
     )));
-    let mut telephony_state =
+    let telephony_state =
         TelephonyState::new(ASSESSMENT_AGENT.to_string(), agent_ws, twilio_client)?;
 
     // Register an Agent to handle outbound calls, i.e. to the person the caller wants to speak to

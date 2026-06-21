@@ -6,7 +6,7 @@ use axum::extract::State;
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use elevenlabs_twilio::TelephonyAgent;
-use tracing::{Instrument, Span, error, field, info, instrument};
+use tracing::{Instrument, Span, error, info, instrument};
 
 /// Handles the common WebSocket logic for both inbound and outbound agents.
 ///

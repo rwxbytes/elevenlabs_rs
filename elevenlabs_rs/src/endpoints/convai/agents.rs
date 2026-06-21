@@ -777,7 +777,7 @@ impl Schema {
 
     pub fn with_items(mut self, items: Schema) -> Self {
         if let Schema::Array(array) = &mut self {
-            array.items = Box::new(items);
+            *array.items = items;
         }
         self
     }

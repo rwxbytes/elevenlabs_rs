@@ -1023,7 +1023,7 @@ mod tests {
             let twilio_client =
                 Arc::new(TwilioClient::new("test", auth_token).with_number("1234567890"));
 
-            let test_app = if webhook_secret.is_empty() {
+            if webhook_secret.is_empty() {
                 let mut agents = HashMap::new();
                 agents.insert("test".to_string(), agent_ws);
                 let agent_registry = Arc::new(Mutex::new(agents));
@@ -1041,9 +1041,7 @@ mod tests {
                     .expect("Failed to create telephony state")
                     .with_webhook_secret(webhook_secret);
                 TestAppState { sub_state }
-            };
-
-            test_app
+            }
         }
     }
 
@@ -1130,7 +1128,8 @@ mod tests {
 
     async fn send_first_media_payload(mut socket: WebSocket) {
         let msg = socket.next().await.unwrap().unwrap();
-        let msg: ConnectedMessage = serde_json::from_str(msg.to_text().unwrap()).unwrap();
+        let _connected_msg: ConnectedMessage =
+            serde_json::from_str(msg.to_text().unwrap()).unwrap();
         let msg = socket.next().await.unwrap().unwrap();
         let msg: StartMessage = serde_json::from_str(msg.to_text().unwrap()).unwrap();
         let stream_sid = msg.stream_sid;

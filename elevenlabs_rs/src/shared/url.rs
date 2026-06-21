@@ -1,4 +1,3 @@
-use std::string::ToString;
 use strum::IntoStaticStr;
 
 pub(crate) trait AndPathParam {

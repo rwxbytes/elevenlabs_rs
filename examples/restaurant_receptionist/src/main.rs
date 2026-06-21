@@ -16,7 +16,6 @@ mod handlers;
 pub struct AppState {
     revisiting_customer: Option<Customer>,
     db: Surreal<Client>,
-    ngrok_url: String,
     caller_id: Arc<Mutex<Option<String>>>,
 }
 
@@ -43,11 +42,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Creates an agent, assigns it the phone number, and sets up the webhook
     info!("Creating agent");
-    let _agent = agent::agent_setup(ngrok_url, phone_number_id).await?;
+    agent::agent_setup(ngrok_url, phone_number_id).await?;
 
     let app_state = AppState {
         revisiting_customer: None,
-        ngrok_url: ngrok_url.to_string(),
         db,
         caller_id: Arc::new(Mutex::new(None)),
     };

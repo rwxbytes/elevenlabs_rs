@@ -9,9 +9,7 @@ use elevenlabs_twilio::*;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::sync::Arc;
-use std::time::Duration;
 use tokio::sync::Mutex;
-use tokio::time::timeout;
 use tracing::{error, info};
 
 #[derive(Clone, Debug)]

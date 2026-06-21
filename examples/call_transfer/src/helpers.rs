@@ -158,13 +158,13 @@ pub(crate) async fn handle_call_transfer_retry(
     drop(retry_state);
 
     // Update the state map after releasing the lock on the specific entry
-    if needs_update && new_call_sid_opt.is_some() {
-        if let (Some(new_call_sid), Some(updated_state)) = (new_call_sid_opt, updated_state_opt) {
-            let mut retry_state_global = state.call_transfer_state.lock().await;
-            retry_state_global.remove(call_sid); // Remove old entry
-            retry_state_global.insert(new_call_sid.clone(), updated_state); // Add new entry
-            info!(new_call.sid = %new_call_sid, old_call.sid = %call_sid, "Updated call transfer state map for retry");
-        }
+    if let (true, Some(new_call_sid), Some(updated_state)) =
+        (needs_update, new_call_sid_opt, updated_state_opt)
+    {
+        let mut retry_state_global = state.call_transfer_state.lock().await;
+        retry_state_global.remove(call_sid); // Remove old entry
+        retry_state_global.insert(new_call_sid.clone(), updated_state); // Add new entry
+        info!(new_call.sid = %new_call_sid, old_call.sid = %call_sid, "Updated call transfer state map for retry");
     }
     Ok(())
 }

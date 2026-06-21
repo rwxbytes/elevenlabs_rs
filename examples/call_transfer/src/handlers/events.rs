@@ -1,20 +1,18 @@
 use crate::{
-    AppState, CallTransferData, CustomerConversation, LABEL_CALLER, LABEL_WAIT_MANAGER, PATH_AMD,
-    PATH_EVENTS_CALL, PATH_WAIT_MANAGER, PATH_WS_CALLER, PATH_WS_PARTICIPANT_B,
-    WARM_TRANSFER_AGENT, helpers::handle_call_transfer_retry,
+    AppState, CallTransferData, CustomerConversation, PATH_AMD, PATH_EVENTS_CALL,
+    PATH_WAIT_MANAGER, PATH_WS_CALLER, PATH_WS_PARTICIPANT_B, WARM_TRANSFER_AGENT,
+    helpers::handle_call_transfer_retry,
 };
 use axum::Form;
 use axum::extract::State;
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
-use elevenlabs_twilio::CallStatus::Ringing;
 use elevenlabs_twilio::{
     AMDRequestParams, AnsweredBy, CallStatus, ConferenceEvent, ConferenceRequestParams,
     ConversationInitiationClientData, CreateCallBody, FetchParticipant, InboundCall, PostCall,
     Stream, TwilioClient, TwilioParams, TwilioRequestParams, UpdateCall, UpdateCallBody,
     UpdateCallStatus, VoiceResponse,
 };
-use std::collections::HashMap;
 use tracing::{Instrument, Span, debug, error, field, info, instrument, warn};
 
 #[instrument(
@@ -161,7 +159,7 @@ pub(crate) async fn post_call_handler(
     // add prefix to conference name
     let conference_friendly_name = format!("Conf_{}", &post_call.payload.data.conversation_id);
     // Add conference name to current span context
-    Span::current().record("conf.name", &conference_friendly_name.as_str());
+    Span::current().record("conf.name", conference_friendly_name.as_str());
 
     let summary = post_call.summary().unwrap_or_else(|| {
         warn!("No summary found in post-call data");
@@ -254,7 +252,7 @@ pub(crate) async fn post_call_handler(
             let warm_transfer_agent_call_sid = call_instance.sid.clone();
             Span::current().record(
                 "warm_transfer_agent.call_sid",
-                &warm_transfer_agent_call_sid.as_str(),
+                warm_transfer_agent_call_sid.as_str(),
             );
             info!("Successfully initiated call");
 

@@ -45,7 +45,7 @@ impl AudioProcessor {
         while let Some(samples) = self.audio_rx.recv().await {
             buffer.extend(samples);
             if buffer.len() >= chunk_size {
-                let chunk = buffer.drain(..).collect::<Vec<i16>>();
+                let chunk = std::mem::take(&mut buffer);
                 if !chunk.is_empty() {
                     let encoded_audio = resample_and_encode_audio_to_b64(&chunk, sample_rate);
                     self.encoded_audio_tx
@@ -54,7 +54,6 @@ impl AudioProcessor {
                 }
             }
         }
-        ()
     }
 }
 
@@ -88,6 +87,5 @@ pub fn resample_to_16khz(data: &[i16], source_hz: SampleRate) -> Vec<i16> {
 pub fn resample_and_encode_audio_to_b64(data: &[i16], source_hz: SampleRate) -> String {
     let resampled_audio = resample_to_16khz(data, source_hz);
     let resampled_bytes: &[u8] = bytemuck::cast_slice(&resampled_audio);
-    let base64_chunk = BASE64_STANDARD.encode(&resampled_bytes);
-    base64_chunk
+    BASE64_STANDARD.encode(resampled_bytes)
 }

@@ -161,7 +161,7 @@ pub async fn agent_setup(
         ConversationInitiationClientDataWebhook::new(format!("{}/inbound-call", ngrok_url))
             .with_request_headers(hashmap);
 
-    let body = UpdateSettingsBody::new(vec![]).with_initiation_webhook(init_webhook);
+    let body = UpdateSettingsBody::default().with_initiation_webhook(init_webhook);
 
     let endpoint = UpdateSettings::new(body);
 

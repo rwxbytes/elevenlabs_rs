@@ -1,14 +1,10 @@
-use crate::{
-    AppState, Config, LABEL_CALLER, LABEL_PARTICIPANT_B, PATH_EVENTS_CONFERENCE,
-    helpers::send_tool_error,
-};
+use crate::{AppState, LABEL_CALLER, LABEL_PARTICIPANT_B, PATH_EVENTS_CONFERENCE};
 use elevenlabs_twilio::{
-    AgentWebSocket, ClientToolResult, Conference, PhoneCallTool, TwilioClient, TwilioClientExt,
-    VoiceResponse,
+    AgentWebSocket, Conference, PhoneCallTool, TwilioClient, TwilioClientExt, VoiceResponse,
 };
 use std::sync::Arc;
 use tokio::sync::Mutex;
-use tracing::{error, info, warn};
+use tracing::{info, warn};
 
 #[derive(Debug)]
 enum ToolName {
@@ -29,7 +25,7 @@ impl From<&str> for ToolName {
 
 pub(crate) async fn handle_tool_call(
     tool_call: &PhoneCallTool,
-    agent_ws: &Arc<Mutex<AgentWebSocket>>, // remove this perhaps
+    _agent_ws: &Arc<Mutex<AgentWebSocket>>,
     twilio_c: &TwilioClient,
     state: &AppState,
 ) -> Result<(), String> {
@@ -102,10 +98,6 @@ pub(crate) async fn handle_tool_call(
 
             if !is_existing {
                 return Err("Conference ended or caller left. Cannot join".into());
-                warn!(
-                    "Conference {} not found, Caller left before Participant B: {} could join ",
-                    conf_name, tool_call.call_sid
-                );
             }
 
             twilio_c

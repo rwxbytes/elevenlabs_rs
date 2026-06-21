@@ -1,12 +1,14 @@
 pub(crate) use crate::client::Result;
-#[allow(unused_imports)]
+#[cfg(any(feature = "admin", feature = "genai"))]
 pub(crate) use crate::shared::response_bodies::*;
+#[cfg(any(feature = "admin", feature = "convai", feature = "genai"))]
 pub(crate) use crate::shared::url::*;
+#[cfg(any(feature = "admin", feature = "convai", feature = "genai"))]
 pub(crate) use bytes::Bytes;
-pub(crate) use reqwest::{
-    multipart::{Form, Part},
-    Method, Response, Url,
-};
+#[cfg(any(feature = "admin", feature = "convai", feature = "genai"))]
+pub(crate) use reqwest::multipart::Part;
+pub(crate) use reqwest::{multipart::Form, Method, Response, Url};
+#[cfg(any(feature = "admin", feature = "convai", feature = "genai"))]
 pub(crate) use serde::{Deserialize, Serialize};
 pub(crate) use serde_json::Value;
 

@@ -369,7 +369,7 @@ impl ShareWorkspaceResource {
     pub fn new(resource_id: impl Into<String>, body: ShareWorkspaceResourceBody) -> Self {
         Self {
             resource_id: resource_id.into(),
-            body: body.into(),
+            body,
         }
     }
 }
@@ -445,7 +445,7 @@ impl UnshareWorkspaceResource {
     pub fn new(resource_id: impl Into<String>, body: UnshareWorkspaceResourceBody) -> Self {
         Self {
             resource_id: resource_id.into(),
-            body: body.into(),
+            body,
         }
     }
 }

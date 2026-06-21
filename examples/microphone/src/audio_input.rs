@@ -2,17 +2,13 @@ use crate::prelude::*;
 
 pub struct DefaultMicrophoneManager {
     audio_tx: mpsc::UnboundedSender<Vec<i16>>,
-    stop_recording: Arc<AtomicBool>,
 }
 
 impl DefaultMicrophoneManager {
     pub fn new() -> (Self, mpsc::UnboundedReceiver<Vec<i16>>) {
         let (audio_tx, audio_rx) = mpsc::unbounded_channel();
 
-        let manager = Self {
-            audio_tx,
-            stop_recording: Arc::new(AtomicBool::new(false)),
-        };
+        let manager = Self { audio_tx };
 
         (manager, audio_rx)
     }
@@ -44,7 +40,7 @@ impl DefaultMicrophoneManager {
                         })
                         .collect();
 
-                    let _ = audio_tx
+                    audio_tx
                         .send(mono_samples)
                         .expect("Failed to send audio samples");
                 },
@@ -54,9 +50,5 @@ impl DefaultMicrophoneManager {
             .expect("Failed to build input stream");
 
         (stream, sample_rate)
-    }
-
-    pub fn stop(&self) {
-        self.stop_recording.store(true, Ordering::SeqCst);
     }
 }
