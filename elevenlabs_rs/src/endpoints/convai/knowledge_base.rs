@@ -184,7 +184,7 @@ impl CreateKnowledgeBaseDocBody {
 }
 
 impl TryFrom<&CreateKnowledgeBaseDocBody> for RequestBody {
-    type Error = Box<dyn std::error::Error + Send + Sync>;
+    type Error = crate::error::Error;
 
     fn try_from(body: &CreateKnowledgeBaseDocBody) -> Result<Self> {
         let mut form = Form::new();
@@ -254,7 +254,7 @@ impl FileType {
             "html" => Ok(FileType::Html),
             "pdf" => Ok(FileType::Pdf),
             "txt" => Ok(FileType::Txt),
-            _ => Err(Error::FileExtensionNotSupported.into()),
+            _ => Err(Error::FileExtensionNotSupported),
         }
     }
 }
@@ -562,7 +562,7 @@ impl ComputeRAGIndexBody {
 }
 
 impl TryFrom<&ComputeRAGIndexBody> for RequestBody {
-    type Error = Box<dyn std::error::Error + Send + Sync>;
+    type Error = crate::error::Error;
 
     fn try_from(body: &ComputeRAGIndexBody) -> Result<Self> {
         Ok(RequestBody::Json(serde_json::to_value(body)?))

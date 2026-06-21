@@ -108,7 +108,7 @@ pub enum PhoneNumberProvider {
 }
 
 impl TryFrom<&CreatePhoneNumberBody> for RequestBody {
-    type Error = Box<dyn std::error::Error + Send + Sync>;
+    type Error = crate::error::Error;
 
     fn try_from(body: &CreatePhoneNumberBody) -> Result<Self> {
         Ok(RequestBody::Json(serde_json::to_value(body)?))
@@ -281,7 +281,7 @@ impl UpdatePhoneNumberBody {
 }
 
 impl TryFrom<&UpdatePhoneNumberBody> for RequestBody {
-    type Error = Box<dyn std::error::Error + Send + Sync>;
+    type Error = crate::error::Error;
 
     fn try_from(body: &UpdatePhoneNumberBody) -> Result<Self> {
         Ok(RequestBody::Json(serde_json::to_value(body)?))

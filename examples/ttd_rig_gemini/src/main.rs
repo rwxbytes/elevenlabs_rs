@@ -1,5 +1,5 @@
+use elevenlabs_rs::ElevenLabsClient;
 use elevenlabs_rs::endpoints::genai::text_to_dialogue::*;
-use elevenlabs_rs::{ElevenLabsClient, Result};
 use rig::completion::Prompt;
 use rig::prelude::*;
 use rig::providers::gemini::{
@@ -10,6 +10,9 @@ use rig::providers::gemini::{
     },
 };
 use serde::{Deserialize, Serialize};
+
+type BoxError = Box<dyn std::error::Error + Send + Sync>;
+type Result<T> = std::result::Result<T, BoxError>;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct GeneratedDialogueInput {

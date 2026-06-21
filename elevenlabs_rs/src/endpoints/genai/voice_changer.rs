@@ -211,19 +211,19 @@ impl ElevenLabsEndpoint for VoiceChangerStream {
 }
 
 impl TryFrom<&VoiceChangerBody> for RequestBody {
-    type Error = Box<dyn std::error::Error + Send + Sync>;
+    type Error = crate::error::Error;
 
     fn try_from(body: &VoiceChangerBody) -> Result<Self> {
         let path = std::path::Path::new(&body.audio);
         let audio_bytes = std::fs::read(path)?;
         let mut part = Part::bytes(audio_bytes);
-        let file_path_str = path.to_str().ok_or(Box::new(Error::PathNotValidUTF8))?;
+        let file_path_str = path.to_str().ok_or(Error::PathNotValidUTF8)?;
         part = part.file_name(file_path_str.to_string());
         let mime_subtype = path
             .extension()
-            .ok_or(Box::new(Error::FileExtensionNotFound))?
+            .ok_or(Error::FileExtensionNotFound)?
             .to_str()
-            .ok_or(Box::new(Error::FileExtensionNotValidUTF8))?;
+            .ok_or(Error::FileExtensionNotValidUTF8)?;
         let mime_type = format!("audio/{}", mime_subtype);
         part = part.mime_str(&mime_type)?;
         let mut form = Form::new().part("audio", part);

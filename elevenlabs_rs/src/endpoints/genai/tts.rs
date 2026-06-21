@@ -103,7 +103,7 @@ pub struct TextToSpeechBody {
 }
 
 impl TryFrom<&TextToSpeechBody> for RequestBody {
-    type Error = Box<dyn std::error::Error + Send + Sync>;
+    type Error = crate::error::Error;
 
     fn try_from(value: &TextToSpeechBody) -> Result<Self> {
         Ok(RequestBody::Json(serde_json::to_value(value)?))

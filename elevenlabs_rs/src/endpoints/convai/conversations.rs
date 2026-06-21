@@ -607,7 +607,7 @@ impl ElevenLabsEndpoint for SendConversationFeedback {
 }
 
 impl TryInto<RequestBody> for &SendConversationFeedbackBody {
-    type Error = Box<dyn std::error::Error + Send + Sync>;
+    type Error = crate::error::Error;
 
     fn try_into(self) -> Result<RequestBody> {
         Ok(RequestBody::Json(serde_json::to_value(self)?))

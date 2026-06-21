@@ -52,16 +52,40 @@ pub trait ElevenLabsEndpoint {
 
     async fn response_body(self, resp: Response) -> Result<Self::ResponseBody>;
 
+    fn base_url(&self) -> &str {
+        Self::BASE_URL
+    }
+
     fn url(&self) -> Url {
-        let mut url = Self::BASE_URL.parse::<Url>().unwrap();
+        let mut url = self
+            .base_url()
+            .parse::<Url>()
+            .expect("endpoint base URL must be valid");
 
-        let mut path = Self::PATH.to_string();
+        let path = Self::PATH.trim_start_matches('/');
+        let path_params = self.path_params();
+        let mut segments: Vec<&str> = path
+            .split('/')
+            .filter(|segment| !segment.is_empty())
+            .map(|segment| {
+                path_params
+                    .iter()
+                    .find_map(|(placeholder, value)| (*placeholder == segment).then_some(*value))
+                    .unwrap_or(segment)
+            })
+            .collect();
 
-        for (placeholder, id) in self.path_params() {
-            path = path.replace(placeholder, id);
+        if path.ends_with('/') {
+            segments.push("");
         }
 
-        url.set_path(&path);
+        {
+            let mut url_segments = url
+                .path_segments_mut()
+                .expect("endpoint base URL must support path segments");
+            url_segments.clear();
+            url_segments.extend(segments);
+        }
 
         if let Some(query_params) = self.query_params() {
             url.query_pairs_mut().extend_pairs(query_params);

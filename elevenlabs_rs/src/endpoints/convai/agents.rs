@@ -104,7 +104,7 @@ pub struct CreateAgentResponse {
 }
 
 impl TryFrom<&CreateAgentBody> for RequestBody {
-    type Error = Box<dyn std::error::Error + Send + Sync>;
+    type Error = crate::error::Error;
 
     fn try_from(body: &CreateAgentBody) -> Result<Self> {
         Ok(RequestBody::Json(serde_json::to_value(body)?))
@@ -2361,7 +2361,7 @@ impl ElevenLabsEndpoint for UpdateAgent {
 }
 
 impl TryInto<RequestBody> for &UpdateAgentBody {
-    type Error = Box<dyn std::error::Error + Send + Sync>;
+    type Error = crate::error::Error;
 
     fn try_into(self) -> Result<RequestBody> {
         Ok(RequestBody::Json(serde_json::to_value(self)?))

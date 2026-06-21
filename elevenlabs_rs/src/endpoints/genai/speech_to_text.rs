@@ -343,7 +343,7 @@ pub struct Character {
 }
 
 impl TryFrom<CreateTranscriptBody> for RequestBody {
-    type Error = Box<dyn std::error::Error + Send + Sync>;
+    type Error = crate::error::Error;
 
     fn try_from(body: CreateTranscriptBody) -> Result<Self> {
         let path = std::path::Path::new(&body.file);
@@ -465,7 +465,7 @@ impl<'a> TranscriptFileType<'a> {
             "mpg" | "mpeg" => Ok(Self::Video(MPEG)),
             "3gp" => Ok(Self::Video(THREEGPP)),
 
-            _ => Err(Error::FileExtensionNotSupported.into()),
+            _ => Err(Error::FileExtensionNotSupported),
         }
     }
 }

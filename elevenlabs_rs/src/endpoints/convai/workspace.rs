@@ -164,7 +164,7 @@ impl ElevenLabsEndpoint for UpdateSettings {
 }
 
 impl TryInto<RequestBody> for &UpdateSettingsBody {
-    type Error = Box<dyn std::error::Error + Send + Sync>;
+    type Error = crate::error::Error;
 
     fn try_into(self) -> Result<RequestBody> {
         Ok(RequestBody::Json(serde_json::to_value(self)?))
@@ -378,7 +378,7 @@ impl SecretType {
 }
 
 impl TryInto<RequestBody> for &CreateSecretBody {
-    type Error = Box<dyn std::error::Error + Send + Sync>;
+    type Error = crate::error::Error;
 
     fn try_into(self) -> Result<RequestBody> {
         Ok(RequestBody::Json(serde_json::to_value(self)?))

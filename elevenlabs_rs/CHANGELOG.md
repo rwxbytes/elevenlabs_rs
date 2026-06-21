@@ -16,15 +16,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `VoiceSegment::duration` method
 - `dialogue_karaoke` example
 - public `accent` field on `VerifiedLanguage`
+- typed `ApiError`/`Error` model and `ApiResponse`
+- `ElevenLabsClient::hit_with_metadata`
 
 ### Changed
+- **Breaking**: `elevenlabs_rs::Result` now uses `elevenlabs_rs::error::Error` instead of a boxed trait-object error
 - **Breaking**: `Alignment` timestamp fields and the `Timestamps` iterator item are now `f64` (were `f32`)
 - Internal workspace dependencies now resolve to local workspace members during development
+- Request bodies are now attached for all HTTP methods when an endpoint provides one
 
 ### Fixed
 - Streaming-with-timestamps JSON parser (in `tts` and `text_to_dialogue`) now buffers across network chunk boundaries instead of assuming one chunk is exactly one message; `segment_text` offsets per-chunk character indices so it is correct for stream chunks
 - Standalone feature builds, including `genai` without `admin`
 - Workspace check and clippy failures in examples and integrations
+- Endpoint path parameters are now percent-encoded by URL path segment
+- Non-success HTTP responses now preserve status, headers, raw body, and parsed JSON error metadata
 
 ## [0.6.0] - 2025-04-05
 

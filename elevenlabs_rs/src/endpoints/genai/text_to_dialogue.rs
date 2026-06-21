@@ -193,7 +193,7 @@ impl TextToDialogueBody {
 }
 
 impl TryFrom<&TextToDialogueBody> for RequestBody {
-    type Error = Box<dyn std::error::Error + Send + Sync>;
+    type Error = crate::error::Error;
 
     fn try_from(value: &TextToDialogueBody) -> Result<Self> {
         Ok(RequestBody::Json(serde_json::to_value(value)?))

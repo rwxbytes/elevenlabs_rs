@@ -12,6 +12,9 @@ pub enum ConvAIError {
     #[error("boxed error: {0}")]
     Boxed(#[from] Box<dyn std::error::Error + Send + Sync>),
 
+    #[error("elevenlabs_rs error: {0}")]
+    ElevenLabs(#[source] Box<elevenlabs_rs::error::Error>),
+
     #[error("websocket error: {0}")]
     WebSocketError(#[source] Box<tungstenite::Error>),
 
@@ -37,5 +40,11 @@ pub enum ConvAIError {
 impl From<tungstenite::Error> for ConvAIError {
     fn from(error: tungstenite::Error) -> Self {
         Self::WebSocketError(Box::new(error))
+    }
+}
+
+impl From<elevenlabs_rs::error::Error> for ConvAIError {
+    fn from(error: elevenlabs_rs::error::Error) -> Self {
+        Self::ElevenLabs(Box::new(error))
     }
 }

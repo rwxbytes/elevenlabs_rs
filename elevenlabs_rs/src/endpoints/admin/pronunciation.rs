@@ -88,7 +88,7 @@ impl CreateDictionaryBody {
 }
 
 impl TryFrom<CreateDictionaryBody> for Form {
-    type Error = Box<dyn std::error::Error + Send + Sync>;
+    type Error = crate::error::Error;
 
     fn try_from(body: CreateDictionaryBody) -> Result<Self> {
         let mut form = Form::new();

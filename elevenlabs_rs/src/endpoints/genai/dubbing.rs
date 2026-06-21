@@ -413,7 +413,7 @@ pub enum TranscriptFormat {
 }
 
 impl TryFrom<&DubbingBody> for RequestBody {
-    type Error = Box<dyn std::error::Error + Send + Sync>;
+    type Error = crate::error::Error;
 
     fn try_from(body: &DubbingBody) -> Result<Self> {
         let mut form = Form::new();
@@ -424,20 +424,20 @@ impl TryFrom<&DubbingBody> for RequestBody {
             let mut part = Part::bytes(dubbing_file);
             part = part.file_name(
                 path.to_str()
-                    .ok_or(Box::new(Error::FileExtensionNotValidUTF8))?
+                    .ok_or(Error::FileExtensionNotValidUTF8)?
                     .to_string(),
             );
             let mime_subtype = path
                 .extension()
-                .ok_or(Box::new(Error::FileExtensionNotFound))?
+                .ok_or(Error::FileExtensionNotFound)?
                 .to_str()
-                .ok_or(Box::new(Error::FileExtensionNotValidUTF8))?;
+                .ok_or(Error::FileExtensionNotValidUTF8)?;
             if mime_subtype == "mp4" {
                 part = part.mime_str("video/mp4")?;
             } else if mime_subtype == "mp3" {
                 part = part.mime_str("audio/mp3")?;
             } else {
-                return Err(Box::new(Error::FileExtensionNotSupported));
+                return Err(Error::FileExtensionNotSupported);
             }
             form = form.part("file", part);
         }
@@ -515,7 +515,7 @@ impl TryFrom<&DubbingBody> for RequestBody {
 //}
 //
 //impl TryFrom<&AddLanguageToDubbingResourceBody> for RequestBody {
-//    type Error = Box<dyn std::error::Error + Send + Sync>;
+//    type Error = crate::error::Error;
 //
 //    fn try_from(value: &AddLanguageToDubbingResourceBody) -> Result<Self> {
 //        Ok(RequestBody::Json(serde_json::to_value(value)?))

@@ -441,7 +441,7 @@ impl VoiceBody {
 }
 
 impl TryFrom<VoiceBody> for Form {
-    type Error = Box<dyn std::error::Error + Send + Sync>;
+    type Error = crate::error::Error;
 
     fn try_from(body: VoiceBody) -> Result<Self> {
         let mut form = Form::new();
@@ -699,7 +699,7 @@ impl ListSimilarVoicesBody {
 }
 
 impl TryFrom<ListSimilarVoicesBody> for Form {
-    type Error = Box<dyn std::error::Error + Send + Sync>;
+    type Error = crate::error::Error;
 
     fn try_from(body: ListSimilarVoicesBody) -> Result<Self> {
         let mut form = Form::new();
