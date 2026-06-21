@@ -1,0 +1,9 @@
+[package]
+name = "dialogue_karaoke"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+elevenlabs_rs = { path = "../../elevenlabs_rs" }
+tokio = { version = "1", features = ["full"] }

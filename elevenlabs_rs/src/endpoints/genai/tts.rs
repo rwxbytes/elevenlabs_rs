@@ -2,7 +2,7 @@
 use super::*;
 use crate::endpoints::admin::pronunciation::GetDictionariesResponse;
 use crate::endpoints::ElevenLabsEndpoint;
-use crate::shared::{DictionaryLocator, VoiceSettings, query_params::OutputFormat};
+use crate::shared::{query_params::OutputFormat, DictionaryLocator, VoiceSettings};
 use async_stream::try_stream;
 use base64::{engine::general_purpose, Engine};
 use futures_util::{Stream, StreamExt};
@@ -384,7 +384,7 @@ impl ElevenLabsEndpoint for TextToSpeechWithTimestamps {
     }
 }
 
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct TextToSpeechWithTimestampsResponse {
     pub alignment: Option<Alignment>,
     pub audio_base64: String,
@@ -413,7 +413,7 @@ impl<'a> Timestamps<'a> {
 }
 
 impl<'a> Iterator for Timestamps<'a> {
-    type Item = (&'a String, (f32, f32));
+    type Item = (&'a String, (f64, f64));
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.index < self.alignment.characters.len() {
@@ -435,15 +435,15 @@ impl<'a> Iterator for Timestamps<'a> {
 }
 
 impl Alignment {
-    pub fn iter(&self) -> Timestamps {
+    pub fn iter(&self) -> Timestamps<'_> {
         Timestamps::new(self)
     }
 }
 
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Alignment {
-    pub character_end_times_seconds: Vec<f32>,
-    pub character_start_times_seconds: Vec<f32>,
+    pub character_end_times_seconds: Vec<f64>,
+    pub character_start_times_seconds: Vec<f64>,
     pub characters: Vec<String>,
 }
 
@@ -504,7 +504,7 @@ impl TextToSpeechStreamWithTimestamps {
 }
 
 type TextToSpeechStreamWithTimestampsResponse =
-    Pin<Box<dyn Stream<Item = Result<TextToSpeechWithTimestampsResponse>>>>;
+    Pin<Box<dyn Stream<Item = Result<TextToSpeechWithTimestampsResponse>> + Send>>;
 
 impl ElevenLabsEndpoint for TextToSpeechStreamWithTimestamps {
     const PATH: &'static str = "/v1/text-to-speech/:voice_id/stream/with-timestamps";
@@ -528,21 +528,35 @@ impl ElevenLabsEndpoint for TextToSpeechStreamWithTimestamps {
     }
 }
 // Helper
+//
+// HTTP chunks don't align with message boundaries, so we buffer raw bytes and let
+// serde pull off each complete JSON value, tracking how many bytes it consumed.
+// This handles partial messages, several messages in one chunk, and UTF-8
+// characters split across chunks — independent of the delimiter the server uses.
 fn stream_chunks_to_json(
     stream: impl Stream<Item = reqwest::Result<Bytes>> + Send + 'static,
-) -> impl Stream<Item = Result<TextToSpeechWithTimestampsResponse>> {
+) -> impl Stream<Item = Result<TextToSpeechWithTimestampsResponse>> + Send {
     try_stream! {
-        let mut buffer = String::new();
+        let mut buffer: Vec<u8> = Vec::new();
 
         for await chunk in stream {
-            let chunk = chunk?;
-            buffer.push_str(std::str::from_utf8(&chunk)?);
+            buffer.extend_from_slice(&chunk?);
 
-            if chunk.ends_with(b"\n\n") {
-                let response: TextToSpeechWithTimestampsResponse =
-                    serde_json::from_str(&buffer)?;
-                yield response;
-                buffer.clear();
+            loop {
+                let mut iter = serde_json::Deserializer::from_slice(&buffer)
+                    .into_iter::<TextToSpeechWithTimestampsResponse>();
+                match iter.next() {
+                    Some(Ok(value)) => {
+                        let consumed = iter.byte_offset();
+                        buffer.drain(..consumed);
+                        yield value;
+                    }
+                    // Incomplete value: wait for more bytes.
+                    Some(Err(e)) if e.is_eof() => break,
+                    Some(Err(e)) => Err(e)?,
+                    // Only trailing whitespace left.
+                    None => break,
+                }
             }
         }
     }
@@ -553,8 +567,8 @@ pub mod ws {
     //! Websocket Text to Speech endpoints
 
     use super::*;
-    use tokio_tungstenite::tungstenite::Message;
     use crate::OutputFormat;
+    use tokio_tungstenite::tungstenite::Message;
 
     const WS_BASE_URL: &str = "wss://api.elevenlabs.io";
     const WS_PATH: &str = "/v1/text-to-speech/:voice_id/stream-input";
