@@ -20,7 +20,6 @@ pub struct AppState {
     caller_id: Arc<Mutex<Option<String>>>,
 }
 
-
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     tracing_subscriber::fmt().init();

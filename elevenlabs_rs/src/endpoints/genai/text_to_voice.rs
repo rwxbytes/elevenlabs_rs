@@ -37,11 +37,11 @@
 
 use super::*;
 use crate::shared::{
-    FineTuning, SafetyControl, Sharing, VoiceCategory, VoiceSample, VoiceSettings,
-    VoiceVerification, query_params::OutputFormat,
+    query_params::OutputFormat, FineTuning, SafetyControl, Sharing, VoiceCategory, VoiceSample,
+    VoiceSettings, VoiceVerification,
 };
-use std::collections::HashMap;
 use base64::prelude::{Engine as _, BASE64_STANDARD};
+use std::collections::HashMap;
 
 /// Generate voices from a single text prompt.
 ///
@@ -107,7 +107,6 @@ pub struct TextToVoiceBody {
     seed: Option<u32>,
     #[serde(skip_serializing_if = "Option::is_none")]
     guidance_scale: Option<f32>,
-
 }
 
 impl TextToVoiceBody {

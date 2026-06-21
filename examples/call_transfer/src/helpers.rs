@@ -7,7 +7,7 @@ use elevenlabs_twilio::{
 };
 use std::sync::Arc;
 use tokio::sync::Mutex;
-use tracing::{debug, error, info, instrument, warn, Instrument, Span};
+use tracing::{Instrument, Span, debug, error, info, instrument, warn};
 
 pub(crate) async fn send_tool_error(
     agent_ws: &Arc<Mutex<AgentWebSocket>>,

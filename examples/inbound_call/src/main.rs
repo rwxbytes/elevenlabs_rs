@@ -1,8 +1,11 @@
-use std::sync::Arc;
 use axum::http::StatusCode;
 use axum::{extract::FromRef, response::IntoResponse, routing::post, Router};
+use elevenlabs_twilio::{
+    AgentWebSocket, ConversationInitiationClientData, Personalization, PostCall, TelephonyState,
+    TwilioClient,
+};
+use std::sync::Arc;
 use tokio::sync::Mutex;
-use elevenlabs_twilio::{AgentWebSocket, ConversationInitiationClientData, Personalization, PostCall, TelephonyState, TwilioClient};
 use tracing::info;
 
 #[derive(Debug, Clone)]

@@ -1,7 +1,7 @@
 //! The voice changer endpoints
 use super::*;
 use crate::error::Error;
-pub use crate::shared::{VoiceSettings, query_params::OutputFormat};
+pub use crate::shared::{query_params::OutputFormat, VoiceSettings};
 use futures_util::{Stream, StreamExt};
 use std::pin::Pin;
 
@@ -132,8 +132,6 @@ impl VoiceChangerBody {
         self
     }
 }
-
-
 
 /// Stream audio from one voice to another. Maintain full control over emotion, timing and delivery.
 ///

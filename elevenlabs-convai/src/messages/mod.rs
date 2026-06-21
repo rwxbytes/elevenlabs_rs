@@ -4,5 +4,5 @@ pub mod client_messages;
 pub mod server_messages;
 
 pub(crate) use crate::error::ConvAIError;
-pub(crate) use tokio_tungstenite::tungstenite::protocol::Message;
 pub(crate) use serde::{Deserialize, Serialize};
+pub(crate) use tokio_tungstenite::tungstenite::protocol::Message;

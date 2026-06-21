@@ -8,5 +8,4 @@ pub mod messages;
 pub type Result<T> = std::result::Result<T, error::ConvAIError>;
 
 pub use elevenlabs_rs::endpoints::convai::*;
-pub use elevenlabs_rs::{ElevenLabsClient, DefaultVoice, LegacyVoice};
-
+pub use elevenlabs_rs::{DefaultVoice, ElevenLabsClient, LegacyVoice};

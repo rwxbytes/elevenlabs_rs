@@ -1,9 +1,9 @@
 //! Widget endpoints
 
-use std::path::Path;
+use super::*;
 use crate::endpoints::convai::agents::Widget;
 use crate::error::Error;
-use super::*;
+use std::path::Path;
 
 /// Retrieve the widget configuration for an agent
 ///
@@ -25,30 +25,32 @@ use super::*;
 #[derive(Clone, Debug)]
 pub struct GetWidget {
     pub agent_id: String,
-    pub query: Option<GetWidgetQuery>
+    pub query: Option<GetWidgetQuery>,
 }
 
 impl GetWidget {
     pub fn new(agent_id: impl Into<String>) -> Self {
         Self {
             agent_id: agent_id.into(),
-            query: None
+            query: None,
         }
     }
 }
 
 #[derive(Clone, Debug, Default, Serialize)]
 pub struct GetWidgetQuery {
-    params: QueryValues
+    params: QueryValues,
 }
 
-
 impl GetWidgetQuery {
-    pub fn with_conversation_signature(&mut self, conversation_signature: impl Into<String>) -> &mut Self {
-        self.params.push(("conversation_signature", conversation_signature.into()));
+    pub fn with_conversation_signature(
+        &mut self,
+        conversation_signature: impl Into<String>,
+    ) -> &mut Self {
+        self.params
+            .push(("conversation_signature", conversation_signature.into()));
         self
     }
-
 }
 
 impl ElevenLabsEndpoint for GetWidget {
@@ -74,7 +76,7 @@ impl ElevenLabsEndpoint for GetWidget {
 #[derive(Clone, Debug, Deserialize)]
 pub struct WidgetResponse {
     pub agent_id: String,
-    pub widget_config: Widget
+    pub widget_config: Widget,
 }
 
 /// Sets the avatar for an agent displayed in the widget
@@ -98,33 +100,32 @@ pub struct WidgetResponse {
 #[derive(Clone, Debug)]
 pub struct CreateWidgetAvatar {
     pub agent_id: String,
-    pub body: CreateWidgetAvatarBody
+    pub body: CreateWidgetAvatarBody,
 }
 
 impl CreateWidgetAvatar {
     pub fn new(agent_id: impl Into<String>, body: CreateWidgetAvatarBody) -> Self {
         Self {
             agent_id: agent_id.into(),
-            body
+            body,
         }
     }
 }
 
 #[derive(Clone, Debug)]
 pub struct CreateWidgetAvatarBody {
-    pub avatar_file: String
+    pub avatar_file: String,
 }
 
 impl CreateWidgetAvatarBody {
     pub fn new(avatar_file: impl Into<String>) -> Self {
         Self {
-            avatar_file: avatar_file.into()
+            avatar_file: avatar_file.into(),
         }
     }
 }
 
-impl TryFrom<&CreateWidgetAvatarBody> for RequestBody
-{
+impl TryFrom<&CreateWidgetAvatarBody> for RequestBody {
     type Error = Box<dyn std::error::Error + Send + Sync>;
 
     fn try_from(body: &CreateWidgetAvatarBody) -> Result<Self> {
@@ -140,7 +141,9 @@ impl TryFrom<&CreateWidgetAvatarBody> for RequestBody
             .ok_or(Box::new(Error::FileExtensionNotValidUTF8))?;
         let mime = format!("image/{}", mime_subtype);
         part = part.mime_str(&mime)?;
-        Ok(RequestBody::Multipart(Form::new().part("avatar_file", part)))
+        Ok(RequestBody::Multipart(
+            Form::new().part("avatar_file", part),
+        ))
     }
 }
 
@@ -167,6 +170,5 @@ impl ElevenLabsEndpoint for CreateWidgetAvatar {
 #[derive(Clone, Debug, Deserialize)]
 pub struct CreateWidgetAvatarResponse {
     pub agent_id: String,
-    pub avatar_url: String
+    pub avatar_url: String,
 }
-

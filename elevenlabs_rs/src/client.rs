@@ -1,9 +1,9 @@
 #![allow(unused_imports)]
+#[cfg(feature = "ws")]
+use crate::endpoints::genai::tts::ws::*;
 use crate::endpoints::{ElevenLabsEndpoint, RequestBody};
 use crate::error::Error::HttpError;
 use crate::error::WebSocketError;
-#[cfg(feature = "ws")]
-use crate::endpoints::genai::tts::ws::*;
 use futures_util::{pin_mut, SinkExt, Stream, StreamExt};
 use reqwest::{header::CONTENT_TYPE, Method};
 use tokio::task::JoinHandle;
@@ -132,7 +132,6 @@ impl ElevenLabsClient {
             if endpoint.body.flush {
                 writer.send(Message::from(Self::FLUSH_JSON)).await?;
             }
-
 
             writer.send(Message::from(Self::EOS_JSON)).await?;
 

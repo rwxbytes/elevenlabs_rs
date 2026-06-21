@@ -33,8 +33,8 @@
 //! }
 //! ```
 pub use crate::client::{ElevenLabsClient, Result};
-pub use crate::shared::{DefaultVoice, Model, LegacyVoice, Language, VoiceSettings};
 pub use crate::shared::query_params::*;
+pub use crate::shared::{DefaultVoice, Language, LegacyVoice, Model, VoiceSettings};
 pub use bytes::Bytes;
 pub use futures_util::{pin_mut, StreamExt};
 

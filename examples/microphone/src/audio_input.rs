@@ -23,32 +23,35 @@ impl DefaultMicrophoneManager {
             .default_input_device()
             .expect("Failed to get default input device");
 
-        let config = device.default_input_config()
+        let config = device
+            .default_input_config()
             .expect("Failed to get default input config");
 
         let sample_rate = config.sample_rate();
 
         let audio_tx = self.audio_tx.clone();
 
-        let stream = device.build_input_stream(
-            &config.into(),
-            move |data: &[f32], _| {
-                // Stereo to mono conversion
-                let mono_samples: Vec<i16> = data
-                    .chunks_exact(2)
-                    .map(|chunk| {
-                        let mono = (chunk[0] + chunk[1]) / 2.0;
-                        i16::from_sample(mono)
-                    })
-                    .collect();
+        let stream = device
+            .build_input_stream(
+                &config.into(),
+                move |data: &[f32], _| {
+                    // Stereo to mono conversion
+                    let mono_samples: Vec<i16> = data
+                        .chunks_exact(2)
+                        .map(|chunk| {
+                            let mono = (chunk[0] + chunk[1]) / 2.0;
+                            i16::from_sample(mono)
+                        })
+                        .collect();
 
-                let _ = audio_tx
-                    .send(mono_samples)
-                    .expect("Failed to send audio samples");
-            },
-            |err| eprintln!("Input stream error: {}", err),
-            None,
-        ).expect("Failed to build input stream");
+                    let _ = audio_tx
+                        .send(mono_samples)
+                        .expect("Failed to send audio samples");
+                },
+                |err| eprintln!("Input stream error: {}", err),
+                None,
+            )
+            .expect("Failed to build input stream");
 
         (stream, sample_rate)
     }

@@ -11,7 +11,6 @@ impl AndPathParam for String {
     }
 }
 
-
 #[allow(dead_code)]
 #[derive(IntoStaticStr)]
 pub(crate) enum PathParam {

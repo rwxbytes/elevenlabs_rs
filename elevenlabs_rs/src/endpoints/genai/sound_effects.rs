@@ -1,7 +1,7 @@
 //! The text to sound effects endpoint.
 
-use crate::OutputFormat;
 use super::*;
+use crate::OutputFormat;
 
 /// Turn text into sound effects for your videos,
 /// voice-overs or video games using the most advanced sound effects model in the world.
@@ -49,7 +49,6 @@ pub struct CreateSoundEffectQuery {
 }
 
 impl CreateSoundEffectQuery {
-
     /// Output format of the generated audio.
     /// Formatted as codec_sample_rate_bitrate.
     /// So an mp3 with 22.05kHz sample rate at 32kbs is represented as mp3_22050_32.
@@ -59,7 +58,8 @@ impl CreateSoundEffectQuery {
     /// Note that the μ-law format (sometimes written mu-law, often approximated as u-law)
     /// is commonly used for Twilio audio inputs.
     pub fn with_output_format(mut self, output_format: OutputFormat) -> Self {
-        self.params.push(("output_format", output_format.to_string()));
+        self.params
+            .push(("output_format", output_format.to_string()));
         self
     }
 }
@@ -107,7 +107,7 @@ impl CreateSoundEffectBody {
         Self {
             text: text.into(),
             duration_seconds: None,
-            prompt_influence: Some(0.3)
+            prompt_influence: Some(0.3),
         }
     }
 

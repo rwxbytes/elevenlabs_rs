@@ -293,7 +293,9 @@ impl ElevenLabsEndpoint for RemoveRules {
     type ResponseBody = RulesResponse;
 
     fn path_params(&self) -> Vec<(&'static str, &str)> {
-        vec![self.dictionary_id.and_param(PathParam::PronunciationDictionaryID)]
+        vec![self
+            .dictionary_id
+            .and_param(PathParam::PronunciationDictionaryID)]
     }
 
     async fn request_body(&self) -> Result<RequestBody> {
@@ -332,7 +334,7 @@ impl ElevenLabsEndpoint for RemoveRules {
 #[derive(Clone, Debug)]
 pub struct GetPLSFile {
     dictionary_id: String,
-    version_id: String
+    version_id: String,
 }
 
 impl GetPLSFile {
@@ -353,7 +355,8 @@ impl ElevenLabsEndpoint for GetPLSFile {
 
     fn path_params(&self) -> Vec<(&'static str, &str)> {
         vec![
-            self.dictionary_id.and_param(PathParam::PronunciationDictionaryID),
+            self.dictionary_id
+                .and_param(PathParam::PronunciationDictionaryID),
             self.version_id.and_param(PathParam::VersionID),
         ]
     }
@@ -400,7 +403,9 @@ impl ElevenLabsEndpoint for GetDictionaryMetaData {
     type ResponseBody = DictionaryMetadataResponse;
 
     fn path_params(&self) -> Vec<(&'static str, &str)> {
-        vec![self.dictionary_id.and_param(PathParam::PronunciationDictionaryID)]
+        vec![self
+            .dictionary_id
+            .and_param(PathParam::PronunciationDictionaryID)]
     }
 
     async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
@@ -462,10 +467,10 @@ impl GetDictionariesQuery {
     }
 
     pub fn with_sort_direction(mut self, sort_direction: &str) -> Self {
-        self.params.push(("sort_direction", sort_direction.to_string()));
+        self.params
+            .push(("sort_direction", sort_direction.to_string()));
         self
     }
-
 }
 
 impl ElevenLabsEndpoint for GetDictionaries {
@@ -503,7 +508,6 @@ pub struct DictionaryMetadataResponse {
     pub creation_time_unix: u64,
     pub archived_time_unix: Option<u64>,
     pub description: Option<String>,
-
 }
 
 impl IntoIterator for GetDictionariesResponse {

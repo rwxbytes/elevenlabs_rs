@@ -224,7 +224,8 @@ impl SharedVoicesQuery {
     }
 
     pub fn with_min_notice_period_days(mut self, days: u32) -> Self {
-        self.params.push(("min_notice_period_days", days.to_string()));
+        self.params
+            .push(("min_notice_period_days", days.to_string()));
         self
     }
 }

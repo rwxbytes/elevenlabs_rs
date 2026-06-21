@@ -108,7 +108,6 @@ impl GetAudioFromSample {
     }
 }
 impl ElevenLabsEndpoint for GetAudioFromSample {
-
     const PATH: &'static str = "/v1/voices/:voice_id/samples/:sample_id/audio";
 
     const METHOD: Method = Method::GET;

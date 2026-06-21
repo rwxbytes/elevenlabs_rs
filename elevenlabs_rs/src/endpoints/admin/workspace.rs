@@ -1,10 +1,10 @@
 //! The workspace endpoints
 
-use std::collections::HashMap;
-use strum::Display;
-use std::string::ToString;
-use crate::shared::AccessLevel;
 use super::*;
+use crate::shared::AccessLevel;
+use std::collections::HashMap;
+use std::string::ToString;
+use strum::Display;
 
 /// Sends an email invitation to join your workspace to the provided email.
 ///
@@ -37,7 +37,7 @@ pub struct InviteUser {
 }
 
 impl InviteUser {
-    pub fn new(body: impl Into<InviteUserBody> ) -> Self {
+    pub fn new(body: impl Into<InviteUserBody>) -> Self {
         Self { body: body.into() }
     }
 }
@@ -49,12 +49,13 @@ pub struct InviteUserBody {
 
 impl InviteUserBody {
     pub fn new(email: &str) -> Self {
-        Self { email: email.to_string()}
+        Self {
+            email: email.to_string(),
+        }
     }
 }
 
 impl ElevenLabsEndpoint for InviteUser {
-
     const PATH: &'static str = "/v1/workspace/invites/add";
 
     const METHOD: Method = Method::POST;
@@ -80,7 +81,6 @@ impl From<&str> for InviteUserBody {
         Self::new(email)
     }
 }
-
 
 /// Invalidates an existing email invitation.
 ///
@@ -112,7 +112,7 @@ pub struct DeleteInvitation {
 }
 
 impl DeleteInvitation {
-    pub fn new(body: impl Into<DeleteInvitationBody> ) -> Self {
+    pub fn new(body: impl Into<DeleteInvitationBody>) -> Self {
         Self { body: body.into() }
     }
 }
@@ -124,12 +124,13 @@ pub struct DeleteInvitationBody {
 
 impl DeleteInvitationBody {
     pub fn new(email: &str) -> Self {
-        Self { email: email.to_string()}
+        Self {
+            email: email.to_string(),
+        }
     }
 }
 
 impl ElevenLabsEndpoint for DeleteInvitation {
-
     const PATH: &'static str = "/v1/workspace/invites";
 
     const METHOD: Method = Method::DELETE;
@@ -150,7 +151,6 @@ impl From<&str> for DeleteInvitationBody {
         Self::new(email)
     }
 }
-
 
 /// Updates attributes of a workspace member.
 ///
@@ -179,8 +179,8 @@ impl From<&str> for DeleteInvitationBody {
 /// ```
 /// See [Update Member API reference](https://elevenlabs.io/docs/api-reference/workspace/update-member)
 #[derive(Debug, Clone)]
-pub struct  UpdateMember {
-    body: UpdateMemberBody
+pub struct UpdateMember {
+    body: UpdateMemberBody,
 }
 
 impl UpdateMember {
@@ -189,9 +189,7 @@ impl UpdateMember {
     }
 }
 
-
 impl ElevenLabsEndpoint for UpdateMember {
-
     const PATH: &'static str = "/v1/workspace/members";
 
     const METHOD: Method = Method::POST;
@@ -218,7 +216,11 @@ pub struct UpdateMemberBody {
 
 impl UpdateMemberBody {
     pub fn new(email: &str) -> Self {
-        Self { email: email.to_string(), is_locked: None, workspace_role: None }
+        Self {
+            email: email.to_string(),
+            is_locked: None,
+            workspace_role: None,
+        }
     }
 
     pub fn with_is_locked(mut self, is_locked: bool) -> Self {
@@ -237,7 +239,6 @@ impl From<&str> for UpdateMemberBody {
         Self::new(email)
     }
 }
-
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "snake_case")]
@@ -276,18 +277,22 @@ pub struct GetResource {
 
 impl GetResource {
     pub fn new(resource_id: impl Into<String>, query: impl Into<GetResourceQuery>) -> Self {
-        Self { resource_id: resource_id.into(), query: query.into() }
+        Self {
+            resource_id: resource_id.into(),
+            query: query.into(),
+        }
     }
 }
 
 #[derive(Debug, Clone, Default)]
 pub struct GetResourceQuery {
-    pub params: QueryValues
+    pub params: QueryValues,
 }
 
 impl GetResourceQuery {
     pub fn with_resource_type(mut self, resource_type: ResourceType) -> Self {
-        self.params.push(("resource_type", resource_type.to_string()));
+        self.params
+            .push(("resource_type", resource_type.to_string()));
         self
     }
 }
@@ -306,7 +311,7 @@ pub enum ResourceType {
     ConvaiSettings,
     ConvaiSecrets,
     MusicLatent,
-    ConvaiPhoneNumbers
+    ConvaiPhoneNumbers,
 }
 
 impl ElevenLabsEndpoint for GetResource {
@@ -350,7 +355,7 @@ pub struct ShareOption {
 pub enum PrincipalRole {
     User,
     Group,
-    Key
+    Key,
 }
 
 /// See [Share Workspace Resource API reference](https://elevenlabs.io/docs/api-reference/workspace/share-workspace-resource)
@@ -362,7 +367,10 @@ pub struct ShareWorkspaceResource {
 
 impl ShareWorkspaceResource {
     pub fn new(resource_id: impl Into<String>, body: ShareWorkspaceResourceBody) -> Self {
-        Self { resource_id: resource_id.into(), body: body.into() }
+        Self {
+            resource_id: resource_id.into(),
+            body: body.into(),
+        }
     }
 }
 
@@ -377,7 +385,13 @@ pub struct ShareWorkspaceResourceBody {
 
 impl ShareWorkspaceResourceBody {
     pub fn new(role: AccessLevel, resource_type: ResourceType) -> Self {
-        Self { role, resource_type, user_email: None, group_email: None, workspace_api_key_id: None }
+        Self {
+            role,
+            resource_type,
+            user_email: None,
+            group_email: None,
+            workspace_api_key_id: None,
+        }
     }
 
     pub fn with_user_email(mut self, user_email: &str) -> Self {
@@ -429,7 +443,10 @@ pub struct UnshareWorkspaceResource {
 
 impl UnshareWorkspaceResource {
     pub fn new(resource_id: impl Into<String>, body: UnshareWorkspaceResourceBody) -> Self {
-        Self { resource_id: resource_id.into(), body: body.into() }
+        Self {
+            resource_id: resource_id.into(),
+            body: body.into(),
+        }
     }
 }
 
@@ -444,7 +461,12 @@ pub struct UnshareWorkspaceResourceBody {
 
 impl UnshareWorkspaceResourceBody {
     pub fn new(resource_type: ResourceType) -> Self {
-        Self { resource_type, user_email: None, group_email: None, workspace_api_key_id: None }
+        Self {
+            resource_type,
+            user_email: None,
+            group_email: None,
+            workspace_api_key_id: None,
+        }
     }
 
     pub fn with_user_email(mut self, user_email: &str) -> Self {
@@ -482,7 +504,3 @@ impl ElevenLabsEndpoint for UnshareWorkspaceResource {
         Ok(resp.json().await?)
     }
 }
-
-
-
-

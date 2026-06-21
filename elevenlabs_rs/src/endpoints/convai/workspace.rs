@@ -1,9 +1,9 @@
 //! Convai workspace endpoints
 
-use super::{agents:: RequestHeaders, *, };
+use super::{agents::RequestHeaders, *};
+use crate::endpoints::convai::agents::PhoneNumber;
 use crate::shared::AccessLevel;
 use std::collections::HashMap;
-use crate::endpoints::convai::agents::PhoneNumber;
 
 /// Retrieve Convai settings for the workspace
 ///

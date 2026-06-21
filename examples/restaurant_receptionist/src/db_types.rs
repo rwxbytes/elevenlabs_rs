@@ -1,8 +1,8 @@
 //use crate::prelude::*;
 use chrono::Utc;
+use serde::{Deserialize, Serialize};
 use surrealdb::engine::remote::ws::Client;
 use surrealdb::{RecordId, Surreal};
-use serde::{Deserialize, Serialize};
 
 pub const AVAILABLE_TABLES: &str = "SELECT * FROM table WHERE capacity >= $party_size \
 AND {out: id } NOTINSIDE (SELECT out FROM reservation WHERE time == <datetime>$datetime);";
@@ -10,10 +10,7 @@ AND {out: id } NOTINSIDE (SELECT out FROM reservation WHERE time == <datetime>$d
 pub const REVISITING_CUSTOMER: &str =
     "SELECT * FROM ONLY customer WHERE number == $customer_number LIMIT 1";
 
-pub async fn revisiting_customer(
-    db: &Surreal<Client>,
-    customer_number: &str,
-) -> Option<Customer> {
+pub async fn revisiting_customer(db: &Surreal<Client>, customer_number: &str) -> Option<Customer> {
     let mut resp = db
         .query(REVISITING_CUSTOMER)
         .bind(("customer_number", customer_number.to_string()))

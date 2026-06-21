@@ -1,8 +1,10 @@
 use elevenlabs_twilio::agents::*;
+use elevenlabs_twilio::phone_numbers::{UpdatePhoneNumber, UpdatePhoneNumberBody};
+use elevenlabs_twilio::workspace::{
+    ConversationInitiationClientDataWebhook, UpdateSettings, UpdateSettingsBody,
+};
 use elevenlabs_twilio::{DefaultVoice, ElevenLabsClient};
 use std::collections::HashMap;
-use elevenlabs_twilio::phone_numbers::{UpdatePhoneNumber, UpdatePhoneNumberBody};
-use elevenlabs_twilio::workspace::{ConversationInitiationClientDataWebhook, UpdateSettings, UpdateSettingsBody};
 
 const ATTITUDE_TOWARDS_NEW_CUSTOMER: &str = "You are a restaurant receptionist. \
 The current datetime is {{datetime}}. When a customer calls in to book a reservation for a table, \
@@ -39,7 +41,10 @@ const END_CALL_DESCRIPTION: &str = "End the call either when the customer says '
 or any other farewell expression, when the customer says something like 'no, thank you', \
 after you have asked if they need anything else, or when the customer directly tells you to end the call.";
 
-pub async fn agent_setup(ngrok_url: &str, phone_number: &str) -> Result<(), Box<dyn std::error::Error>> {
+pub async fn agent_setup(
+    ngrok_url: &str,
+    phone_number: &str,
+) -> Result<(), Box<dyn std::error::Error>> {
     let c = ElevenLabsClient::from_env().unwrap();
 
     let mut properties: HashMap<String, Schema> = HashMap::new();
@@ -140,10 +145,7 @@ pub async fn agent_setup(ngrok_url: &str, phone_number: &str) -> Result<(), Box<
 
     let body = CreateAgentBody::new(convo_config).with_platform_settings(settings);
 
-    let agent_resp = c
-        .hit(CreateAgent::new(body))
-        .await
-        .unwrap();
+    let agent_resp = c.hit(CreateAgent::new(body)).await.unwrap();
 
     let agent_id = agent_resp.agent_id;
 
@@ -155,12 +157,11 @@ pub async fn agent_setup(ngrok_url: &str, phone_number: &str) -> Result<(), Box<
 
     let hashmap = HashMap::new();
 
-    let init_webhook = ConversationInitiationClientDataWebhook::new(format!("{}/inbound-call", ngrok_url))
-        .with_request_headers(hashmap);
+    let init_webhook =
+        ConversationInitiationClientDataWebhook::new(format!("{}/inbound-call", ngrok_url))
+            .with_request_headers(hashmap);
 
-
-    let body = UpdateSettingsBody::new(vec![])
-        .with_initiation_webhook(init_webhook);
+    let body = UpdateSettingsBody::new(vec![]).with_initiation_webhook(init_webhook);
 
     let endpoint = UpdateSettings::new(body);
 

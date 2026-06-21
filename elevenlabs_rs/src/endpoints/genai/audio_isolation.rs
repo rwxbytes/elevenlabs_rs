@@ -6,7 +6,6 @@ use futures_util::{Stream, StreamExt};
 use std::path::Path;
 use std::pin::Pin;
 
-
 /// Removes background noise from audio.
 ///
 /// # Example

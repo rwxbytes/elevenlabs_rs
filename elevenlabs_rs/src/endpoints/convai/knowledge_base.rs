@@ -1,7 +1,7 @@
 use super::*;
 use crate::endpoints::convai::agents::AccessInfo;
-use crate::shared::AccessLevel;
 use crate::error::Error;
+use crate::shared::AccessLevel;
 use std::path::Path;
 use std::string::ToString;
 use strum::Display;
@@ -546,7 +546,6 @@ impl ComputeRAGIndex {
             body: body.into(),
         }
     }
-
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -583,7 +582,7 @@ impl From<String> for ComputeRAGIndexBody {
         Self { model }
     }
 }
-#[derive(Clone,Debug, Deserialize,Display, Serialize, )]
+#[derive(Clone, Debug, Deserialize, Display, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum EmbeddingModel {
     #[strum(to_string = "e5_mistral_7b_instruct")]
@@ -592,7 +591,6 @@ pub enum EmbeddingModel {
     #[strum(to_string = "multilingual_e5_large_instruct")]
     #[serde(rename = "multilingual_e5_large_instruct")]
     MultilingualE5LargeInstruct,
-
 }
 
 impl From<EmbeddingModel> for ComputeRAGIndexBody {
@@ -609,7 +607,6 @@ impl ElevenLabsEndpoint for ComputeRAGIndex {
     const METHOD: Method = Method::POST;
 
     type ResponseBody = ComputeRAGIndexResponse;
-
 
     fn path_params(&self) -> Vec<(&'static str, &str)> {
         vec![self.documentation_id.and_param(PathParam::DocumentationID)]
@@ -710,4 +707,3 @@ pub struct GetDocumentChunkResponse {
     pub name: String,
     pub content: String,
 }
-

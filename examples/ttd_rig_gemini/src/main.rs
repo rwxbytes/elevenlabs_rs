@@ -3,11 +3,11 @@ use elevenlabs_rs::{ElevenLabsClient, Result};
 use rig::completion::Prompt;
 use rig::prelude::*;
 use rig::providers::gemini::{
-    completion::{
-        gemini_api_types::{AdditionalParameters, GenerationConfig, Schema},
-        GEMINI_2_5_PRO_PREVIEW_06_05,
-    },
     Client,
+    completion::{
+        GEMINI_2_5_PRO_PREVIEW_06_05,
+        gemini_api_types::{AdditionalParameters, GenerationConfig, Schema},
+    },
 };
 use serde::{Deserialize, Serialize};
 

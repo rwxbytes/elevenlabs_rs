@@ -2,10 +2,10 @@
 #![allow(unused_imports)]
 #![allow(dead_code)]
 
-use std::collections::HashMap;
 use serde::{Deserialize, Serialize, Serializer};
-use std::string::ToString;
 use serde_json::Value;
+use std::collections::HashMap;
+use std::string::ToString;
 use strum::Display;
 
 pub(crate) mod url;
@@ -83,7 +83,6 @@ pub mod query_params {
     }
 }
 
-
 #[derive(Clone, Debug)]
 pub enum Model {
     ElevenMultilingualV2,
@@ -114,7 +113,6 @@ impl From<Model> for String {
         }
     }
 }
-
 
 #[derive(Clone, Debug, Default)]
 pub enum DefaultVoice {
@@ -483,7 +481,7 @@ pub struct ReaderRestrictedOn {
 #[serde(rename_all = "snake_case")]
 pub enum ResourceType {
     Read,
-    Collection
+    Collection,
 }
 
 /// Voice Verification
@@ -540,7 +538,6 @@ pub enum AccessLevel {
     Editor,
     Viewer,
 }
-
 
 /// Language
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]

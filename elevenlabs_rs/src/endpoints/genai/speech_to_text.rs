@@ -98,7 +98,6 @@ pub struct CreateTranscriptBody {
     prefer_video: Option<bool>,
 }
 
-
 #[derive(Clone, Debug, Default, Serialize)]
 pub struct FormatCommonOptions {
     #[serde(skip_serializing_if = "Option::is_none")]

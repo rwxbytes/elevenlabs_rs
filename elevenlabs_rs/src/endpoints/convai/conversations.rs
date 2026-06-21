@@ -2,10 +2,10 @@
 
 use super::*;
 use crate::endpoints::convai::agents::{DynamicVar, LiteralJsonSchema};
+use crate::endpoints::convai::knowledge_base::EmbeddingModel;
 use std::collections::HashMap;
 use std::string::ToString;
 use strum::Display;
-use crate::endpoints::convai::knowledge_base::EmbeddingModel;
 
 /// Get all conversations of agents that user owns. With option to restrict to a specific agent.
 ///
@@ -323,9 +323,7 @@ pub struct Chunk {
 #[derive(Clone, Debug, Deserialize)]
 pub struct ConversationTurnMetrics {
     pub metrics: Option<HashMap<String, Value>>,
-
 }
-
 
 #[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq)]
 #[serde(rename_all = "lowercase")]

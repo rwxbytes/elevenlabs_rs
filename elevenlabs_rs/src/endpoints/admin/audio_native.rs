@@ -1,7 +1,6 @@
 //! The audio native endpoint
 use super::*;
 
-
 /// Creates AudioNative enabled project, optionally starts conversion and returns project id and embeddable html snippet.
 #[derive(Debug, Clone)]
 pub struct AudioNative {
@@ -15,7 +14,6 @@ impl AudioNative {
 }
 
 impl ElevenLabsEndpoint for AudioNative {
-
     const PATH: &'static str = "/v1/audio-native";
 
     const METHOD: Method = Method::POST;
@@ -29,7 +27,6 @@ impl ElevenLabsEndpoint for AudioNative {
     async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
         Ok(resp.json().await?)
     }
-
 }
 
 #[derive(Clone, Debug, Default)]

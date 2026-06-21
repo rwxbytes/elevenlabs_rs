@@ -32,6 +32,3 @@ pub enum WebSocketError {
     #[error("UnexpectedMessageType")]
     UnexpectedMessageType,
 }
-
-
-

@@ -4,7 +4,7 @@ use super::*;
 use crate::endpoints::convai::knowledge_base::EmbeddingModel;
 use crate::endpoints::convai::phone_numbers::{AssignedAgent, PhoneNumberProvider};
 use crate::endpoints::convai::workspace::{ConversationInitiationClientDataWebhook, Webhooks};
-use crate::shared::{DictionaryLocator, AccessLevel};
+use crate::shared::{AccessLevel, DictionaryLocator};
 use std::collections::HashMap;
 
 /// Create an agent from a config object
@@ -207,7 +207,10 @@ impl ConversationConfig {
         self
     }
 
-    pub fn with_language_presets(mut self, language_presets: HashMap<String, LanguagePreset>) -> Self {
+    pub fn with_language_presets(
+        mut self,
+        language_presets: HashMap<String, LanguagePreset>,
+    ) -> Self {
         self.language_presets = Some(language_presets);
         self
     }

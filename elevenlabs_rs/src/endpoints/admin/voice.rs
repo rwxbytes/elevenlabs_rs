@@ -114,7 +114,7 @@ pub enum VoiceType {
     Workspace,
 }
 
-#[derive(Debug, Clone,)]
+#[derive(Debug, Clone)]
 pub struct GetDefaultVoiceSettings;
 
 impl ElevenLabsEndpoint for GetDefaultVoiceSettings {
@@ -128,7 +128,6 @@ impl ElevenLabsEndpoint for GetDefaultVoiceSettings {
         Ok(resp.json().await?)
     }
 }
-
 
 /// Returns the [`VoiceSettings`] for a voice.
 ///

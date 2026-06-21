@@ -68,7 +68,6 @@ impl GetUsageQuery {
 }
 
 impl ElevenLabsEndpoint for GetUsage {
-
     const PATH: &'static str = "/v1/usage/character-stats";
 
     const METHOD: Method = Method::GET;

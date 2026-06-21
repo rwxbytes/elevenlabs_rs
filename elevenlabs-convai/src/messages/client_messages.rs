@@ -242,7 +242,6 @@ impl Default for ClientToolResult {
 }
 
 impl ClientToolResult {
-
     pub fn new(id: impl Into<String>) -> Self {
         ClientToolResult {
             r#type: CLIENT_TOOL_RESULT.to_string(),

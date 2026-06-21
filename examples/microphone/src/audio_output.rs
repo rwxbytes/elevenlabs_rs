@@ -13,13 +13,14 @@ impl DefaultSpeakersManager {
         }
     }
 
-    pub async fn build_output_stream(&mut self) -> (CpalStream, SampleRate)  {
+    pub async fn build_output_stream(&mut self) -> (CpalStream, SampleRate) {
         let host = cpal::default_host();
         let device = host
             .default_output_device()
             .expect("No output device available");
 
-        let config = device.default_output_config()
+        let config = device
+            .default_output_config()
             .expect("Failed to get default output config");
 
         let sample_rate = config.sample_rate();
@@ -36,20 +37,22 @@ impl DefaultSpeakersManager {
             }
         });
 
-        let stream = device.build_output_stream(
-            &config.into(),
-            move |output: &mut [i16], _| {
-                let mut buffer = buffer_for_processing.lock().unwrap();
-                if buffer.len() >= output.len() {
-                    let chunk: Vec<i16> = buffer.drain(..output.len()).collect();
-                    output.copy_from_slice(&chunk);
-                } else {
-                    output.fill(0);
-                }
-            },
-            |err| eprintln!("Output stream error: {}", err),
-            None,
-        ).expect("Failed to build output stream");
+        let stream = device
+            .build_output_stream(
+                &config.into(),
+                move |output: &mut [i16], _| {
+                    let mut buffer = buffer_for_processing.lock().unwrap();
+                    if buffer.len() >= output.len() {
+                        let chunk: Vec<i16> = buffer.drain(..output.len()).collect();
+                        output.copy_from_slice(&chunk);
+                    } else {
+                        output.fill(0);
+                    }
+                },
+                |err| eprintln!("Output stream error: {}", err),
+                None,
+            )
+            .expect("Failed to build output stream");
 
         (stream, sample_rate)
     }

@@ -1,6 +1,6 @@
 use crate::{
-    helpers::send_tool_error, AppState, Config, LABEL_CALLER, LABEL_PARTICIPANT_B,
-    PATH_EVENTS_CONFERENCE,
+    AppState, Config, LABEL_CALLER, LABEL_PARTICIPANT_B, PATH_EVENTS_CONFERENCE,
+    helpers::send_tool_error,
 };
 use elevenlabs_twilio::{
     AgentWebSocket, ClientToolResult, Conference, PhoneCallTool, TwilioClient, TwilioClientExt,
@@ -140,7 +140,8 @@ fn create_conference_twiml(
     conference.status_callback = Some(format!("{}{}", base_url, PATH_EVENTS_CONFERENCE));
     conference.status_callback_event = Some("start end join leave".to_string());
     // Default hold music started to delay so using this for a while
-    conference.wait_url = Some("https://twimlets.com/holdmusic?Bucket=com.twilio.music.ambient".to_string());
+    conference.wait_url =
+        Some("https://twimlets.com/holdmusic?Bucket=com.twilio.music.ambient".to_string());
     VoiceResponse::new()
         .dial(conference)
         .to_string()

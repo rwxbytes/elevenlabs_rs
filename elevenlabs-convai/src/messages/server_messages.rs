@@ -106,7 +106,9 @@ impl ServerMessage {
     /// If the `ServerMessage` is a `McpConnectionStatus`, then it returns it, otherwise it returns `None`
     pub fn as_mcp_connection_status(&self) -> Option<&McpConnectionStatus> {
         match self {
-            ServerMessage::McpConnectionStatus(mcp_connection_status) => Some(mcp_connection_status),
+            ServerMessage::McpConnectionStatus(mcp_connection_status) => {
+                Some(mcp_connection_status)
+            }
             _ => None,
         }
     }
@@ -189,7 +191,6 @@ impl ServerMessage {
         }
     }
 }
-
 
 impl TryFrom<&str> for ServerMessage {
     type Error = ConvAIError;
