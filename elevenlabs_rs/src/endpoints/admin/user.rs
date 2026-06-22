@@ -20,6 +20,8 @@ use super::*;
 #[derive(Clone, Debug)]
 pub struct GetUserSubscriptionInfo;
 
+impl crate::endpoints::sealed::Sealed for GetUserSubscriptionInfo {}
+
 impl ElevenLabsEndpoint for GetUserSubscriptionInfo {
     const PATH: &'static str = "/v1/user/subscription";
 
@@ -107,6 +109,8 @@ pub enum BillingPeriod {
 /// See the [Get User API reference](https://elevenlabs.io/docs/api-reference/user/get)
 #[derive(Clone, Debug)]
 pub struct GetUserInfo;
+
+impl crate::endpoints::sealed::Sealed for GetUserInfo {}
 
 impl ElevenLabsEndpoint for GetUserInfo {
     const PATH: &'static str = "/v1/user";

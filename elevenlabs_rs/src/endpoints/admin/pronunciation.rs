@@ -32,6 +32,8 @@ impl CreateDictionary {
     }
 }
 
+impl crate::endpoints::sealed::Sealed for CreateDictionary {}
+
 impl ElevenLabsEndpoint for CreateDictionary {
     const PATH: &'static str = "/v1/pronunciation-dictionaries/add-from-file";
 
@@ -156,6 +158,8 @@ impl AddRules {
         }
     }
 }
+impl crate::endpoints::sealed::Sealed for AddRules {}
+
 impl ElevenLabsEndpoint for AddRules {
     const PATH: &'static str =
         "/v1/pronunciation-dictionaries/:pronunciation_dictionary_id/add-rules";
@@ -284,6 +288,8 @@ impl RemoveRulesBody {
     }
 }
 
+impl crate::endpoints::sealed::Sealed for RemoveRules {}
+
 impl ElevenLabsEndpoint for RemoveRules {
     const PATH: &'static str =
         "/v1/pronunciation-dictionaries/:pronunciation_dictionary_id/remove-rules";
@@ -346,6 +352,8 @@ impl GetPLSFile {
     }
 }
 
+impl crate::endpoints::sealed::Sealed for GetPLSFile {}
+
 impl ElevenLabsEndpoint for GetPLSFile {
     const PATH: &'static str = "/v1/pronunciation-dictionaries/:dictionary_id/:version_id/download";
 
@@ -394,6 +402,8 @@ impl GetDictionaryMetaData {
         }
     }
 }
+
+impl crate::endpoints::sealed::Sealed for GetDictionaryMetaData {}
 
 impl ElevenLabsEndpoint for GetDictionaryMetaData {
     const PATH: &'static str = "/v1/pronunciation-dictionaries/:pronunciation_dictionary_id";
@@ -472,6 +482,8 @@ impl GetDictionariesQuery {
         self
     }
 }
+
+impl crate::endpoints::sealed::Sealed for GetDictionaries {}
 
 impl ElevenLabsEndpoint for GetDictionaries {
     const PATH: &'static str = "/v1/pronunciation-dictionaries";

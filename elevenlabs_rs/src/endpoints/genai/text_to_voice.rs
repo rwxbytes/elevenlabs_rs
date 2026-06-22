@@ -161,6 +161,8 @@ impl TextToVoiceQuery {
     }
 }
 
+impl crate::endpoints::sealed::Sealed for TextToVoice {}
+
 impl ElevenLabsEndpoint for TextToVoice {
     const PATH: &'static str = "/v1/text-to-voice/create-previews";
 
@@ -273,6 +275,8 @@ impl SaveVoiceFromPreviewBody {
         self.labels = labels;
     }
 }
+
+impl crate::endpoints::sealed::Sealed for SaveVoiceFromPreview {}
 
 impl ElevenLabsEndpoint for SaveVoiceFromPreview {
     const PATH: &'static str = "/v1/text-to-voice";

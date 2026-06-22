@@ -25,6 +25,8 @@ use std::collections::HashMap;
 #[derive(Clone, Debug, Serialize)]
 pub struct GetSettings;
 
+impl crate::endpoints::sealed::Sealed for GetSettings {}
+
 impl ElevenLabsEndpoint for GetSettings {
     const PATH: &'static str = "v1/convai/settings";
 
@@ -147,6 +149,8 @@ impl UpdateSettingsBody {
 
 type UpdateSettingsResponse = GetSettingsResponse;
 
+impl crate::endpoints::sealed::Sealed for UpdateSettings {}
+
 impl ElevenLabsEndpoint for UpdateSettings {
     const PATH: &'static str = "v1/convai/settings";
 
@@ -191,6 +195,8 @@ impl TryInto<RequestBody> for &UpdateSettingsBody {
 /// See [Get Secrets API reference](https://elevenlabs.io/docs/api-reference/workspace/get-secrets)
 #[derive(Clone, Debug, Serialize)]
 pub struct GetSecrets;
+
+impl crate::endpoints::sealed::Sealed for GetSecrets {}
 
 impl ElevenLabsEndpoint for GetSecrets {
     const PATH: &'static str = "v1/convai/secrets";
@@ -249,6 +255,8 @@ pub struct CreateSecretBody {
 
 type CreateSecretResponse = Secret;
 
+impl crate::endpoints::sealed::Sealed for CreateSecret {}
+
 impl ElevenLabsEndpoint for CreateSecret {
     const PATH: &'static str = "v1/convai/secrets";
 
@@ -294,6 +302,8 @@ impl DeleteSecret {
 }
 
 type DeleteSecretResponse = ();
+
+impl crate::endpoints::sealed::Sealed for DeleteSecret {}
 
 impl ElevenLabsEndpoint for DeleteSecret {
     const PATH: &'static str = "v1/convai/secrets/:secret_id";

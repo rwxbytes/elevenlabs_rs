@@ -42,6 +42,8 @@ impl DeleteSample {
     }
 }
 
+impl crate::endpoints::sealed::Sealed for DeleteSample {}
+
 impl ElevenLabsEndpoint for DeleteSample {
     const PATH: &'static str = "/v1/voices/:voice_id/samples/:sample_id";
 
@@ -107,6 +109,8 @@ impl GetAudioFromSample {
         }
     }
 }
+impl crate::endpoints::sealed::Sealed for GetAudioFromSample {}
+
 impl ElevenLabsEndpoint for GetAudioFromSample {
     const PATH: &'static str = "/v1/voices/:voice_id/samples/:sample_id/audio";
 

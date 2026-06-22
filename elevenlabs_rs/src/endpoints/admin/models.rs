@@ -21,6 +21,8 @@ use super::*;
 #[derive(Clone, Debug)]
 pub struct GetModels;
 
+impl crate::endpoints::sealed::Sealed for GetModels {}
+
 impl ElevenLabsEndpoint for GetModels {
     const PATH: &'static str = "v1/models";
     const METHOD: Method = Method::GET;

@@ -40,6 +40,8 @@ pub struct GetConversations {
     query: Option<GetConversationsQuery>,
 }
 
+impl crate::endpoints::sealed::Sealed for GetConversations {}
+
 impl ElevenLabsEndpoint for GetConversations {
     const PATH: &'static str = "/v1/convai/conversations";
 
@@ -177,6 +179,8 @@ impl GetConversationDetails {
         }
     }
 }
+
+impl crate::endpoints::sealed::Sealed for GetConversationDetails {}
 
 impl ElevenLabsEndpoint for GetConversationDetails {
     const PATH: &'static str = "/v1/convai/conversations/:conversation_id";
@@ -420,6 +424,8 @@ impl DeleteConversation {
     }
 }
 
+impl crate::endpoints::sealed::Sealed for DeleteConversation {}
+
 impl ElevenLabsEndpoint for DeleteConversation {
     const PATH: &'static str = "/v1/convai/conversations/:conversation_id";
 
@@ -466,6 +472,8 @@ impl GetConversationAudio {
         }
     }
 }
+
+impl crate::endpoints::sealed::Sealed for GetConversationAudio {}
 
 impl ElevenLabsEndpoint for GetConversationAudio {
     const PATH: &'static str = "/v1/convai/conversations/:conversation_id/audio";
@@ -519,6 +527,8 @@ impl GetSignedUrl {
 pub struct GetSignedUrlQuery {
     params: QueryValues,
 }
+
+impl crate::endpoints::sealed::Sealed for GetSignedUrl {}
 
 impl ElevenLabsEndpoint for GetSignedUrl {
     const PATH: &'static str = "/v1/convai/conversation/get_signed_url";
@@ -585,6 +595,8 @@ impl SendConversationFeedbackBody {
         Self { feedback }
     }
 }
+
+impl crate::endpoints::sealed::Sealed for SendConversationFeedback {}
 
 impl ElevenLabsEndpoint for SendConversationFeedback {
     const PATH: &'static str = "/v1/convai/conversations/:conversation_id/feedback";
@@ -682,6 +694,8 @@ impl OutboundCallViaTwilioBody {
         self
     }
 }
+
+impl crate::endpoints::sealed::Sealed for OutboundCallViaTwilio {}
 
 impl ElevenLabsEndpoint for OutboundCallViaTwilio {
     const PATH: &'static str = "/v1/convai/twilio/outbound-call";

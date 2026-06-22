@@ -1,15 +1,17 @@
 #[cfg(feature = "ws")]
 use crate::endpoints::genai::tts::ws::*;
-use crate::endpoints::{ElevenLabsEndpoint, RequestBody};
+use crate::endpoints::{ElevenLabsEndpoint, RequestBody, DEFAULT_BASE_URL};
 #[cfg(feature = "ws")]
 use crate::error::WebSocketError;
 use crate::error::{ApiError, Error};
+use bytes::Bytes;
 #[cfg(feature = "ws")]
 use futures_util::{pin_mut, SinkExt, Stream, StreamExt};
 use reqwest::{
     header::{HeaderMap, CONTENT_TYPE},
-    StatusCode,
+    Method, StatusCode, Url,
 };
+use serde::{de::DeserializeOwned, Serialize};
 #[cfg(feature = "ws")]
 use std::pin::Pin;
 #[cfg(feature = "ws")]
@@ -36,6 +38,51 @@ pub struct ApiResponse<T> {
     pub character_cost: Option<u64>,
 }
 
+#[derive(Clone, Debug)]
+struct ResponseMetadata {
+    status: StatusCode,
+    headers: HeaderMap,
+    request_id: Option<String>,
+    trace_id: Option<String>,
+    character_cost: Option<u64>,
+}
+
+impl ResponseMetadata {
+    fn from_response(resp: &reqwest::Response) -> Self {
+        let status = resp.status();
+        let headers = resp.headers().clone();
+        let request_id = header_string(&headers, &["request-id", "x-request-id"]);
+        let trace_id = header_string(&headers, &["trace-id", "x-trace-id"]);
+        let character_cost = header_u64(
+            &headers,
+            &[
+                "character-cost",
+                "x-character-cost",
+                "x-elevenlabs-character-count",
+            ],
+        );
+
+        Self {
+            status,
+            headers,
+            request_id,
+            trace_id,
+            character_cost,
+        }
+    }
+
+    fn into_api_response<T>(self, body: T) -> ApiResponse<T> {
+        ApiResponse {
+            body,
+            status: self.status,
+            headers: self.headers,
+            request_id: self.request_id,
+            trace_id: self.trace_id,
+            character_cost: self.character_cost,
+        }
+    }
+}
+
 #[derive(Clone)]
 pub struct ElevenLabsClient {
     inner: reqwest::Client,
@@ -60,60 +107,54 @@ impl ElevenLabsClient {
         Ok(self.hit_with_metadata(endpoint).await?.body)
     }
 
+    /// Build an authenticated request for an ElevenLabs endpoint that is not
+    /// modeled by this crate yet.
+    pub fn raw(&self, method: Method, path: impl Into<String>) -> RawRequestBuilder<'_> {
+        RawRequestBuilder::new(self, method, path)
+    }
+
     pub async fn hit_with_metadata<T: ElevenLabsEndpoint>(
         &self,
         endpoint: T,
     ) -> Result<ApiResponse<T::ResponseBody>> {
-        let mut builder = self
-            .inner
-            .request(T::METHOD, endpoint.url())
-            .header(XI_API_KEY_HEADER, &self.api_key);
-
-        builder = match endpoint.request_body().await? {
-            RequestBody::Json(json) => builder.header(CONTENT_TYPE, APPLICATION_JSON).json(&json),
-            RequestBody::Multipart(form) => builder.multipart(form),
-            RequestBody::Empty => builder,
-        };
-
-        let resp = builder.send().await?;
-
-        let status = resp.status();
-        let headers = resp.headers().clone();
-        let request_id = header_string(&headers, &["request-id", "x-request-id"]);
-        let trace_id = header_string(&headers, &["trace-id", "x-trace-id"]);
-        let character_cost = header_u64(
-            &headers,
-            &[
-                "character-cost",
-                "x-character-cost",
-                "x-elevenlabs-character-count",
-            ],
+        let builder = attach_request_body(
+            self.authenticated_request(T::METHOD, endpoint.url()),
+            endpoint.request_body().await?,
         );
+        let (resp, metadata) = self.send_request(builder).await?;
+        let body = endpoint.response_body(resp).await?;
 
-        if !status.is_success() {
+        Ok(metadata.into_api_response(body))
+    }
+
+    fn authenticated_request(&self, method: Method, url: Url) -> reqwest::RequestBuilder {
+        self.inner
+            .request(method, url)
+            .header(XI_API_KEY_HEADER, &self.api_key)
+    }
+
+    async fn send_request(
+        &self,
+        builder: reqwest::RequestBuilder,
+    ) -> Result<(reqwest::Response, ResponseMetadata)> {
+        let resp = builder.send().await?;
+        let metadata = ResponseMetadata::from_response(&resp);
+
+        if !metadata.status.is_success() {
             let body = resp.text().await?;
             let error = serde_json::from_str(&body).ok();
             return Err(Error::ApiError(Box::new(ApiError {
-                status,
+                status: metadata.status,
                 body,
                 error,
-                headers,
-                request_id,
-                trace_id,
-                character_cost,
+                headers: metadata.headers,
+                request_id: metadata.request_id,
+                trace_id: metadata.trace_id,
+                character_cost: metadata.character_cost,
             })));
         }
 
-        let body = endpoint.response_body(resp).await?;
-
-        Ok(ApiResponse {
-            body,
-            status,
-            headers,
-            request_id,
-            trace_id,
-            character_cost,
-        })
+        Ok((resp, metadata))
     }
 
     #[cfg(feature = "ws")]
@@ -217,6 +258,137 @@ impl ElevenLabsClient {
     }
 }
 
+pub struct RawRequestBuilder<'a> {
+    client: &'a ElevenLabsClient,
+    method: Method,
+    base_url: String,
+    path: String,
+    query_params: Vec<(String, String)>,
+    body: RequestBody,
+}
+
+impl<'a> RawRequestBuilder<'a> {
+    fn new(
+        client: &'a ElevenLabsClient,
+        method: Method,
+        path: impl Into<String>,
+    ) -> RawRequestBuilder<'a> {
+        Self {
+            client,
+            method,
+            base_url: DEFAULT_BASE_URL.to_owned(),
+            path: path.into(),
+            query_params: Vec::new(),
+            body: RequestBody::Empty,
+        }
+    }
+
+    /// Override the default ElevenLabs API base URL.
+    pub fn with_base_url(mut self, base_url: impl Into<String>) -> Self {
+        self.base_url = base_url.into();
+        self
+    }
+
+    /// Add a URL-encoded query parameter.
+    pub fn query(mut self, name: impl Into<String>, value: impl ToString) -> Self {
+        self.query_params.push((name.into(), value.to_string()));
+        self
+    }
+
+    /// Attach a JSON request body.
+    pub fn json<T>(mut self, body: &T) -> Result<Self>
+    where
+        T: Serialize + ?Sized,
+    {
+        self.body = RequestBody::Json(serde_json::to_value(body)?);
+        Ok(self)
+    }
+
+    /// Attach a multipart request body.
+    pub fn multipart(mut self, form: reqwest::multipart::Form) -> Self {
+        self.body = RequestBody::Multipart(form);
+        self
+    }
+
+    /// Send the request and deserialize a successful JSON response body.
+    pub async fn send_json<T>(self) -> Result<T>
+    where
+        T: DeserializeOwned,
+    {
+        Ok(self.send_json_with_metadata().await?.body)
+    }
+
+    /// Send the request and deserialize JSON plus response metadata.
+    pub async fn send_json_with_metadata<T>(self) -> Result<ApiResponse<T>>
+    where
+        T: DeserializeOwned,
+    {
+        let (resp, metadata) = self.send().await?;
+        let body = resp.json().await?;
+        Ok(metadata.into_api_response(body))
+    }
+
+    /// Send the request and return a successful response body as bytes.
+    pub async fn send_bytes(self) -> Result<Bytes> {
+        Ok(self.send_bytes_with_metadata().await?.body)
+    }
+
+    /// Send the request and return bytes plus response metadata.
+    pub async fn send_bytes_with_metadata(self) -> Result<ApiResponse<Bytes>> {
+        let (resp, metadata) = self.send().await?;
+        let body = resp.bytes().await?;
+        Ok(metadata.into_api_response(body))
+    }
+
+    async fn send(self) -> Result<(reqwest::Response, ResponseMetadata)> {
+        let client = self.client;
+        let builder = self.request_builder()?;
+        client.send_request(builder).await
+    }
+
+    fn request_builder(self) -> Result<reqwest::RequestBuilder> {
+        let url = self.url()?;
+        let builder = self.client.authenticated_request(self.method, url);
+        Ok(attach_request_body(builder, self.body))
+    }
+
+    fn url(&self) -> Result<Url> {
+        let mut url = self.base_url.parse::<Url>().map_err(|error| {
+            Error::InvalidInput(format!(
+                "invalid raw endpoint base URL `{}`: {error}",
+                self.base_url
+            ))
+        })?;
+        let path = self.path.trim_start_matches('/');
+        let segments = path.split('/').filter(|segment| !segment.is_empty());
+
+        {
+            let mut url_segments = url.path_segments_mut().map_err(|_| {
+                Error::InvalidInput(format!(
+                    "raw endpoint base URL cannot contain a relative path: {}",
+                    self.base_url
+                ))
+            })?;
+            url_segments.clear();
+            url_segments.extend(segments);
+
+            if path.ends_with('/') {
+                url_segments.push("");
+            }
+        }
+
+        if !self.query_params.is_empty() {
+            url.query_pairs_mut().extend_pairs(
+                self.query_params
+                    .iter()
+                    .map(|(name, value)| (name.as_str(), value.as_str())),
+            );
+        }
+
+        Ok(url)
+    }
+}
+
 #[cfg(feature = "ws")]
 struct WebSocketTTSStream {
     inner: futures_channel::mpsc::UnboundedReceiver<Result<WebSocketTTSResponse>>,
@@ -238,6 +410,17 @@ impl Drop for WebSocketTTSStream {
     fn drop(&mut self) {
         self.reader_task.abort();
         self.writer_task.abort();
+    }
+}
+
+fn attach_request_body(
+    builder: reqwest::RequestBuilder,
+    body: RequestBody,
+) -> reqwest::RequestBuilder {
+    match body {
+        RequestBody::Json(json) => builder.header(CONTENT_TYPE, APPLICATION_JSON).json(&json),
+        RequestBody::Multipart(form) => builder.multipart(form),
+        RequestBody::Empty => builder,
     }
 }
 
@@ -277,6 +460,8 @@ mod tests {
         resource_id: String,
     }
 
+    impl crate::endpoints::sealed::Sealed for DeleteWithBody {}
+
     impl ElevenLabsEndpoint for DeleteWithBody {
         const PATH: &'static str = "/v1/resources/:resource_id";
         const METHOD: reqwest::Method = reqwest::Method::DELETE;
@@ -303,6 +488,8 @@ mod tests {
         base_url: String,
     }
 
+    impl crate::endpoints::sealed::Sealed for EmptyPost {}
+
     impl ElevenLabsEndpoint for EmptyPost {
         const PATH: &'static str = "/v1/empty";
         const METHOD: reqwest::Method = reqwest::Method::POST;
@@ -320,6 +507,8 @@ mod tests {
     struct ErrorEndpoint {
         base_url: String,
     }
+
+    impl crate::endpoints::sealed::Sealed for ErrorEndpoint {}
 
     impl ElevenLabsEndpoint for ErrorEndpoint {
         const PATH: &'static str = "/v1/fails";
@@ -404,6 +593,93 @@ mod tests {
                 assert_eq!(
                     api_error.error.as_ref().unwrap()["detail"]["message"],
                     "rate limited"
+                );
+            }
+            other => panic!("expected api error, got {other:?}"),
+        }
+    }
+
+    #[tokio::test]
+    async fn raw_json_requests_use_auth_query_body_and_metadata() {
+        let response = http_response(
+            "200 OK",
+            &[
+                ("request-id", "req_raw"),
+                ("x-trace-id", "trace_raw"),
+                ("character-cost", "29"),
+            ],
+            r#"{"ok":true}"#,
+        );
+        let (base_url, request) = serve_once(response).await;
+        let client = ElevenLabsClient::new("test-key");
+
+        let response: ApiResponse<Value> = client
+            .raw(reqwest::Method::POST, "/v1/raw resources")
+            .with_base_url(base_url)
+            .query("voice_id", "voice a/b")
+            .json(&json!({ "text": "hello" }))
+            .unwrap()
+            .send_json_with_metadata()
+            .await
+            .unwrap();
+        let request = request.await.unwrap();
+
+        assert_eq!(response.body, json!({ "ok": true }));
+        assert_eq!(response.request_id.as_deref(), Some("req_raw"));
+        assert_eq!(response.trace_id.as_deref(), Some("trace_raw"));
+        assert_eq!(response.character_cost, Some(29));
+        assert!(request.starts_with("POST /v1/raw%20resources?voice_id=voice+a%2Fb HTTP/1.1"));
+        assert!(request.contains("xi-api-key: test-key"));
+        assert!(request.contains("content-type: application/json"));
+        assert!(request.ends_with(r#"{"text":"hello"}"#));
+    }
+
+    #[tokio::test]
+    async fn raw_requests_can_return_bytes() {
+        let (base_url, _request) =
+            serve_once(http_response("200 OK", &[], r#"not-json-audio"#)).await;
+        let client = ElevenLabsClient::new("test-key");
+
+        let response = client
+            .raw(reqwest::Method::GET, "/v1/audio")
+            .with_base_url(base_url)
+            .send_bytes()
+            .await
+            .unwrap();
+
+        assert_eq!(response.as_ref(), b"not-json-audio");
+    }
+
+    #[tokio::test]
+    async fn raw_requests_return_typed_api_errors_with_metadata() {
+        let response = http_response(
+            "404 Not Found",
+            &[
+                ("request-id", "req_raw_error"),
+                ("x-trace-id", "trace_raw_error"),
+                ("character-cost", "5"),
+            ],
+            r#"{"detail":{"message":"unknown endpoint"}}"#,
+        );
+        let (base_url, _request) = serve_once(response).await;
+        let client = ElevenLabsClient::new("test-key");
+
+        let error = client
+            .raw(reqwest::Method::GET, "/v1/future")
+            .with_base_url(base_url)
+            .send_json::<Value>()
+            .await
+            .unwrap_err();
+
+        match error {
+            Error::ApiError(api_error) => {
+                assert_eq!(api_error.status, StatusCode::NOT_FOUND);
+                assert_eq!(api_error.request_id.as_deref(), Some("req_raw_error"));
+                assert_eq!(api_error.trace_id.as_deref(), Some("trace_raw_error"));
+                assert_eq!(api_error.character_cost, Some(5));
+                assert_eq!(
+                    api_error.error.as_ref().unwrap()["detail"]["message"],
+                    "unknown endpoint"
                 );
             }
             other => panic!("expected api error, got {other:?}"),

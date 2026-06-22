@@ -23,6 +23,7 @@ pub mod genai;
 mod tests;
 
 type QueryValues = Vec<(&'static str, String)>;
+pub(crate) const DEFAULT_BASE_URL: &str = "https://api.elevenlabs.io";
 
 #[derive(Debug)]
 pub enum RequestBody {
@@ -31,9 +32,18 @@ pub enum RequestBody {
     Empty,
 }
 
+pub(crate) mod sealed {
+    pub trait Sealed {}
+}
+
+/// Crate-owned endpoint contract used by [`ElevenLabsClient`](crate::ElevenLabsClient).
+///
+/// This trait is sealed, so downstream crates cannot implement their own typed
+/// endpoints. Use [`ElevenLabsClient::raw`](crate::ElevenLabsClient::raw) for
+/// ElevenLabs endpoints that are not modeled by this crate yet.
 #[allow(async_fn_in_trait)]
-pub trait ElevenLabsEndpoint {
-    const BASE_URL: &'static str = "https://api.elevenlabs.io";
+pub trait ElevenLabsEndpoint: sealed::Sealed {
+    const BASE_URL: &'static str = DEFAULT_BASE_URL;
 
     const PATH: &'static str;
 

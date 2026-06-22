@@ -23,9 +23,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `SpeechToTextModel::ScribeV2`
 - WebSocket TTS serialization tests for escaped text/control messages
 - OpenAPI coverage snapshot, report, and maintainer tooling
+- `ElevenLabsClient::raw` for authenticated raw HTTP calls to endpoints not yet modeled by the crate
 
 ### Changed
 - **Breaking**: `elevenlabs_rs::Result` now uses `elevenlabs_rs::error::Error` instead of a boxed trait-object error
+- **Breaking**: `ElevenLabsEndpoint` is now sealed; use `ElevenLabsClient::raw` for unsupported endpoints
 - **Breaking**: `Alignment` timestamp fields and the `Timestamps` iterator item are now `f64` (were `f32`)
 - **Breaking**: model and format enums now include open custom variants for provider-owned values
 - Deprecated old ElevenLabs model variants and changed `ConvAIModel::default()` from `ElevenTurboV2` to `ElevenFlashV2`

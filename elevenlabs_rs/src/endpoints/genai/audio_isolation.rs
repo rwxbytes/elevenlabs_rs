@@ -64,6 +64,8 @@ impl From<String> for AudioIsolationBody {
     }
 }
 
+impl crate::endpoints::sealed::Sealed for AudioIsolation {}
+
 impl ElevenLabsEndpoint for AudioIsolation {
     const PATH: &'static str = "v1/audio-isolation";
 
@@ -111,6 +113,8 @@ impl AudioIsolationStream {
 }
 
 type AudioIsolationStreamResponse = Pin<Box<dyn Stream<Item = Result<Bytes>> + Send>>;
+impl crate::endpoints::sealed::Sealed for AudioIsolationStream {}
+
 impl ElevenLabsEndpoint for AudioIsolationStream {
     const PATH: &'static str = "v1/audio-isolation/stream";
 

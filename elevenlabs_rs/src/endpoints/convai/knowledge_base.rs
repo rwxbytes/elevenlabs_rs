@@ -40,6 +40,8 @@ impl GetKnowledgeBaseDoc {
     }
 }
 
+impl crate::endpoints::sealed::Sealed for GetKnowledgeBaseDoc {}
+
 impl ElevenLabsEndpoint for GetKnowledgeBaseDoc {
     const PATH: &'static str = "v1/convai/knowledge-base/:documentation_id";
 
@@ -146,6 +148,8 @@ impl CreateKnowledgeBaseDoc {
         Self { body: body.into() }
     }
 }
+impl crate::endpoints::sealed::Sealed for CreateKnowledgeBaseDoc {}
+
 impl ElevenLabsEndpoint for CreateKnowledgeBaseDoc {
     const PATH: &'static str = "v1/convai/knowledge-base";
 
@@ -361,6 +365,8 @@ impl KnowledgeBaseQuery {
     }
 }
 
+impl crate::endpoints::sealed::Sealed for ListKnowledgeBaseDocs {}
+
 impl ElevenLabsEndpoint for ListKnowledgeBaseDocs {
     const PATH: &'static str = "v1/convai/knowledge-base";
 
@@ -434,6 +440,8 @@ impl ListDependentAgents {
     }
 }
 
+impl crate::endpoints::sealed::Sealed for ListDependentAgents {}
+
 impl ElevenLabsEndpoint for ListDependentAgents {
     const PATH: &'static str = "v1/convai/knowledge-base/:documentation_id/dependent-agents";
 
@@ -494,6 +502,8 @@ impl DeleteKnowledgeBaseDoc {
         }
     }
 }
+
+impl crate::endpoints::sealed::Sealed for DeleteKnowledgeBaseDoc {}
 
 impl ElevenLabsEndpoint for DeleteKnowledgeBaseDoc {
     const PATH: &'static str = "v1/convai/knowledge-base/:documentation_id";
@@ -639,6 +649,8 @@ impl From<EmbeddingModel> for ComputeRAGIndexBody {
     }
 }
 
+impl crate::endpoints::sealed::Sealed for ComputeRAGIndex {}
+
 impl ElevenLabsEndpoint for ComputeRAGIndex {
     const PATH: &'static str = "v1/convai/knowledge-base/:documentation_id/rag-index";
 
@@ -688,6 +700,8 @@ impl GetDocumentContent {
     }
 }
 
+impl crate::endpoints::sealed::Sealed for GetDocumentContent {}
+
 impl ElevenLabsEndpoint for GetDocumentContent {
     const PATH: &'static str = "v1/convai/knowledge-base/:documentation_id/content";
 
@@ -719,6 +733,8 @@ impl GetDocumentChunk {
         }
     }
 }
+
+impl crate::endpoints::sealed::Sealed for GetDocumentChunk {}
 
 impl ElevenLabsEndpoint for GetDocumentChunk {
     const PATH: &'static str = "v1/convai/knowledge-base/:documentation_id/chunk/:chunk_id";

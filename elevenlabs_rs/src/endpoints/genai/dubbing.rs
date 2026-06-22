@@ -47,6 +47,8 @@ impl DubAVideoOrAnAudioFile {
     }
 }
 
+impl crate::endpoints::sealed::Sealed for DubAVideoOrAnAudioFile {}
+
 impl ElevenLabsEndpoint for DubAVideoOrAnAudioFile {
     const PATH: &'static str = "v1/dubbing";
 
@@ -185,6 +187,8 @@ impl GetDubbing {
     }
 }
 
+impl crate::endpoints::sealed::Sealed for GetDubbing {}
+
 impl ElevenLabsEndpoint for GetDubbing {
     const PATH: &'static str = "v1/dubbing/:dubbing_id";
 
@@ -254,6 +258,8 @@ impl GetDubbedAudio {
     }
 }
 
+impl crate::endpoints::sealed::Sealed for GetDubbedAudio {}
+
 impl ElevenLabsEndpoint for GetDubbedAudio {
     const PATH: &'static str = "v1/dubbing/:dubbing_id/audio/:language_code";
 
@@ -305,6 +311,8 @@ impl DeleteDubbing {
         }
     }
 }
+
+impl crate::endpoints::sealed::Sealed for DeleteDubbing {}
 
 impl ElevenLabsEndpoint for DeleteDubbing {
     const PATH: &'static str = "v1/dubbing/:dubbing_id";
@@ -379,6 +387,8 @@ impl GetDubbedTranscriptQuery {
         self
     }
 }
+
+impl crate::endpoints::sealed::Sealed for GetDubbedTranscript {}
 
 impl ElevenLabsEndpoint for GetDubbedTranscript {
     const PATH: &'static str = "v1/dubbing/:dubbing_id/transcript/:language_code";

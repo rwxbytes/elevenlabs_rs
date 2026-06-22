@@ -53,6 +53,8 @@ impl GetWidgetQuery {
     }
 }
 
+impl crate::endpoints::sealed::Sealed for GetWidget {}
+
 impl ElevenLabsEndpoint for GetWidget {
     const PATH: &'static str = "/v1/convai/agents/:agent_id/widget/";
 
@@ -146,6 +148,8 @@ impl TryFrom<&CreateWidgetAvatarBody> for RequestBody {
         ))
     }
 }
+
+impl crate::endpoints::sealed::Sealed for CreateWidgetAvatar {}
 
 impl ElevenLabsEndpoint for CreateWidgetAvatar {
     const PATH: &'static str = "/v1/convai/agents/:agent_id/avatar";

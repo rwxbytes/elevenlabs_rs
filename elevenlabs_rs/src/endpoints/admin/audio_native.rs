@@ -13,6 +13,8 @@ impl AudioNative {
     }
 }
 
+impl crate::endpoints::sealed::Sealed for AudioNative {}
+
 impl ElevenLabsEndpoint for AudioNative {
     const PATH: &'static str = "/v1/audio-native";
 

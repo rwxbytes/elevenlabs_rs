@@ -54,6 +54,8 @@ impl TextToSpeech {
     }
 }
 
+impl crate::endpoints::sealed::Sealed for TextToSpeech {}
+
 impl ElevenLabsEndpoint for TextToSpeech {
     const PATH: &'static str = "/v1/text-to-speech/:voice_id";
 
@@ -290,6 +292,8 @@ impl TextToSpeechStream {
 }
 
 type TextToSpeechStreamResponse = Pin<Box<dyn Stream<Item = Result<Bytes>> + Send>>;
+impl crate::endpoints::sealed::Sealed for TextToSpeechStream {}
+
 impl ElevenLabsEndpoint for TextToSpeechStream {
     const PATH: &'static str = "/v1/text-to-speech/:voice_id/stream";
 
@@ -368,6 +372,8 @@ impl TextToSpeechWithTimestamps {
         self
     }
 }
+
+impl crate::endpoints::sealed::Sealed for TextToSpeechWithTimestamps {}
 
 impl ElevenLabsEndpoint for TextToSpeechWithTimestamps {
     const PATH: &'static str = "/v1/text-to-speech/:voice_id/with-timestamps";
@@ -513,6 +519,8 @@ impl TextToSpeechStreamWithTimestamps {
 
 type TextToSpeechStreamWithTimestampsResponse =
     Pin<Box<dyn Stream<Item = Result<TextToSpeechWithTimestampsResponse>> + Send>>;
+
+impl crate::endpoints::sealed::Sealed for TextToSpeechStreamWithTimestamps {}
 
 impl ElevenLabsEndpoint for TextToSpeechStreamWithTimestamps {
     const PATH: &'static str = "/v1/text-to-speech/:voice_id/stream/with-timestamps";

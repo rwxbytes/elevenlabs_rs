@@ -294,6 +294,8 @@ impl CreateTranscriptBody {
     }
 }
 
+impl crate::endpoints::sealed::Sealed for CreateTranscript {}
+
 impl ElevenLabsEndpoint for CreateTranscript {
     const PATH: &'static str = "/v1/speech-to-text";
 

@@ -95,6 +95,8 @@ impl GetSharedVoices {
     }
 }
 
+impl crate::endpoints::sealed::Sealed for GetSharedVoices {}
+
 impl ElevenLabsEndpoint for GetSharedVoices {
     const PATH: &'static str = "/v1/shared-voices";
 
@@ -290,6 +292,8 @@ impl AddSharedVoice {
         }
     }
 }
+
+impl crate::endpoints::sealed::Sealed for AddSharedVoice {}
 
 impl ElevenLabsEndpoint for AddSharedVoice {
     const PATH: &'static str = "/v1/voices/add/:public_user_id/:voice_id";

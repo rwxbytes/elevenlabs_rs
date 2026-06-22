@@ -89,6 +89,8 @@ impl GetVoicesQuery {
     }
 }
 
+impl crate::endpoints::sealed::Sealed for GetVoices {}
+
 impl ElevenLabsEndpoint for GetVoices {
     const PATH: &'static str = "/v2/voices";
 
@@ -116,6 +118,8 @@ pub enum VoiceType {
 
 #[derive(Debug, Clone)]
 pub struct GetDefaultVoiceSettings;
+
+impl crate::endpoints::sealed::Sealed for GetDefaultVoiceSettings {}
 
 impl ElevenLabsEndpoint for GetDefaultVoiceSettings {
     const PATH: &'static str = "/v1/voices/settings/default";
@@ -158,6 +162,8 @@ impl GetVoiceSettings {
         }
     }
 }
+
+impl crate::endpoints::sealed::Sealed for GetVoiceSettings {}
 
 impl ElevenLabsEndpoint for GetVoiceSettings {
     const PATH: &'static str = "/v1/voices/:voice_id/settings";
@@ -204,6 +210,8 @@ impl GetVoice {
     }
 }
 
+impl crate::endpoints::sealed::Sealed for GetVoice {}
+
 impl ElevenLabsEndpoint for GetVoice {
     const PATH: &'static str = "/v1/voices/:voice_id";
 
@@ -248,6 +256,8 @@ impl DeleteVoice {
         }
     }
 }
+
+impl crate::endpoints::sealed::Sealed for DeleteVoice {}
 
 impl ElevenLabsEndpoint for DeleteVoice {
     const PATH: &'static str = "/v1/voices/:voice_id";
@@ -298,6 +308,8 @@ impl EditVoiceSettings {
         }
     }
 }
+
+impl crate::endpoints::sealed::Sealed for EditVoiceSettings {}
 
 impl ElevenLabsEndpoint for EditVoiceSettings {
     const PATH: &'static str = "/v1/voices/:voice_id/settings/edit";
@@ -379,6 +391,8 @@ impl AddVoice {
         AddVoice { body }
     }
 }
+
+impl crate::endpoints::sealed::Sealed for AddVoice {}
 
 impl ElevenLabsEndpoint for AddVoice {
     const PATH: &'static str = "/v1/voices/add";
@@ -532,6 +546,8 @@ impl EditVoice {
     }
 }
 
+impl crate::endpoints::sealed::Sealed for EditVoice {}
+
 impl ElevenLabsEndpoint for EditVoice {
     const PATH: &'static str = "/v1/voices/:voice_id/edit";
 
@@ -639,6 +655,8 @@ impl ListSimilarVoices {
         ListSimilarVoices { body }
     }
 }
+
+impl crate::endpoints::sealed::Sealed for ListSimilarVoices {}
 
 impl ElevenLabsEndpoint for ListSimilarVoices {
     const PATH: &'static str = "/v1/similar-voices";

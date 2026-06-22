@@ -56,6 +56,8 @@ impl VoiceChanger {
     }
 }
 
+impl crate::endpoints::sealed::Sealed for VoiceChanger {}
+
 impl ElevenLabsEndpoint for VoiceChanger {
     const PATH: &'static str = "v1/speech-to-speech/:voice_id";
 
@@ -183,6 +185,8 @@ impl VoiceChangerStream {
         self
     }
 }
+
+impl crate::endpoints::sealed::Sealed for VoiceChangerStream {}
 
 impl ElevenLabsEndpoint for VoiceChangerStream {
     const PATH: &'static str = "v1/speech-to-speech/:voice_id/stream";

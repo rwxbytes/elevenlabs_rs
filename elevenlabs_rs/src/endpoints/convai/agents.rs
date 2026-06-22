@@ -78,6 +78,8 @@ impl CreateAgentBody {
     }
 }
 
+impl crate::endpoints::sealed::Sealed for CreateAgent {}
+
 impl ElevenLabsEndpoint for CreateAgent {
     const PATH: &'static str = "/v1/convai/agents/create";
 
@@ -141,6 +143,8 @@ impl DeleteAgent {
         }
     }
 }
+
+impl crate::endpoints::sealed::Sealed for DeleteAgent {}
 
 impl ElevenLabsEndpoint for DeleteAgent {
     const PATH: &'static str = "/v1/convai/agents/:agent_id";
@@ -2198,6 +2202,8 @@ impl GetAgent {
     }
 }
 
+impl crate::endpoints::sealed::Sealed for GetAgent {}
+
 impl ElevenLabsEndpoint for GetAgent {
     const PATH: &'static str = "/v1/convai/agents/:agent_id";
 
@@ -2284,6 +2290,8 @@ impl GetAgents {
         GetAgents { query: Some(query) }
     }
 }
+
+impl crate::endpoints::sealed::Sealed for GetAgents {}
 
 impl ElevenLabsEndpoint for GetAgents {
     const PATH: &'static str = "/v1/convai/agents";
@@ -2438,6 +2446,8 @@ impl UpdateAgentBody {
 
 type UpdateAgentResponse = GetAgentResponse;
 
+impl crate::endpoints::sealed::Sealed for UpdateAgent {}
+
 impl ElevenLabsEndpoint for UpdateAgent {
     const PATH: &'static str = "/v1/convai/agents/:agent_id";
 
@@ -2499,6 +2509,8 @@ impl GetLink {
         }
     }
 }
+
+impl crate::endpoints::sealed::Sealed for GetLink {}
 
 impl ElevenLabsEndpoint for GetLink {
     const PATH: &'static str = "/v1/convai/agents/:agent_id/link";

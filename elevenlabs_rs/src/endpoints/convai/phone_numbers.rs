@@ -116,6 +116,8 @@ impl TryFrom<&CreatePhoneNumberBody> for RequestBody {
     }
 }
 
+impl crate::endpoints::sealed::Sealed for CreatePhoneNumber {}
+
 impl ElevenLabsEndpoint for CreatePhoneNumber {
     const PATH: &'static str = "/v1/convai/phone-numbers";
 
@@ -157,6 +159,8 @@ pub struct CreatePhoneNumberResponse {
 /// See [List Phone Numbers API reference](https://elevenlabs.io/docs/conversational-ai/api-reference/phone-numbers/get-phone-numbers)
 #[derive(Clone, Debug)]
 pub struct ListPhoneNumbers;
+
+impl crate::endpoints::sealed::Sealed for ListPhoneNumbers {}
 
 impl ElevenLabsEndpoint for ListPhoneNumbers {
     const PATH: &'static str = "/v1/convai/phone-numbers";
@@ -216,6 +220,8 @@ impl GetPhoneNumber {
         }
     }
 }
+
+impl crate::endpoints::sealed::Sealed for GetPhoneNumber {}
 
 impl ElevenLabsEndpoint for GetPhoneNumber {
     const PATH: &'static str = "/v1/convai/phone-numbers/:phone_number_id";
@@ -289,6 +295,8 @@ impl TryFrom<&UpdatePhoneNumberBody> for RequestBody {
     }
 }
 
+impl crate::endpoints::sealed::Sealed for UpdatePhoneNumber {}
+
 impl ElevenLabsEndpoint for UpdatePhoneNumber {
     const PATH: &'static str = "/v1/convai/phone-numbers/:phone_number_id";
 
@@ -340,6 +348,8 @@ impl DeletePhoneNumber {
         }
     }
 }
+
+impl crate::endpoints::sealed::Sealed for DeletePhoneNumber {}
 
 impl ElevenLabsEndpoint for DeletePhoneNumber {
     const PATH: &'static str = "/v1/convai/phone-numbers/:phone_number_id";

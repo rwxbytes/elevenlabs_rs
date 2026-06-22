@@ -27,6 +27,8 @@ impl TextToDialogue {
     }
 }
 
+impl crate::endpoints::sealed::Sealed for TextToDialogue {}
+
 impl ElevenLabsEndpoint for TextToDialogue {
     const PATH: &'static str = "/v1/text-to-dialogue";
 
@@ -93,6 +95,8 @@ impl TextToDialogueStream {
 }
 
 type TextToDialogueStreamResponse = Pin<Box<dyn Stream<Item = Result<Bytes>> + Send>>;
+
+impl crate::endpoints::sealed::Sealed for TextToDialogueStream {}
 
 impl ElevenLabsEndpoint for TextToDialogueStream {
     const PATH: &'static str = "/v1/text-to-dialogue/stream";
@@ -273,6 +277,8 @@ impl TextToDialogueWithTimestamps {
     }
 }
 
+impl crate::endpoints::sealed::Sealed for TextToDialogueWithTimestamps {}
+
 impl ElevenLabsEndpoint for TextToDialogueWithTimestamps {
     const PATH: &'static str = "/v1/text-to-dialogue/with-timestamps";
 
@@ -435,6 +441,8 @@ impl TextToDialogueStreamWithTimestamps {
 
 type TextToDialogueStreamWithTimestampsResponse =
     Pin<Box<dyn Stream<Item = Result<TextToDialogueWithTimestampsResponse>> + Send>>;
+
+impl crate::endpoints::sealed::Sealed for TextToDialogueStreamWithTimestamps {}
 
 impl ElevenLabsEndpoint for TextToDialogueStreamWithTimestamps {
     const PATH: &'static str = "/v1/text-to-dialogue/stream/with-timestamps";

@@ -55,6 +55,8 @@ impl InviteUserBody {
     }
 }
 
+impl crate::endpoints::sealed::Sealed for InviteUser {}
+
 impl ElevenLabsEndpoint for InviteUser {
     const PATH: &'static str = "/v1/workspace/invites/add";
 
@@ -130,6 +132,8 @@ impl DeleteInvitationBody {
     }
 }
 
+impl crate::endpoints::sealed::Sealed for DeleteInvitation {}
+
 impl ElevenLabsEndpoint for DeleteInvitation {
     const PATH: &'static str = "/v1/workspace/invites";
 
@@ -188,6 +192,8 @@ impl UpdateMember {
         Self { body: body.into() }
     }
 }
+
+impl crate::endpoints::sealed::Sealed for UpdateMember {}
 
 impl ElevenLabsEndpoint for UpdateMember {
     const PATH: &'static str = "/v1/workspace/members";
@@ -314,6 +320,8 @@ pub enum ResourceType {
     ConvaiPhoneNumbers,
 }
 
+impl crate::endpoints::sealed::Sealed for GetResource {}
+
 impl ElevenLabsEndpoint for GetResource {
     const PATH: &'static str = "/v1/workspace/resources/:resource_id";
 
@@ -410,6 +418,8 @@ impl ShareWorkspaceResourceBody {
     }
 }
 
+impl crate::endpoints::sealed::Sealed for ShareWorkspaceResource {}
+
 impl ElevenLabsEndpoint for ShareWorkspaceResource {
     const PATH: &'static str = "/v1/workspace/resources/:resource_id/share";
 
@@ -484,6 +494,8 @@ impl UnshareWorkspaceResourceBody {
         self
     }
 }
+
+impl crate::endpoints::sealed::Sealed for UnshareWorkspaceResource {}
 
 impl ElevenLabsEndpoint for UnshareWorkspaceResource {
     const PATH: &'static str = "/v1/workspace/resources/:resource_id/unshare";

@@ -32,11 +32,12 @@
 //!     Ok(())
 //! }
 //! ```
-pub use crate::client::{ApiResponse, ElevenLabsClient, Result};
+pub use crate::client::{ApiResponse, ElevenLabsClient, RawRequestBuilder, Result};
 pub use crate::shared::query_params::*;
 pub use crate::shared::{DefaultVoice, Language, LegacyVoice, Model, VoiceSettings};
 pub use bytes::Bytes;
 pub use futures_util::{pin_mut, StreamExt};
+pub use reqwest::{multipart, Method};
 
 mod client;
 pub mod endpoints;

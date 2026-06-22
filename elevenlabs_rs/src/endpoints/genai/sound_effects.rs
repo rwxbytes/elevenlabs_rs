@@ -64,6 +64,8 @@ impl CreateSoundEffectQuery {
     }
 }
 
+impl crate::endpoints::sealed::Sealed for CreateSoundEffect {}
+
 impl ElevenLabsEndpoint for CreateSoundEffect {
     const PATH: &'static str = "/v1/sound-generation";
 

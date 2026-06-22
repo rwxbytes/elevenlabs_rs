@@ -67,6 +67,8 @@ impl GetUsageQuery {
     }
 }
 
+impl crate::endpoints::sealed::Sealed for GetUsage {}
+
 impl ElevenLabsEndpoint for GetUsage {
     const PATH: &'static str = "/v1/usage/character-stats";
 

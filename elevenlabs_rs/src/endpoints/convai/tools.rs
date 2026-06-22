@@ -22,6 +22,8 @@ use crate::endpoints::convai::knowledge_base::DependentAgent;
 /// See [List Tools API reference](https://elevenlabs.io/docs/api-reference/tools/get-tools).
 pub struct ListTools;
 
+impl crate::endpoints::sealed::Sealed for ListTools {}
+
 impl ElevenLabsEndpoint for ListTools {
     const PATH: &'static str = "/v1/convai/tools";
 
@@ -67,6 +69,8 @@ impl GetTool {
         }
     }
 }
+
+impl crate::endpoints::sealed::Sealed for GetTool {}
 
 impl ElevenLabsEndpoint for GetTool {
     const PATH: &'static str = "/v1/convai/tools/:tool_id";
@@ -159,6 +163,8 @@ impl From<SystemTool> for CreateToolBody {
 
 pub type CreateToolResponse = GetToolResponse;
 
+impl crate::endpoints::sealed::Sealed for CreateTool {}
+
 impl ElevenLabsEndpoint for CreateTool {
     const PATH: &'static str = "/v1/convai/tools";
 
@@ -214,6 +220,8 @@ impl UpdateTool {
 
 pub type UpdateToolResponse = GetToolResponse;
 
+impl crate::endpoints::sealed::Sealed for UpdateTool {}
+
 impl ElevenLabsEndpoint for UpdateTool {
     const PATH: &'static str = "/v1/convai/tools/:tool_id";
 
@@ -264,6 +272,8 @@ impl DeleteTool {
         }
     }
 }
+
+impl crate::endpoints::sealed::Sealed for DeleteTool {}
 
 impl ElevenLabsEndpoint for DeleteTool {
     const PATH: &'static str = "/v1/convai/tools/:tool_id";

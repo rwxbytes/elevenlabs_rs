@@ -58,6 +58,8 @@ impl HistoryQuery {
     }
 }
 
+impl crate::endpoints::sealed::Sealed for GetGeneratedItems {}
+
 impl ElevenLabsEndpoint for GetGeneratedItems {
     const PATH: &'static str = "/v1/history";
 
@@ -111,6 +113,8 @@ impl GetHistoryItem {
     }
 }
 
+impl crate::endpoints::sealed::Sealed for GetHistoryItem {}
+
 impl ElevenLabsEndpoint for GetHistoryItem {
     const PATH: &'static str = "/v1/history/:history_item_id";
 
@@ -163,6 +167,8 @@ impl DeleteHistoryItem {
         }
     }
 }
+
+impl crate::endpoints::sealed::Sealed for DeleteHistoryItem {}
 
 impl ElevenLabsEndpoint for DeleteHistoryItem {
     const PATH: &'static str = "/v1/history/:history_item_id";
@@ -218,6 +224,8 @@ impl DownloadHistoryItems {
         Self { body }
     }
 }
+
+impl crate::endpoints::sealed::Sealed for DownloadHistoryItems {}
 
 impl ElevenLabsEndpoint for DownloadHistoryItems {
     const PATH: &'static str = "/v1/history/download";
@@ -287,6 +295,8 @@ impl GetAudio {
         }
     }
 }
+
+impl crate::endpoints::sealed::Sealed for GetAudio {}
 
 impl ElevenLabsEndpoint for GetAudio {
     const PATH: &'static str = "/v1/history/:history_item_id/audio";

@@ -26,3 +26,23 @@ An unofficial lib crate for [ElevenLabs](https://elevenlabs.io/)
      Ok(())
  }
  ```
+
+## Raw Endpoints
+
+```rust
+use elevenlabs_rs::{ElevenLabsClient, Method, Result};
+use serde_json::{json, Value};
+
+#[tokio::main]
+async fn main() -> Result<()> {
+    let client = ElevenLabsClient::from_env()?;
+    let response: Value = client
+        .raw(Method::POST, "/v1/future-endpoint")
+        .json(&json!({ "text": "Hello" }))?
+        .send_json()
+        .await?;
+
+    println!("{response}");
+    Ok(())
+}
+```
