@@ -4,14 +4,20 @@ use crate::error::Error;
 use std::string::ToString;
 use strum::{self, Display};
 
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum SpeechToTextModel {
+    ScribeV2,
+    #[deprecated(note = "ElevenLabs has deprecated scribe_v1; use ScribeV2")]
     ScribeV1,
+    #[deprecated(note = "ElevenLabs has deprecated scribe_v1; use ScribeV2")]
     ScribeV1Base,
 }
 
 impl From<SpeechToTextModel> for String {
+    #[allow(deprecated)]
     fn from(model: SpeechToTextModel) -> Self {
         match model {
+            SpeechToTextModel::ScribeV2 => "scribe_v2".to_string(),
             SpeechToTextModel::ScribeV1 => "scribe_v1".to_string(),
             SpeechToTextModel::ScribeV1Base => "scribe_v1_base".to_string(),
         }
@@ -31,7 +37,7 @@ impl From<SpeechToTextModel> for String {
 /// async fn main() -> Result<()> {
 ///    let client = ElevenLabsClient::from_env()?;
 ///
-///    let body = CreateTranscriptBody::new(SpeechToTextModel::ScribeV1, "some_audio.mp3")
+///    let body = CreateTranscriptBody::new(SpeechToTextModel::ScribeV2, "some_audio.mp3")
 ///    .with_tag_audio_events(true)
 ///    .with_num_speakers(2)
 ///    .with_timestamps_granularity(Granularity::Character)
@@ -66,6 +72,11 @@ pub struct CreateTranscript {
 impl CreateTranscript {
     pub fn new(body: CreateTranscriptBody) -> Self {
         Self { body, query: None }
+    }
+
+    pub fn with_query(mut self, query: CreateTranscriptQuery) -> Self {
+        self.query = Some(query);
+        self
     }
 }
 
@@ -268,7 +279,7 @@ impl CreateTranscriptBody {
     /// additional_formats.push(srt);
     /// additional_formats.push(segmented_json);
     ///
-    /// let body = CreateTranscriptBody::new(SpeechToTextModel::ScribeV1, "file")
+    /// let body = CreateTranscriptBody::new(SpeechToTextModel::ScribeV2, "file")
     ///     .with_diarize(true) // Must be set to true to use additional formats
     ///     .with_additional_formats(additional_formats);
     /// ```
@@ -289,6 +300,10 @@ impl ElevenLabsEndpoint for CreateTranscript {
     const METHOD: Method = Method::POST;
 
     type ResponseBody = CreateTranscriptResponse;
+
+    fn query_params(&self) -> Option<QueryValues> {
+        self.query.as_ref().map(|q| q.params.clone())
+    }
 
     async fn request_body(&self) -> Result<RequestBody> {
         TryInto::try_into(self.body.clone())

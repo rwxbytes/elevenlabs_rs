@@ -148,7 +148,7 @@ impl TextToVoiceBody {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct TextToVoiceQuery {
     params: QueryValues,
 }
@@ -167,6 +167,10 @@ impl ElevenLabsEndpoint for TextToVoice {
     const METHOD: Method = Method::POST;
 
     type ResponseBody = TextToVoiceResponse;
+
+    fn query_params(&self) -> Option<QueryValues> {
+        self.query.as_ref().map(|q| q.params.clone())
+    }
 
     async fn request_body(&self) -> Result<RequestBody> {
         Ok(RequestBody::Json(serde_json::to_value(&self.body)?))

@@ -684,7 +684,7 @@ impl OutboundCallViaTwilioBody {
 }
 
 impl ElevenLabsEndpoint for OutboundCallViaTwilio {
-    const PATH: &'static str = "/v1/convai/twilio/outbound_call";
+    const PATH: &'static str = "/v1/convai/twilio/outbound-call";
 
     const METHOD: Method = Method::POST;
 

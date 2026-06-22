@@ -4,7 +4,6 @@ use crate::error::Error;
 use crate::shared::AccessLevel;
 use std::path::Path;
 use std::string::ToString;
-use strum::Display;
 
 /// Get details about a specific documentation making up the agent’s knowledge base.
 ///
@@ -582,15 +581,54 @@ impl From<String> for ComputeRAGIndexBody {
         Self { model }
     }
 }
-#[derive(Clone, Debug, Deserialize, Display, Serialize)]
-#[serde(rename_all = "snake_case")]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(from = "String", into = "String")]
 pub enum EmbeddingModel {
-    #[strum(to_string = "e5_mistral_7b_instruct")]
-    #[serde(rename = "e5_mistral_7b_instruct")]
     E5Mistral7BInstruct,
-    #[strum(to_string = "multilingual_e5_large_instruct")]
-    #[serde(rename = "multilingual_e5_large_instruct")]
     MultilingualE5LargeInstruct,
+    Custom(String),
+}
+
+impl EmbeddingModel {
+    pub fn custom(model: impl Into<String>) -> Self {
+        Self::Custom(model.into())
+    }
+
+    pub fn as_str(&self) -> &str {
+        match self {
+            Self::E5Mistral7BInstruct => "e5_mistral_7b_instruct",
+            Self::MultilingualE5LargeInstruct => "multilingual_e5_large_instruct",
+            Self::Custom(model) => model,
+        }
+    }
+}
+
+impl From<String> for EmbeddingModel {
+    fn from(model: String) -> Self {
+        match model.as_str() {
+            "e5_mistral_7b_instruct" => Self::E5Mistral7BInstruct,
+            "multilingual_e5_large_instruct" => Self::MultilingualE5LargeInstruct,
+            _ => Self::Custom(model),
+        }
+    }
+}
+
+impl From<&str> for EmbeddingModel {
+    fn from(model: &str) -> Self {
+        Self::from(model.to_owned())
+    }
+}
+
+impl std::fmt::Display for EmbeddingModel {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl From<EmbeddingModel> for String {
+    fn from(model: EmbeddingModel) -> Self {
+        model.to_string()
+    }
 }
 
 impl From<EmbeddingModel> for ComputeRAGIndexBody {

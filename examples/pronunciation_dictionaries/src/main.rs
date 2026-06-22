@@ -9,7 +9,7 @@ async fn main() -> Result<()> {
     let client = ElevenLabsClient::from_env()?;
 
     let txt = "I'm using a TTS model via the ElevenLabs' API to say tomato and Tomato.";
-    let model = Model::ElevenTurboV2;
+    let model = Model::ElevenFlashV2;
     let voice_id = DefaultVoice::Alice;
 
     let mut tts_body = TextToSpeechBody::new(txt).with_model_id(model.clone());

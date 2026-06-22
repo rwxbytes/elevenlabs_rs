@@ -365,8 +365,8 @@ impl RAG {
         self.enabled = Some(enabled);
         self
     }
-    pub fn with_embedding_model(mut self, embedding_model: EmbeddingModel) -> Self {
-        self.embedding_model = Some(embedding_model);
+    pub fn with_embedding_model(mut self, embedding_model: impl Into<EmbeddingModel>) -> Self {
+        self.embedding_model = Some(embedding_model.into());
         self
     }
 
@@ -387,8 +387,8 @@ impl PromptConfig {
         self
     }
 
-    pub fn with_llm(mut self, llm: LLM) -> Self {
-        self.llm = Some(llm);
+    pub fn with_llm(mut self, llm: impl Into<LLM>) -> Self {
+        self.llm = Some(llm.into());
         self
     }
 
@@ -480,42 +480,97 @@ impl KnowledgeBase {
     }
 }
 
-#[derive(Clone, Debug, Default, Serialize, Deserialize)]
-#[serde(rename_all = "kebab-case")]
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(from = "String", into = "String")]
 pub enum LLM {
-    #[serde(rename = "gpt-4o-mini")]
     Gpt4oMini,
-    #[serde(rename = "gpt-4o")]
     Gpt4o,
-    #[serde(rename = "gpt-4")]
     Gpt4,
-    #[serde(rename = "gpt-4-turbo")]
     Gpt4Turbo,
-    #[serde(rename = "gpt-3.5-turbo")]
     Gpt3_5Turbo,
-    #[serde(rename = "gemini-1.5-pro")]
     Gemini1_5Pro,
-    #[serde(rename = "gemini-1.5-flash")]
     Gemini1_5Flash,
-    #[serde(rename = "gemini-1.0-pro")]
     Gemini1_0Pro,
-    #[serde(rename = "gemini-2.0-flash-001")]
     #[default]
     Gemini2_0Flash001,
-    #[serde(rename = "gemini-2.0-flash-lite")]
     Gemini2_0FlashLite,
-    #[serde(rename = "claude-3-5-sonnet")]
     Claude3_5Sonnet,
-    #[serde(rename = "claude-3-7-sonnet")]
     Claude3_7Sonnet,
-    #[serde(rename = "claude-3-5-sonnet-v1")]
     Claude3_5SonnetV1,
-    #[serde(rename = "claude-3-haiku")]
     Claude3Haiku,
-    #[serde(rename = "grok-beta")]
     GrokBeta,
-    #[serde(rename = "custom-llm")]
     CustomLLM,
+    Other(String),
+}
+
+impl LLM {
+    pub fn other(llm: impl Into<String>) -> Self {
+        Self::Other(llm.into())
+    }
+
+    pub fn as_str(&self) -> &str {
+        match self {
+            Self::Gpt4oMini => "gpt-4o-mini",
+            Self::Gpt4o => "gpt-4o",
+            Self::Gpt4 => "gpt-4",
+            Self::Gpt4Turbo => "gpt-4-turbo",
+            Self::Gpt3_5Turbo => "gpt-3.5-turbo",
+            Self::Gemini1_5Pro => "gemini-1.5-pro",
+            Self::Gemini1_5Flash => "gemini-1.5-flash",
+            Self::Gemini1_0Pro => "gemini-1.0-pro",
+            Self::Gemini2_0Flash001 => "gemini-2.0-flash-001",
+            Self::Gemini2_0FlashLite => "gemini-2.0-flash-lite",
+            Self::Claude3_5Sonnet => "claude-3-5-sonnet",
+            Self::Claude3_7Sonnet => "claude-3-7-sonnet",
+            Self::Claude3_5SonnetV1 => "claude-3-5-sonnet-v1",
+            Self::Claude3Haiku => "claude-3-haiku",
+            Self::GrokBeta => "grok-beta",
+            Self::CustomLLM => "custom-llm",
+            Self::Other(llm) => llm,
+        }
+    }
+}
+
+impl From<String> for LLM {
+    fn from(llm: String) -> Self {
+        match llm.as_str() {
+            "gpt-4o-mini" => Self::Gpt4oMini,
+            "gpt-4o" => Self::Gpt4o,
+            "gpt-4" => Self::Gpt4,
+            "gpt-4-turbo" => Self::Gpt4Turbo,
+            "gpt-3.5-turbo" => Self::Gpt3_5Turbo,
+            "gemini-1.5-pro" => Self::Gemini1_5Pro,
+            "gemini-1.5-flash" => Self::Gemini1_5Flash,
+            "gemini-1.0-pro" => Self::Gemini1_0Pro,
+            "gemini-2.0-flash-001" => Self::Gemini2_0Flash001,
+            "gemini-2.0-flash-lite" => Self::Gemini2_0FlashLite,
+            "claude-3-5-sonnet" => Self::Claude3_5Sonnet,
+            "claude-3-7-sonnet" => Self::Claude3_7Sonnet,
+            "claude-3-5-sonnet-v1" => Self::Claude3_5SonnetV1,
+            "claude-3-haiku" => Self::Claude3Haiku,
+            "grok-beta" => Self::GrokBeta,
+            "custom-llm" => Self::CustomLLM,
+            _ => Self::Other(llm),
+        }
+    }
+}
+
+impl From<&str> for LLM {
+    fn from(llm: &str) -> Self {
+        Self::from(llm.to_owned())
+    }
+}
+
+impl std::fmt::Display for LLM {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl From<LLM> for String {
+    fn from(llm: LLM) -> Self {
+        llm.to_string()
+    }
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -1175,10 +1230,9 @@ impl Default for Conversation {
 pub struct TTSConfig {
     /// The model to use for TTS
     ///
-    /// Default: `ConvAIModel::ElevenTurboV2`
+    /// Recommended default: `ConvAIModel::ElevenFlashV2`
     ///
     /// #### Additional Variants
-    /// - `ConvAIModel::ElevenTurboV2_5`
     /// - `ConvAIModel::ElevenFlashV2`
     /// - `ConvAIModel::ElevenFlashV2_5`
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -1218,8 +1272,8 @@ pub struct TTSConfig {
 }
 
 impl TTSConfig {
-    pub fn with_model_id(mut self, model_id: ConvAIModel) -> Self {
-        self.model_id = Some(model_id);
+    pub fn with_model_id(mut self, model_id: impl Into<ConvAIModel>) -> Self {
+        self.model_id = Some(model_id.into());
         self
     }
 
@@ -1282,17 +1336,65 @@ pub enum ClientEvent {
     UserTranscript,
 }
 
-#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(from = "String", into = "String")]
 pub enum ConvAIModel {
-    #[default]
-    #[serde(rename = "eleven_turbo_v2")]
+    #[deprecated(note = "ElevenLabs recommends ElevenFlashV2 over eleven_turbo_v2")]
     ElevenTurboV2,
-    #[serde(rename = "eleven_turbo_v2_5")]
+    #[deprecated(note = "ElevenLabs recommends ElevenFlashV2_5 over eleven_turbo_v2_5")]
     ElevenTurboV2_5,
-    #[serde(rename = "eleven_flash_v2")]
+    #[default]
     ElevenFlashV2,
-    #[serde(rename = "eleven_flash_v2_5")]
     ElevenFlashV2_5,
+    Custom(String),
+}
+
+impl ConvAIModel {
+    pub fn custom(model_id: impl Into<String>) -> Self {
+        Self::Custom(model_id.into())
+    }
+
+    #[allow(deprecated)]
+    pub fn as_str(&self) -> &str {
+        match self {
+            Self::ElevenTurboV2 => "eleven_turbo_v2",
+            Self::ElevenTurboV2_5 => "eleven_turbo_v2_5",
+            Self::ElevenFlashV2 => "eleven_flash_v2",
+            Self::ElevenFlashV2_5 => "eleven_flash_v2_5",
+            Self::Custom(model_id) => model_id,
+        }
+    }
+}
+
+impl From<String> for ConvAIModel {
+    #[allow(deprecated)]
+    fn from(model_id: String) -> Self {
+        match model_id.as_str() {
+            "eleven_turbo_v2" => Self::ElevenTurboV2,
+            "eleven_turbo_v2_5" => Self::ElevenTurboV2_5,
+            "eleven_flash_v2" => Self::ElevenFlashV2,
+            "eleven_flash_v2_5" => Self::ElevenFlashV2_5,
+            _ => Self::Custom(model_id),
+        }
+    }
+}
+
+impl From<&str> for ConvAIModel {
+    fn from(model_id: &str) -> Self {
+        Self::from(model_id.to_owned())
+    }
+}
+
+impl std::fmt::Display for ConvAIModel {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
+impl From<ConvAIModel> for String {
+    fn from(model_id: ConvAIModel) -> Self {
+        model_id.to_string()
+    }
 }
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]

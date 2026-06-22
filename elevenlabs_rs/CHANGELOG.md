@@ -18,19 +18,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - public `accent` field on `VerifiedLanguage`
 - typed `ApiError`/`Error` model and `ApiResponse`
 - `ElevenLabsClient::hit_with_metadata`
+- endpoint contract tests for high-traffic TTS, STT, voices, history, pronunciation dictionary, ConvAI, and text-to-dialogue surfaces
+- `CreateTranscript::with_query`
+- `SpeechToTextModel::ScribeV2`
+- WebSocket TTS serialization tests for escaped text/control messages
 
 ### Changed
 - **Breaking**: `elevenlabs_rs::Result` now uses `elevenlabs_rs::error::Error` instead of a boxed trait-object error
 - **Breaking**: `Alignment` timestamp fields and the `Timestamps` iterator item are now `f64` (were `f32`)
+- **Breaking**: model and format enums now include open custom variants for provider-owned values
+- Deprecated old ElevenLabs model variants and changed `ConvAIModel::default()` from `ElevenTurboV2` to `ElevenFlashV2`
+- WebSocket TTS streams now retain reader/writer task handles and abort them when the returned stream is dropped
 - Internal workspace dependencies now resolve to local workspace members during development
 - Request bodies are now attached for all HTTP methods when an endpoint provides one
 
 ### Fixed
 - Streaming-with-timestamps JSON parser (in `tts` and `text_to_dialogue`) now buffers across network chunk boundaries instead of assuming one chunk is exactly one message; `segment_text` offsets per-chunk character indices so it is correct for stream chunks
+- WebSocket TTS text chunks now serialize through `serde_json` instead of manual string formatting, so quotes, backslashes, control characters, and Unicode are escaped correctly
+- WebSocket TTS background task errors are now forwarded through the returned stream
 - Standalone feature builds, including `genai` without `admin`
 - Workspace check and clippy failures in examples and integrations
 - Endpoint path parameters are now percent-encoded by URL path segment
 - Non-success HTTP responses now preserve status, headers, raw body, and parsed JSON error metadata
+- Query builders are now applied on TTS, TTS timestamp, text-to-voice, and speech-to-text endpoints that previously stored but ignored them
+- Current ConvAI phone-number, Twilio outbound-call, and text-to-voice save paths
+- `CreatePhoneNumberBody` now serializes to the flat API payload shape
+- `convai::tools` is exported again
 
 ## [0.6.0] - 2025-04-05
 

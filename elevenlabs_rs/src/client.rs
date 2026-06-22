@@ -11,6 +11,10 @@ use reqwest::{
     StatusCode,
 };
 #[cfg(feature = "ws")]
+use std::pin::Pin;
+#[cfg(feature = "ws")]
+use std::task::{Context, Poll};
+#[cfg(feature = "ws")]
 use tokio::task::JoinHandle;
 #[cfg(feature = "ws")]
 use tokio_tungstenite::tungstenite::protocol::frame::coding::CloseCode;
@@ -113,11 +117,6 @@ impl ElevenLabsClient {
     }
 
     #[cfg(feature = "ws")]
-    const FLUSH_JSON: &'static str = r#"{"text":" ","flush":true}"#;
-    #[cfg(feature = "ws")]
-    const EOS_JSON: &'static str = r#"{"text":""}"#;
-
-    #[cfg(feature = "ws")]
     pub async fn hit_ws<S>(
         &self,
         mut endpoint: WebSocketTTS<S>,
@@ -125,7 +124,7 @@ impl ElevenLabsClient {
     where
         S: Stream<Item = String> + Send + 'static,
     {
-        let (ws_stream, _) = connect_async(endpoint.url()).await?;
+        let (ws_stream, _) = connect_async(endpoint.url()?).await?;
         let (mut writer, mut reader) = ws_stream.split();
         let (tx_to_caller, rx_for_caller) =
             futures_channel::mpsc::unbounded::<Result<WebSocketTTSResponse>>();
@@ -136,59 +135,109 @@ impl ElevenLabsClient {
             endpoint.body.bos_message.xi_api_key = Some(self.api_key.clone());
         }
 
-        let _reader_t: JoinHandle<Result<()>> = tokio::spawn(async move {
-            while let Some(msg_result) = reader.next().await {
-                let msg = msg_result?;
-                match msg {
-                    Message::Text(text) => {
-                        let response: WebSocketTTSResponse = serde_json::from_str(&text)?;
-                        tx_to_caller.unbounded_send(Ok(response))?;
-                    }
-                    Message::Close(msg) => {
-                        if let Some(close_frame) = msg {
-                            if close_frame.code == CloseCode::Normal {
-                                continue;
-                            } else {
-                                tx_to_caller.unbounded_send(Err(
+        let reader_tx = tx_to_caller.clone();
+        let reader_task: JoinHandle<Result<()>> = tokio::spawn(async move {
+            let result = async {
+                while let Some(msg_result) = reader.next().await {
+                    let msg = msg_result?;
+                    match msg {
+                        Message::Text(text) => {
+                            let response: WebSocketTTSResponse = serde_json::from_str(&text)?;
+                            reader_tx.unbounded_send(Ok(response))?;
+                        }
+                        Message::Close(msg) => {
+                            if let Some(close_frame) = msg {
+                                if close_frame.code == CloseCode::Normal {
+                                    return Ok(());
+                                }
+                                reader_tx.unbounded_send(Err(
                                     WebSocketError::NonNormalCloseCode(
                                         close_frame.reason.to_string(),
                                     )
                                     .into(),
                                 ))?;
+                                return Ok(());
                             }
-                        } else {
-                            tx_to_caller.unbounded_send(Err(
+                            reader_tx.unbounded_send(Err(
                                 WebSocketError::ClosedWithoutCloseFrame.into(),
                             ))?;
+                            return Ok(());
                         }
+                        _ => reader_tx
+                            .unbounded_send(Err(WebSocketError::UnexpectedMessageType.into()))?,
                     }
-                    _ => tx_to_caller
-                        .unbounded_send(Err(WebSocketError::UnexpectedMessageType.into()))?,
                 }
+                Ok(())
+            }
+            .await;
+
+            if let Err(error) = result {
+                let _ = reader_tx.unbounded_send(Err(error));
             }
             Ok(())
         });
 
-        let _thread: JoinHandle<Result<()>> = tokio::spawn(async move {
-            let bos_message = endpoint.body.bos_message;
-            writer.send(bos_message.to_message()?).await?;
+        let writer_tx = tx_to_caller.clone();
+        let writer_task: JoinHandle<Result<()>> = tokio::spawn(async move {
+            let result = async {
+                let bos_message = endpoint.body.bos_message;
+                writer.send(bos_message.to_message()?).await?;
 
-            let text_stream = endpoint.body.text_stream;
-            pin_mut!(text_stream);
+                let text_stream = endpoint.body.text_stream;
+                pin_mut!(text_stream);
 
-            while let Some(chunk) = text_stream.next().await {
-                writer.send(chunk.to_message()?).await?;
+                while let Some(chunk) = text_stream.next().await {
+                    writer.send(chunk.to_message()?).await?;
+                }
+
+                if endpoint.body.flush {
+                    writer
+                        .send(WebSocketTextMessage::flush().to_message()?)
+                        .await?;
+                }
+
+                writer
+                    .send(WebSocketTextMessage::end_of_sequence().to_message()?)
+                    .await?;
+
+                Ok(())
             }
+            .await;
 
-            if endpoint.body.flush {
-                writer.send(Message::from(Self::FLUSH_JSON)).await?;
+            if let Err(error) = result {
+                let _ = writer_tx.unbounded_send(Err(error));
             }
-
-            writer.send(Message::from(Self::EOS_JSON)).await?;
-
             Ok(())
         });
-        Ok(rx_for_caller)
+        Ok(WebSocketTTSStream {
+            inner: rx_for_caller,
+            reader_task,
+            writer_task,
+        })
+    }
+}
+
+#[cfg(feature = "ws")]
+struct WebSocketTTSStream {
+    inner: futures_channel::mpsc::UnboundedReceiver<Result<WebSocketTTSResponse>>,
+    reader_task: JoinHandle<Result<()>>,
+    writer_task: JoinHandle<Result<()>>,
+}
+
+#[cfg(feature = "ws")]
+impl Stream for WebSocketTTSStream {
+    type Item = Result<WebSocketTTSResponse>;
+
+    fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
+        Pin::new(&mut self.inner).poll_next(cx)
+    }
+}
+
+#[cfg(feature = "ws")]
+impl Drop for WebSocketTTSStream {
+    fn drop(&mut self) {
+        self.reader_task.abort();
+        self.writer_task.abort();
     }
 }
 

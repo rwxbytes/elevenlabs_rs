@@ -1,10 +1,9 @@
-#![allow(deprecated)]
-
 use serde::{Deserialize, Serialize, Serializer};
 #[cfg(any(feature = "admin", feature = "genai"))]
 use serde_json::Value;
 #[cfg(any(feature = "admin", feature = "genai"))]
 use std::collections::HashMap;
+#[cfg(any(feature = "admin", feature = "genai"))]
 use strum::Display;
 
 #[cfg(any(feature = "admin", feature = "convai", feature = "genai"))]
@@ -20,8 +19,6 @@ pub mod response_bodies {
 }
 
 pub mod query_params {
-    use super::*;
-
     //#[deprecated(since = "0.3.2")]
     //#[derive(Clone, Debug, Display)]
     //pub enum Latency {
@@ -44,73 +41,149 @@ pub mod query_params {
     //}
 
     /// See Elevenlabs documentation on [supported output formats](https://help.elevenlabs.io/hc/en-us/articles/15754340124305-What-audio-formats-do-you-support).
-    #[derive(Clone, Debug, Display)]
+    #[derive(Clone, Debug, PartialEq, Eq)]
     pub enum OutputFormat {
-        #[strum(to_string = "mp3_22050_32")]
         Mp3_22050Hz32kbps,
-        #[strum(to_string = "mp3_44100_32")]
+        Mp3_24000Hz48kbps,
         Mp3_44100Hz32kbps,
-        #[strum(to_string = "mp3_44100_64")]
         Mp3_44100Hz64kbps,
-        #[strum(to_string = "mp3_44100_96")]
         Mp3_44100Hz96kbps,
-        #[strum(to_string = "mp3_44100_128")]
         Mp3_44100Hz128kbps,
-        #[strum(to_string = "mp3_44100_192")]
         Mp3_44100Hz192kbps,
-        #[strum(to_string = "pcm_8000")]
         Pcm8000Hz,
-        #[strum(to_string = "pcm_16000")]
         Pcm16000Hz,
-        #[strum(to_string = "pcm_22050")]
         Pcm22050Hz,
-        #[strum(to_string = "pcm_24000")]
         Pcm24000Hz,
-        #[strum(to_string = "pcm_44100")]
+        Pcm32000Hz,
         Pcm44100Hz,
-        #[strum(to_string = "ulaw_8000")]
+        Pcm48000Hz,
         MuLaw8000Hz,
-        #[strum(to_string = "opus_48000_32")]
+        ALaw8000Hz,
         Opus48000Hz32kbps,
-        #[strum(to_string = "opus_48000_64")]
         Opus48000Hz64kbps,
-        #[strum(to_string = "opus_48000_96")]
         Opus48000Hz96kbps,
-        #[strum(to_string = "opus_48000_128")]
         Opus48000Hz128kbps,
-        #[strum(to_string = "opus_48000_192")]
         Opus48000Hz192kbps,
+        Custom(String),
+    }
+
+    impl OutputFormat {
+        pub fn custom(format: impl Into<String>) -> Self {
+            Self::Custom(format.into())
+        }
+
+        pub fn as_str(&self) -> &str {
+            match self {
+                Self::Mp3_22050Hz32kbps => "mp3_22050_32",
+                Self::Mp3_24000Hz48kbps => "mp3_24000_48",
+                Self::Mp3_44100Hz32kbps => "mp3_44100_32",
+                Self::Mp3_44100Hz64kbps => "mp3_44100_64",
+                Self::Mp3_44100Hz96kbps => "mp3_44100_96",
+                Self::Mp3_44100Hz128kbps => "mp3_44100_128",
+                Self::Mp3_44100Hz192kbps => "mp3_44100_192",
+                Self::Pcm8000Hz => "pcm_8000",
+                Self::Pcm16000Hz => "pcm_16000",
+                Self::Pcm22050Hz => "pcm_22050",
+                Self::Pcm24000Hz => "pcm_24000",
+                Self::Pcm32000Hz => "pcm_32000",
+                Self::Pcm44100Hz => "pcm_44100",
+                Self::Pcm48000Hz => "pcm_48000",
+                Self::MuLaw8000Hz => "ulaw_8000",
+                Self::ALaw8000Hz => "alaw_8000",
+                Self::Opus48000Hz32kbps => "opus_48000_32",
+                Self::Opus48000Hz64kbps => "opus_48000_64",
+                Self::Opus48000Hz96kbps => "opus_48000_96",
+                Self::Opus48000Hz128kbps => "opus_48000_128",
+                Self::Opus48000Hz192kbps => "opus_48000_192",
+                Self::Custom(format) => format,
+            }
+        }
+    }
+
+    impl std::fmt::Display for OutputFormat {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            f.write_str(self.as_str())
+        }
+    }
+
+    impl From<String> for OutputFormat {
+        fn from(format: String) -> Self {
+            Self::Custom(format)
+        }
+    }
+
+    impl From<&str> for OutputFormat {
+        fn from(format: &str) -> Self {
+            Self::Custom(format.to_owned())
+        }
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Model {
     ElevenMultilingualV2,
-    #[deprecated]
+    #[deprecated(
+        note = "ElevenLabs has deprecated eleven_multilingual_v1; use ElevenMultilingualV2"
+    )]
     ElevenMultilingualV1,
-    #[deprecated]
+    #[deprecated(
+        note = "ElevenLabs has deprecated eleven_monolingual_v1; use ElevenMultilingualV2"
+    )]
     ElevenEnglishV1,
     ElevenEnglishV2,
+    #[deprecated(note = "ElevenLabs recommends ElevenFlashV2 over eleven_turbo_v2")]
     ElevenTurboV2,
+    #[deprecated(note = "ElevenLabs recommends ElevenFlashV2_5 over eleven_turbo_v2_5")]
     ElevenTurboV2_5,
     ElevenMultilingualV2STS,
     ElevenFlashV2,
     ElevenFlashV2_5,
+    Custom(String),
+}
+
+impl Model {
+    pub fn custom(model_id: impl Into<String>) -> Self {
+        Self::Custom(model_id.into())
+    }
+
+    #[allow(deprecated)]
+    pub fn as_str(&self) -> &str {
+        match self {
+            Model::ElevenMultilingualV2 => "eleven_multilingual_v2",
+            Model::ElevenMultilingualV1 => "eleven_multilingual_v1",
+            Model::ElevenEnglishV1 => "eleven_monolingual_v1",
+            Model::ElevenEnglishV2 => "eleven_english_sts_v2",
+            Model::ElevenTurboV2 => "eleven_turbo_v2",
+            Model::ElevenTurboV2_5 => "eleven_turbo_v2_5",
+            Model::ElevenMultilingualV2STS => "eleven_multilingual_sts_v2",
+            Model::ElevenFlashV2 => "eleven_flash_v2",
+            Model::ElevenFlashV2_5 => "eleven_flash_v2_5",
+            Model::Custom(model_id) => model_id,
+        }
+    }
 }
 
 impl From<Model> for String {
     fn from(model: Model) -> String {
-        match model {
-            Model::ElevenMultilingualV2 => "eleven_multilingual_v2".to_string(),
-            Model::ElevenMultilingualV1 => "eleven_multilingual_v1".to_string(),
-            Model::ElevenEnglishV1 => "eleven_monolingual_v1".to_string(),
-            Model::ElevenEnglishV2 => "eleven_english_sts_v2".to_string(),
-            Model::ElevenTurboV2 => "eleven_turbo_v2".to_string(),
-            Model::ElevenTurboV2_5 => "eleven_turbo_v2_5".to_string(),
-            Model::ElevenMultilingualV2STS => "eleven_multilingual_sts_v2".to_string(),
-            Model::ElevenFlashV2 => "eleven_flash_v2".to_string(),
-            Model::ElevenFlashV2_5 => "eleven_flash_v2_5".to_string(),
-        }
+        model.as_str().to_owned()
+    }
+}
+
+impl From<String> for Model {
+    fn from(model_id: String) -> Self {
+        Self::Custom(model_id)
+    }
+}
+
+impl From<&str> for Model {
+    fn from(model_id: &str) -> Self {
+        Self::Custom(model_id.to_owned())
+    }
+}
+
+impl std::fmt::Display for Model {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.as_str())
     }
 }
 

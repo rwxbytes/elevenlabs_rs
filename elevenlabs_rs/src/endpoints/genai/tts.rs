@@ -21,7 +21,7 @@ use std::pin::Pin;
 ///     let c = ElevenLabsClient::from_env()?;
 ///
 ///     let body = TextToSpeechBody::new("Look on my Works, ye Mighty, and despair!")
-///        .with_model_id(Model::ElevenTurboV2);
+///        .with_model_id(Model::ElevenFlashV2);
 ///
 ///     let endpoint = TextToSpeech::new(LegacyVoice::Clyde, body);
 ///
@@ -60,6 +60,10 @@ impl ElevenLabsEndpoint for TextToSpeech {
     const METHOD: Method = Method::POST;
 
     type ResponseBody = Bytes;
+
+    fn query_params(&self) -> Option<QueryValues> {
+        self.query.as_ref().map(|q| q.params.clone())
+    }
 
     fn path_params(&self) -> Vec<(&'static str, &str)> {
         vec![self.voice_id.and_param(PathParam::VoiceID)]
@@ -253,7 +257,7 @@ impl TextToSpeechQuery {
 ///     let txt = "The art of progress is to preserve order amid change \
 ///        and to preserve change amid order.";
 ///
-///     let body = TextToSpeechBody::new(txt).with_model_id(Model::ElevenTurboV2);
+///     let body = TextToSpeechBody::new(txt).with_model_id(Model::ElevenFlashV2);
 ///
 ///     let endpoint = TextToSpeechStream::new(DefaultVoice::Alice, body);
 ///
@@ -372,6 +376,10 @@ impl ElevenLabsEndpoint for TextToSpeechWithTimestamps {
 
     type ResponseBody = TextToSpeechWithTimestampsResponse;
 
+    fn query_params(&self) -> Option<QueryValues> {
+        self.query.as_ref().map(|q| q.params.clone())
+    }
+
     fn path_params(&self) -> Vec<(&'static str, &str)> {
         vec![self.voice_id.and_param(PathParam::VoiceID)]
     }
@@ -458,7 +466,7 @@ pub struct Alignment {
 /// async fn main() -> Result<()> {
 ///     let c = ElevenLabsClient::from_env()?;
 ///     let voice_id = LegacyVoice::Rachel;
-///     let model_id = Model::ElevenTurboV2;
+///     let model_id = Model::ElevenFlashV2;
 ///     let txt = "Without Haste! Without Rest!,\
 ///         Bind the motto to thy breast! \
 ///         Bear it with thee as a spell; \
@@ -512,6 +520,10 @@ impl ElevenLabsEndpoint for TextToSpeechStreamWithTimestamps {
     const METHOD: Method = Method::POST;
 
     type ResponseBody = TextToSpeechStreamWithTimestampsResponse;
+
+    fn query_params(&self) -> Option<QueryValues> {
+        self.query.as_ref().map(|q| q.params.clone())
+    }
 
     fn path_params(&self) -> Vec<(&'static str, &str)> {
         vec![self.voice_id.and_param(PathParam::VoiceID)]
@@ -567,7 +579,9 @@ pub mod ws {
     //! Websocket Text to Speech endpoints
 
     use super::*;
+    use crate::error::Error;
     use crate::OutputFormat;
+    use std::str::FromStr;
     use tokio_tungstenite::tungstenite::Message;
 
     const WS_BASE_URL: &str = "wss://api.elevenlabs.io";
@@ -634,8 +648,9 @@ pub mod ws {
             self.query = Some(query);
             self
         }
-        pub(crate) fn url(&self) -> String {
-            let mut base_url = WS_BASE_URL.parse::<Url>().unwrap();
+        pub(crate) fn url(&self) -> Result<String> {
+            let mut base_url = Url::from_str(WS_BASE_URL)
+                .map_err(|e| Error::InvalidInput(format!("invalid websocket base URL: {e}")))?;
 
             let mut path = WS_PATH.to_string();
 
@@ -653,7 +668,7 @@ pub mod ws {
 
                 base_url.set_query(Some(&query_string));
             }
-            base_url.to_string()
+            Ok(base_url.to_string())
         }
     }
 
@@ -784,10 +799,41 @@ pub mod ws {
         fn to_message(&self) -> Result<Message>;
     }
 
+    #[derive(Clone, Debug, Serialize)]
+    pub(crate) struct WebSocketTextMessage<'a> {
+        text: &'a str,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        flush: Option<bool>,
+    }
+
+    impl<'a> WebSocketTextMessage<'a> {
+        pub(crate) fn new(text: &'a str) -> Self {
+            Self { text, flush: None }
+        }
+
+        pub(crate) fn flush() -> Self {
+            Self {
+                text: " ",
+                flush: Some(true),
+            }
+        }
+
+        pub(crate) fn end_of_sequence() -> Self {
+            Self {
+                text: "",
+                flush: None,
+            }
+        }
+
+        pub(crate) fn to_message(&self) -> Result<Message> {
+            let json = serde_json::to_string(self)?;
+            Ok(Message::Text(json))
+        }
+    }
+
     impl TextChunkMessage for String {
         fn to_message(&self) -> Result<Message> {
-            let json = format!("{{\"text\":\"{}\"}}", self);
-            Ok(Message::Text(json))
+            WebSocketTextMessage::new(self).to_message()
         }
     }
 
@@ -818,5 +864,45 @@ pub mod ws {
         pub char_start_times_ms: Vec<f32>,
         pub char_durations_ms: Vec<f32>,
         pub chars: Vec<String>,
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use super::*;
+        use serde_json::{json, Value};
+
+        #[test]
+        fn text_chunk_message_serializes_with_json_escaping() {
+            let text = "quotes \" backslash \\ newline \n snowman \u{2603}".to_string();
+
+            let Message::Text(encoded) = text.to_message().unwrap() else {
+                panic!("expected text websocket message");
+            };
+
+            let value: Value = serde_json::from_str(&encoded).unwrap();
+            assert_eq!(value, json!({ "text": text }));
+        }
+
+        #[test]
+        fn websocket_control_text_messages_use_same_serializer() {
+            let Message::Text(flush) = WebSocketTextMessage::flush().to_message().unwrap() else {
+                panic!("expected text websocket message");
+            };
+            assert_eq!(
+                serde_json::from_str::<Value>(&flush).unwrap(),
+                json!({ "text": " ", "flush": true })
+            );
+
+            let Message::Text(eos) = WebSocketTextMessage::end_of_sequence()
+                .to_message()
+                .unwrap()
+            else {
+                panic!("expected text websocket message");
+            };
+            assert_eq!(
+                serde_json::from_str::<Value>(&eos).unwrap(),
+                json!({ "text": "" })
+            );
+        }
     }
 }

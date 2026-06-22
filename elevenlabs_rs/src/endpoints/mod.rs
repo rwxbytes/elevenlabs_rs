@@ -19,6 +19,9 @@ pub mod convai;
 #[cfg(feature = "genai")]
 pub mod genai;
 
+#[cfg(all(test, feature = "admin", feature = "convai", feature = "genai"))]
+mod tests;
+
 type QueryValues = Vec<(&'static str, String)>;
 
 #[derive(Debug)]
