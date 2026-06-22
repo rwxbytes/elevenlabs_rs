@@ -275,7 +275,7 @@ impl SaveVoiceFromPreviewBody {
 }
 
 impl ElevenLabsEndpoint for SaveVoiceFromPreview {
-    const PATH: &'static str = "/v1/text-to-voice/create-voice-from-preview";
+    const PATH: &'static str = "/v1/text-to-voice";
 
     const METHOD: Method = Method::POST;
 

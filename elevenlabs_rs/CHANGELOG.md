@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `CreateTranscript::with_query`
 - `SpeechToTextModel::ScribeV2`
 - WebSocket TTS serialization tests for escaped text/control messages
+- OpenAPI coverage snapshot, report, and maintainer tooling
 
 ### Changed
 - **Breaking**: `elevenlabs_rs::Result` now uses `elevenlabs_rs::error::Error` instead of a boxed trait-object error

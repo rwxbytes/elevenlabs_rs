@@ -1,0 +1,2938 @@
+{
+  "source": "https://api.elevenlabs.io/openapi.json",
+  "openapi": "3.1.0",
+  "info": {
+    "title": "ElevenLabs API Documentation",
+    "version": "1.0"
+  },
+  "operation_count": 317,
+  "operations": [
+    {
+      "method": "GET",
+      "path": "/v1/convai/agents/{agent_id}/topics",
+      "tags": [
+        "Agents Insights",
+        "Agents Platform"
+      ],
+      "operation_id": "get_agent_topics_route",
+      "summary": "Get Agent Conversation Topics"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/convai/agent-testing/bulk-move",
+      "tags": [
+        "Agents Platform"
+      ],
+      "operation_id": "agent_testing_bulk_move_route",
+      "summary": "Bulk Move Tests To Folder"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/convai/agent-testing/folders",
+      "tags": [
+        "Agents Platform"
+      ],
+      "operation_id": "create_agent_test_folder_route",
+      "summary": "Create Agent Test Folder"
+    },
+    {
+      "method": "DELETE",
+      "path": "/v1/convai/agent-testing/folders/{folder_id}",
+      "tags": [
+        "Agents Platform"
+      ],
+      "operation_id": "delete_agent_test_folder_route",
+      "summary": "Delete Agent Test Folder"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/convai/agent-testing/folders/{folder_id}",
+      "tags": [
+        "Agents Platform"
+      ],
+      "operation_id": "get_agent_test_folder_route",
+      "summary": "Get Agent Test Folder By Id"
+    },
+    {
+      "method": "PATCH",
+      "path": "/v1/convai/agent-testing/folders/{folder_id}",
+      "tags": [
+        "Agents Platform"
+      ],
+      "operation_id": "update_agent_test_folder_route",
+      "summary": "Update Agent Test Folder"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/convai/agent/{agent_id}/knowledge-base/size",
+      "tags": [
+        "Agents Platform"
+      ],
+      "operation_id": "get_agent_knowledge_base_size",
+      "summary": "Returns The Size Of The Agent'S Knowledge Base"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/convai/agent/{agent_id}/llm-usage/calculate",
+      "tags": [
+        "Agents Platform"
+      ],
+      "operation_id": "get_agent_llm_expected_cost_calculation",
+      "summary": "Calculate Expected Llm Usage For An Agent"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/convai/agents",
+      "tags": [
+        "Agents Platform"
+      ],
+      "operation_id": "get_agents_route",
+      "summary": "List Agents"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/convai/agents/create",
+      "tags": [
+        "Agents Platform"
+      ],
+      "operation_id": "create_agent_route",
+      "summary": "Create Agent"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/convai/agents/summaries",
+      "tags": [
+        "Agents Platform"
+      ],
+      "operation_id": "get_agent_summaries_route",
+      "summary": "Get Agent Summaries"
+    },
+    {
+      "method": "DELETE",
+      "path": "/v1/convai/agents/{agent_id}",
+      "tags": [
+        "Agents Platform"
+      ],
+      "operation_id": "delete_agent_route",
+      "summary": "Delete Agent"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/convai/agents/{agent_id}",
+      "tags": [
+        "Agents Platform"
+      ],
+      "operation_id": "get_agent_route",
+      "summary": "Get Agent"
+    },
+    {
+      "method": "PATCH",
+      "path": "/v1/convai/agents/{agent_id}",
+      "tags": [
+        "Agents Platform"
+      ],
+      "operation_id": "patch_agent_settings_route",
+      "summary": "Patches An Agent Settings"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/convai/agents/{agent_id}/avatar",
+      "tags": [
+        "Agents Platform"
+      ],
+      "operation_id": "post_agent_avatar_route",
+      "summary": "Post Agent Avatar"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/convai/agents/{agent_id}/branches",
+      "tags": [
+        "Agents Platform"
+      ],
+      "operation_id": "get_branches_route",
+      "summary": "List Agent Branches"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/convai/agents/{agent_id}/branches",
+      "tags": [
+        "Agents Platform"
+      ],
+      "operation_id": "create_branch_route",
+      "summary": "Create A New Branch"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/convai/agents/{agent_id}/branches/{branch_id}",
+      "tags": [
+        "Agents Platform"
+      ],
+      "operation_id": "get_branch_route",
+      "summary": "Get Agent Branch"
+    },
+    {
+      "method": "PATCH",
+      "path": "/v1/convai/agents/{agent_id}/branches/{branch_id}",
+      "tags": [
+        "Agents Platform"
+      ],
+      "operation_id": "update_branch_route",
+      "summary": "Update Agent Branch"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/convai/agents/{agent_id}/branches/{branch_id}/rebase",
+      "tags": [
+        "Agents Platform"
+      ],
+      "operation_id": "rebase_branch_onto_main",
+      "summary": "Rebase A Branch Onto Main"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/convai/agents/{agent_id}/branches/{source_branch_id}/merge",
+      "tags": [
+        "Agents Platform"
+      ],
+      "operation_id": "merge_branch_into_target",
+      "summary": "Merge A Branch Into A Target Branch"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/convai/agents/{agent_id}/deployments",
+      "tags": [
+        "Agents Platform"
+      ],
+      "operation_id": "create_agent_deployment_route",
+      "summary": "Create Or Update Deployments"
+    },
+    {
+      "method": "DELETE",
+      "path": "/v1/convai/agents/{agent_id}/drafts",
+      "tags": [
+        "Agents Platform"
+      ],
+      "operation_id": "delete_agent_draft_route",
+      "summary": "Delete Agent Draft"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/convai/agents/{agent_id}/drafts",
+      "tags": [
+        "Agents Platform"
+      ],
+      "operation_id": "create_agent_draft_route",
+      "summary": "Create Agent Draft"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/convai/agents/{agent_id}/duplicate",
+      "tags": [
+        "Agents Platform"
+      ],
+      "operation_id": "duplicate_agent_route",
+      "summary": "Duplicate Agent"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/convai/agents/{agent_id}/link",
+      "tags": [
+        "Agents Platform"
+      ],
+      "operation_id": "get_agent_link_route",
+      "summary": "Get Shareable Agent Link"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/convai/agents/{agent_id}/simulate-conversation",
+      "tags": [
+        "Agents Platform"
+      ],
+      "operation_id": "run_conversation_simulation_route",
+      "summary": "Simulates A Conversation"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/convai/agents/{agent_id}/simulate-conversation/stream",
+      "tags": [
+        "Agents Platform"
+      ],
+      "operation_id": "run_conversation_simulation_route_stream",
+      "summary": "Simulates A Conversation (Stream)"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/convai/agents/{agent_id}/versions/{version_id}",
+      "tags": [
+        "Agents Platform"
+      ],
+      "operation_id": "get_version_metadata_route",
+      "summary": "Get Agent Version Metadata"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/convai/agents/{agent_id}/widget",
+      "tags": [
+        "Agents Platform"
+      ],
+      "operation_id": "get_agent_widget_route",
+      "summary": "Get Agent Widget Config"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/convai/analytics/live-count",
+      "tags": [
+        "Agents Platform"
+      ],
+      "operation_id": "get_live_count",
+      "summary": "Get Live Count"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/convai/batch-calling/submit",
+      "tags": [
+        "Agents Platform"
+      ],
+      "operation_id": "create_batch_call",
+      "summary": "Submit A Batch Call Request."
+    },
+    {
+      "method": "GET",
+      "path": "/v1/convai/batch-calling/workspace",
+      "tags": [
+        "Agents Platform"
+      ],
+      "operation_id": "get_workspace_batch_calls",
+      "summary": "Get All Batch Calls For A Workspace."
+    },
+    {
+      "method": "DELETE",
+      "path": "/v1/convai/batch-calling/{batch_id}",
+      "tags": [
+        "Agents Platform"
+      ],
+      "operation_id": "delete_batch_call",
+      "summary": "Delete A Batch Call."
+    },
+    {
+      "method": "GET",
+      "path": "/v1/convai/batch-calling/{batch_id}",
+      "tags": [
+        "Agents Platform"
+      ],
+      "operation_id": "get_batch_call",
+      "summary": "Get A Batch Call By Id."
+    },
+    {
+      "method": "POST",
+      "path": "/v1/convai/batch-calling/{batch_id}/cancel",
+      "tags": [
+        "Agents Platform"
+      ],
+      "operation_id": "cancel_batch_call",
+      "summary": "Cancel A Batch Call."
+    },
+    {
+      "method": "POST",
+      "path": "/v1/convai/batch-calling/{batch_id}/retry",
+      "tags": [
+        "Agents Platform"
+      ],
+      "operation_id": "retry_batch_call",
+      "summary": "Retry A Batch Call."
+    },
+    {
+      "method": "GET",
+      "path": "/v1/convai/conversation/get-signed-url",
+      "tags": [
+        "Agents Platform"
+      ],
+      "operation_id": "get_conversation_signed_link",
+      "summary": "Get Signed Url"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/convai/conversation/get_signed_url",
+      "tags": [
+        "Agents Platform"
+      ],
+      "operation_id": "get_signed_url_deprecated",
+      "summary": "Get Signed Url"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/convai/conversation/token",
+      "tags": [
+        "Agents Platform"
+      ],
+      "operation_id": "get_livekit_token",
+      "summary": "Get Webrtc Token"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/convai/conversations",
+      "tags": [
+        "Agents Platform"
+      ],
+      "operation_id": "get_conversation_histories_route",
+      "summary": "Get Conversations"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/convai/conversations/messages/smart-search",
+      "tags": [
+        "Agents Platform"
+      ],
+      "operation_id": "smart_search_conversation_messages_route",
+      "summary": "Smart Search Conversation Messages"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/convai/conversations/messages/text-search",
+      "tags": [
+        "Agents Platform"
+      ],
+      "operation_id": "text_search_conversation_messages_route",
+      "summary": "Text Search Conversation Messages"
+    },
+    {
+      "method": "DELETE",
+      "path": "/v1/convai/conversations/{conversation_id}",
+      "tags": [
+        "Agents Platform"
+      ],
+      "operation_id": "delete_conversation_route",
+      "summary": "Delete Conversation"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/convai/conversations/{conversation_id}",
+      "tags": [
+        "Agents Platform"
+      ],
+      "operation_id": "get_conversation_history_route",
+      "summary": "Get Conversation Details"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/convai/conversations/{conversation_id}/audio",
+      "tags": [
+        "Agents Platform"
+      ],
+      "operation_id": "get_conversation_audio_route",
+      "summary": "Get Conversation Audio"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/convai/conversations/{conversation_id}/feedback",
+      "tags": [
+        "Agents Platform"
+      ],
+      "operation_id": "post_conversation_feedback_route",
+      "summary": "Send Conversation Feedback"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/convai/conversations/{conversation_id}/files",
+      "tags": [
+        "Agents Platform"
+      ],
+      "operation_id": "upload_file_route",
+      "summary": "Upload File"
+    },
+    {
+      "method": "DELETE",
+      "path": "/v1/convai/conversations/{conversation_id}/files/{file_id}",
+      "tags": [
+        "Agents Platform"
+      ],
+      "operation_id": "cancel_file_upload_route",
+      "summary": "Delete File Upload"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/convai/conversations/{conversation_id}/sip-messages",
+      "tags": [
+        "Agents Platform"
+      ],
+      "operation_id": "get_conversation_sip_messages",
+      "summary": "Get Sip Messages For A Conversation"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/convai/conversations/{conversation_id}/tags",
+      "tags": [
+        "Agents Platform"
+      ],
+      "operation_id": "assign_conversation_tags_route",
+      "summary": "Assign Conversation Tags"
+    },
+    {
+      "method": "DELETE",
+      "path": "/v1/convai/conversations/{conversation_id}/tags/{tag_id}",
+      "tags": [
+        "Agents Platform"
+      ],
+      "operation_id": "unassign_conversation_tag_route",
+      "summary": "Unassign Conversation Tag"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/convai/environment-variables",
+      "tags": [
+        "Agents Platform"
+      ],
+      "operation_id": "list_environment_variables",
+      "summary": "List Environment Variables"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/convai/environment-variables",
+      "tags": [
+        "Agents Platform"
+      ],
+      "operation_id": "create_environment_variable",
+      "summary": "Create Environment Variable"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/convai/environment-variables/{env_var_id}",
+      "tags": [
+        "Agents Platform"
+      ],
+      "operation_id": "get_environment_variable",
+      "summary": "Get Environment Variable"
+    },
+    {
+      "method": "PATCH",
+      "path": "/v1/convai/environment-variables/{env_var_id}",
+      "tags": [
+        "Agents Platform"
+      ],
+      "operation_id": "update_environment_variable",
+      "summary": "Update Environment Variable"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/convai/exotel/outbound-call",
+      "tags": [
+        "Agents Platform"
+      ],
+      "operation_id": "handle_exotel_outbound_call",
+      "summary": "Handle An Outbound Call Via Exotel"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/convai/knowledge-base",
+      "tags": [
+        "Agents Platform"
+      ],
+      "operation_id": "get_knowledge_base_list_route",
+      "summary": "Get Knowledge Base List"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/convai/knowledge-base",
+      "tags": [
+        "Agents Platform"
+      ],
+      "operation_id": "add_documentation_to_knowledge_base",
+      "summary": "Add To Knowledge Base"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/convai/knowledge-base/file",
+      "tags": [
+        "Agents Platform"
+      ],
+      "operation_id": "create_file_document_route",
+      "summary": "Create File Document"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/convai/knowledge-base/rag-index",
+      "tags": [
+        "Agents Platform"
+      ],
+      "operation_id": "get_rag_index_overview",
+      "summary": "Get Rag Index Overview."
+    },
+    {
+      "method": "POST",
+      "path": "/v1/convai/knowledge-base/rag-index",
+      "tags": [
+        "Agents Platform"
+      ],
+      "operation_id": "get_or_create_rag_indexes",
+      "summary": "Compute Rag Indexes In Batch"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/convai/knowledge-base/search",
+      "tags": [
+        "Agents Platform"
+      ],
+      "operation_id": "search_knowledge_base_content_route",
+      "summary": "Search Knowledge Base Content"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/convai/knowledge-base/summaries",
+      "tags": [
+        "Agents Platform"
+      ],
+      "operation_id": "get_agent_knowledge_base_summaries_route",
+      "summary": "Get Knowledge Base Summaries By Ids"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/convai/knowledge-base/text",
+      "tags": [
+        "Agents Platform"
+      ],
+      "operation_id": "create_text_document_route",
+      "summary": "Create Text Document"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/convai/knowledge-base/url",
+      "tags": [
+        "Agents Platform"
+      ],
+      "operation_id": "create_url_document_route",
+      "summary": "Create Url Document"
+    },
+    {
+      "method": "DELETE",
+      "path": "/v1/convai/knowledge-base/{documentation_id}",
+      "tags": [
+        "Agents Platform"
+      ],
+      "operation_id": "delete_knowledge_base_document",
+      "summary": "Delete Knowledge Base Document Or Folder"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/convai/knowledge-base/{documentation_id}",
+      "tags": [
+        "Agents Platform"
+      ],
+      "operation_id": "get_documentation_from_knowledge_base",
+      "summary": "Get Documentation From Knowledge Base"
+    },
+    {
+      "method": "PATCH",
+      "path": "/v1/convai/knowledge-base/{documentation_id}",
+      "tags": [
+        "Agents Platform"
+      ],
+      "operation_id": "update_document_route",
+      "summary": "Update Document"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/convai/knowledge-base/{documentation_id}/chunk/{chunk_id}",
+      "tags": [
+        "Agents Platform"
+      ],
+      "operation_id": "get_documentation_chunk_from_knowledge_base",
+      "summary": "Get Documentation Chunk From Knowledge Base"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/convai/knowledge-base/{documentation_id}/chunks",
+      "tags": [
+        "Agents Platform"
+      ],
+      "operation_id": "get_documentation_chunks_from_knowledge_base",
+      "summary": "Get All Rag Chunks For A Document"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/convai/knowledge-base/{documentation_id}/content",
+      "tags": [
+        "Agents Platform"
+      ],
+      "operation_id": "get_knowledge_base_content",
+      "summary": "Get Document Content"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/convai/knowledge-base/{documentation_id}/dependent-agents",
+      "tags": [
+        "Agents Platform"
+      ],
+      "operation_id": "get_knowledge_base_dependent_agents",
+      "summary": "Get Dependent Agents List"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/convai/knowledge-base/{documentation_id}/rag-index",
+      "tags": [
+        "Agents Platform"
+      ],
+      "operation_id": "get_rag_indexes",
+      "summary": "Get Rag Indexes Of The Specified Knowledgebase Document."
+    },
+    {
+      "method": "POST",
+      "path": "/v1/convai/knowledge-base/{documentation_id}/rag-index",
+      "tags": [
+        "Agents Platform"
+      ],
+      "operation_id": "rag_index_status",
+      "summary": "Compute Rag Index."
+    },
+    {
+      "method": "DELETE",
+      "path": "/v1/convai/knowledge-base/{documentation_id}/rag-index/{rag_index_id}",
+      "tags": [
+        "Agents Platform"
+      ],
+      "operation_id": "delete_rag_index",
+      "summary": "Delete Rag Index."
+    },
+    {
+      "method": "POST",
+      "path": "/v1/convai/knowledge-base/{documentation_id}/refresh",
+      "tags": [
+        "Agents Platform"
+      ],
+      "operation_id": "refresh_url_document_route",
+      "summary": "Refresh Url Document Content"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/convai/knowledge-base/{documentation_id}/source-file-url",
+      "tags": [
+        "Agents Platform"
+      ],
+      "operation_id": "get_knowledge_base_source_file_url",
+      "summary": "Get Document Source File Url"
+    },
+    {
+      "method": "PATCH",
+      "path": "/v1/convai/knowledge-base/{documentation_id}/update-file",
+      "tags": [
+        "Agents Platform"
+      ],
+      "operation_id": "update_file_document_route",
+      "summary": "Update File Document"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/convai/llm-usage/calculate",
+      "tags": [
+        "Agents Platform"
+      ],
+      "operation_id": "get_public_llm_expected_cost_calculation",
+      "summary": "Calculate Expected Llm Usage"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/convai/llm/list",
+      "tags": [
+        "Agents Platform"
+      ],
+      "operation_id": "list_available_llms",
+      "summary": "List Available Llms"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/convai/mcp-servers",
+      "tags": [
+        "Agents Platform"
+      ],
+      "operation_id": "list_mcp_servers_route",
+      "summary": "List Mcp Servers"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/convai/mcp-servers",
+      "tags": [
+        "Agents Platform"
+      ],
+      "operation_id": "create_mcp_server_route",
+      "summary": "Create Mcp Server"
+    },
+    {
+      "method": "DELETE",
+      "path": "/v1/convai/mcp-servers/{mcp_server_id}",
+      "tags": [
+        "Agents Platform"
+      ],
+      "operation_id": "delete_mcp_server_route",
+      "summary": "Delete Mcp Server"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/convai/mcp-servers/{mcp_server_id}",
+      "tags": [
+        "Agents Platform"
+      ],
+      "operation_id": "get_mcp_route",
+      "summary": "Get Mcp Server"
+    },
+    {
+      "method": "PATCH",
+      "path": "/v1/convai/mcp-servers/{mcp_server_id}",
+      "tags": [
+        "Agents Platform"
+      ],
+      "operation_id": "update_mcp_server_config_route",
+      "summary": "Update Mcp Server Configuration"
+    },
+    {
+      "method": "PATCH",
+      "path": "/v1/convai/mcp-servers/{mcp_server_id}/approval-policy",
+      "tags": [
+        "Agents Platform"
+      ],
+      "operation_id": "update_mcp_server_approval_policy_route",
+      "summary": "Update Mcp Server Approval Policy"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/convai/mcp-servers/{mcp_server_id}/tool-approvals",
+      "tags": [
+        "Agents Platform"
+      ],
+      "operation_id": "add_mcp_server_tool_approval_route",
+      "summary": "Create Mcp Server Tool Approval"
+    },
+    {
+      "method": "DELETE",
+      "path": "/v1/convai/mcp-servers/{mcp_server_id}/tool-approvals/{tool_name}",
+      "tags": [
+        "Agents Platform"
+      ],
+      "operation_id": "remove_mcp_server_tool_approval_route",
+      "summary": "Delete Mcp Server Tool Approval"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/convai/mcp-servers/{mcp_server_id}/tool-configs",
+      "tags": [
+        "Agents Platform"
+      ],
+      "operation_id": "add_mcp_tool_config_override_route",
+      "summary": "Create Mcp Tool Configuration Override"
+    },
+    {
+      "method": "DELETE",
+      "path": "/v1/convai/mcp-servers/{mcp_server_id}/tool-configs/{tool_name}",
+      "tags": [
+        "Agents Platform"
+      ],
+      "operation_id": "remove_mcp_tool_config_override_route",
+      "summary": "Delete Mcp Tool Configuration Override"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/convai/mcp-servers/{mcp_server_id}/tool-configs/{tool_name}",
+      "tags": [
+        "Agents Platform"
+      ],
+      "operation_id": "get_mcp_tool_config_override_route",
+      "summary": "Get Mcp Tool Configuration Override"
+    },
+    {
+      "method": "PATCH",
+      "path": "/v1/convai/mcp-servers/{mcp_server_id}/tool-configs/{tool_name}",
+      "tags": [
+        "Agents Platform"
+      ],
+      "operation_id": "update_mcp_tool_config_override_route",
+      "summary": "Update Mcp Tool Configuration Override"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/convai/mcp-servers/{mcp_server_id}/tools",
+      "tags": [
+        "Agents Platform"
+      ],
+      "operation_id": "list_mcp_server_tools_route",
+      "summary": "List Mcp Server Tools"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/convai/phone-numbers",
+      "tags": [
+        "Agents Platform"
+      ],
+      "operation_id": "list_phone_numbers_route",
+      "summary": "List Phone Numbers"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/convai/phone-numbers",
+      "tags": [
+        "Agents Platform"
+      ],
+      "operation_id": "create_phone_number_route",
+      "summary": "Import Phone Number"
+    },
+    {
+      "method": "DELETE",
+      "path": "/v1/convai/phone-numbers/{phone_number_id}",
+      "tags": [
+        "Agents Platform"
+      ],
+      "operation_id": "delete_phone_number_route",
+      "summary": "Delete Phone Number"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/convai/phone-numbers/{phone_number_id}",
+      "tags": [
+        "Agents Platform"
+      ],
+      "operation_id": "get_phone_number_route",
+      "summary": "Get Phone Number"
+    },
+    {
+      "method": "PATCH",
+      "path": "/v1/convai/phone-numbers/{phone_number_id}",
+      "tags": [
+        "Agents Platform"
+      ],
+      "operation_id": "update_phone_number_route",
+      "summary": "Update Phone Number"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/convai/phone-numbers/{phone_number_id}/sip-messages",
+      "tags": [
+        "Agents Platform"
+      ],
+      "operation_id": "list_sip_messages",
+      "summary": "Get Sip Messages For A Phone Number"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/convai/secrets",
+      "tags": [
+        "Agents Platform"
+      ],
+      "operation_id": "get_secrets_route",
+      "summary": "Get Convai Workspace Secrets"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/convai/secrets",
+      "tags": [
+        "Agents Platform"
+      ],
+      "operation_id": "create_secret_route",
+      "summary": "Create Convai Workspace Secret"
+    },
+    {
+      "method": "DELETE",
+      "path": "/v1/convai/secrets/{secret_id}",
+      "tags": [
+        "Agents Platform"
+      ],
+      "operation_id": "delete_secret_route",
+      "summary": "Delete Convai Workspace Secret"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/convai/secrets/{secret_id}",
+      "tags": [
+        "Agents Platform"
+      ],
+      "operation_id": "get_secret_route",
+      "summary": "Get Convai Workspace Secret"
+    },
+    {
+      "method": "PATCH",
+      "path": "/v1/convai/secrets/{secret_id}",
+      "tags": [
+        "Agents Platform"
+      ],
+      "operation_id": "update_secret_route",
+      "summary": "Update Convai Workspace Secret"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/convai/secrets/{secret_id}/dependencies/{resource_type}",
+      "tags": [
+        "Agents Platform"
+      ],
+      "operation_id": "get_secret_dependencies_route",
+      "summary": "Get Secret Dependencies By Type"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/convai/settings",
+      "tags": [
+        "Agents Platform"
+      ],
+      "operation_id": "get_settings_route",
+      "summary": "Get Convai Settings"
+    },
+    {
+      "method": "PATCH",
+      "path": "/v1/convai/settings",
+      "tags": [
+        "Agents Platform"
+      ],
+      "operation_id": "update_settings_route",
+      "summary": "Update Convai Settings"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/convai/settings/dashboard",
+      "tags": [
+        "Agents Platform"
+      ],
+      "operation_id": "get_dashboard_settings_route",
+      "summary": "Get Convai Dashboard Settings"
+    },
+    {
+      "method": "PATCH",
+      "path": "/v1/convai/settings/dashboard",
+      "tags": [
+        "Agents Platform"
+      ],
+      "operation_id": "update_dashboard_settings_route",
+      "summary": "Update Convai Dashboard Settings"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/convai/sip-trunk/outbound-call",
+      "tags": [
+        "Agents Platform"
+      ],
+      "operation_id": "handle_sip_trunk_outbound_call",
+      "summary": "Handle An Outbound Call Via Sip Trunk"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/convai/tags",
+      "tags": [
+        "Agents Platform"
+      ],
+      "operation_id": "list_conversation_tags_route",
+      "summary": "List Conversation Tags"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/convai/tags",
+      "tags": [
+        "Agents Platform"
+      ],
+      "operation_id": "create_conversation_tag_route",
+      "summary": "Create Conversation Tag"
+    },
+    {
+      "method": "DELETE",
+      "path": "/v1/convai/tags/{tag_id}",
+      "tags": [
+        "Agents Platform"
+      ],
+      "operation_id": "delete_conversation_tag_route",
+      "summary": "Delete Conversation Tag"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/convai/tags/{tag_id}",
+      "tags": [
+        "Agents Platform"
+      ],
+      "operation_id": "get_conversation_tag_route",
+      "summary": "Get Conversation Tag"
+    },
+    {
+      "method": "PATCH",
+      "path": "/v1/convai/tags/{tag_id}",
+      "tags": [
+        "Agents Platform"
+      ],
+      "operation_id": "update_conversation_tag_route",
+      "summary": "Update Conversation Tag"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/convai/tools",
+      "tags": [
+        "Agents Platform"
+      ],
+      "operation_id": "get_tools_route",
+      "summary": "Get Tools"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/convai/tools",
+      "tags": [
+        "Agents Platform"
+      ],
+      "operation_id": "add_tool_route",
+      "summary": "Add Tool"
+    },
+    {
+      "method": "DELETE",
+      "path": "/v1/convai/tools/{tool_id}",
+      "tags": [
+        "Agents Platform"
+      ],
+      "operation_id": "delete_tool_route",
+      "summary": "Delete Tool"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/convai/tools/{tool_id}",
+      "tags": [
+        "Agents Platform"
+      ],
+      "operation_id": "get_tool_route",
+      "summary": "Get Tool"
+    },
+    {
+      "method": "PATCH",
+      "path": "/v1/convai/tools/{tool_id}",
+      "tags": [
+        "Agents Platform"
+      ],
+      "operation_id": "update_tool_route",
+      "summary": "Update Tool"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/convai/tools/{tool_id}/dependent-agents",
+      "tags": [
+        "Agents Platform"
+      ],
+      "operation_id": "get_tool_dependent_agents_route",
+      "summary": "Get Dependent Agents List"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/convai/tools/{tool_id}/executions",
+      "tags": [
+        "Agents Platform"
+      ],
+      "operation_id": "get_tool_executions_route",
+      "summary": "Get Tool Executions"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/convai/twilio/outbound-call",
+      "tags": [
+        "Agents Platform"
+      ],
+      "operation_id": "handle_twilio_outbound_call",
+      "summary": "Handle An Outbound Call Via Twilio"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/convai/twilio/register-call",
+      "tags": [
+        "Agents Platform"
+      ],
+      "operation_id": "register_twilio_call",
+      "summary": "Register A Twilio Call And Return Twiml"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/convai/users",
+      "tags": [
+        "Agents Platform"
+      ],
+      "operation_id": "get_conversation_users_route",
+      "summary": "Get Conversation Users"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/convai/whatsapp-accounts",
+      "tags": [
+        "Agents Platform"
+      ],
+      "operation_id": "list_whatsapp_accounts",
+      "summary": "List Whatsapp Accounts"
+    },
+    {
+      "method": "DELETE",
+      "path": "/v1/convai/whatsapp-accounts/{phone_number_id}",
+      "tags": [
+        "Agents Platform"
+      ],
+      "operation_id": "delete_whatsapp_account",
+      "summary": "Delete Whatsapp Account"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/convai/whatsapp-accounts/{phone_number_id}",
+      "tags": [
+        "Agents Platform"
+      ],
+      "operation_id": "get_whatsapp_account",
+      "summary": "Get Whatsapp Account"
+    },
+    {
+      "method": "PATCH",
+      "path": "/v1/convai/whatsapp-accounts/{phone_number_id}",
+      "tags": [
+        "Agents Platform"
+      ],
+      "operation_id": "update_whatsapp_account",
+      "summary": "Update Whatsapp Account"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/convai/whatsapp/outbound-call",
+      "tags": [
+        "Agents Platform"
+      ],
+      "operation_id": "whatsapp_outbound_call",
+      "summary": "Make An Outbound Call Via Whatsapp"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/convai/whatsapp/outbound-message",
+      "tags": [
+        "Agents Platform"
+      ],
+      "operation_id": "whatsapp_outbound_message",
+      "summary": "Send An Outbound Message Via Whatsapp"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/convai/conversations/{conversation_id}/analysis/evaluations/run",
+      "tags": [
+        "Agents Workspace Analytics"
+      ],
+      "operation_id": "run_conversation_evaluations",
+      "summary": "Run Conversation Evaluation"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/convai/conversations/{conversation_id}/analysis/run",
+      "tags": [
+        "Agents Workspace Analytics"
+      ],
+      "operation_id": "run_conversation_analysis",
+      "summary": "Run Conversation Analysis"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/convai/knowledge-base/bulk-move",
+      "tags": [
+        "Conversational AI"
+      ],
+      "operation_id": "post_knowledge_base_bulk_move_route",
+      "summary": "Bulk Move Entities To Folder"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/convai/knowledge-base/folder",
+      "tags": [
+        "Conversational AI"
+      ],
+      "operation_id": "create_folder_route",
+      "summary": "Create Folder"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/convai/knowledge-base/{document_id}/move",
+      "tags": [
+        "Conversational AI"
+      ],
+      "operation_id": "post_knowledge_base_move_route",
+      "summary": "Move Entity To Folder"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/pronunciation-dictionaries",
+      "tags": [
+        "Pronunciation Dictionary"
+      ],
+      "operation_id": "get_pronunciation_dictionaries_metadata",
+      "summary": "Get Pronunciation Dictionaries"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/pronunciation-dictionaries/add-from-file",
+      "tags": [
+        "Pronunciation Dictionary"
+      ],
+      "operation_id": "add_from_file",
+      "summary": "Add A Pronunciation Dictionary"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/pronunciation-dictionaries/add-from-rules",
+      "tags": [
+        "Pronunciation Dictionary"
+      ],
+      "operation_id": "add_from_rules",
+      "summary": "Add A Pronunciation Dictionary"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/pronunciation-dictionaries/{dictionary_id}/{version_id}/download",
+      "tags": [
+        "Pronunciation Dictionary"
+      ],
+      "operation_id": "get_pronunciation_dictionary_version_pls",
+      "summary": "Get A Pls File With A Pronunciation Dictionary Version Rules"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/pronunciation-dictionaries/{pronunciation_dictionary_id}",
+      "tags": [
+        "Pronunciation Dictionary"
+      ],
+      "operation_id": "get_pronunciation_dictionary_metadata",
+      "summary": "Get Metadata For A Pronunciation Dictionary"
+    },
+    {
+      "method": "PATCH",
+      "path": "/v1/pronunciation-dictionaries/{pronunciation_dictionary_id}",
+      "tags": [
+        "Pronunciation Dictionary"
+      ],
+      "operation_id": "patch_pronunciation_dictionary",
+      "summary": "Update Pronunciation Dictionary"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/pronunciation-dictionaries/{pronunciation_dictionary_id}/add-rules",
+      "tags": [
+        "Pronunciation Dictionary"
+      ],
+      "operation_id": "add_rules",
+      "summary": "Add Rules To The Pronunciation Dictionary"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/pronunciation-dictionaries/{pronunciation_dictionary_id}/remove-rules",
+      "tags": [
+        "Pronunciation Dictionary"
+      ],
+      "operation_id": "remove_rules",
+      "summary": "Remove Rules From The Pronunciation Dictionary"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/pronunciation-dictionaries/{pronunciation_dictionary_id}/set-rules",
+      "tags": [
+        "Pronunciation Dictionary"
+      ],
+      "operation_id": "set_rules",
+      "summary": "Set Rules On The Pronunciation Dictionary"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/single-use-token/{token_type}",
+      "tags": [
+        "Single Use Token"
+      ],
+      "operation_id": "get_single_use_token",
+      "summary": "Create Single Use Token"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/speech-engine",
+      "tags": [
+        "Speech Engine"
+      ],
+      "operation_id": "list_speech_engines",
+      "summary": "List Speech Engines"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/speech-engine",
+      "tags": [
+        "Speech Engine"
+      ],
+      "operation_id": "create_speech_engine",
+      "summary": "Create Speech Engine"
+    },
+    {
+      "method": "DELETE",
+      "path": "/v1/speech-engine/{speech_engine_id}",
+      "tags": [
+        "Speech Engine"
+      ],
+      "operation_id": "delete_speech_engine",
+      "summary": "Delete Speech Engine"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/speech-engine/{speech_engine_id}",
+      "tags": [
+        "Speech Engine"
+      ],
+      "operation_id": "get_speech_engine",
+      "summary": "Get Speech Engine"
+    },
+    {
+      "method": "PATCH",
+      "path": "/v1/speech-engine/{speech_engine_id}",
+      "tags": [
+        "Speech Engine"
+      ],
+      "operation_id": "update_speech_engine",
+      "summary": "Update Speech Engine"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/workspace/analytics/query/usage-by-product-over-time",
+      "tags": [
+        "access:all"
+      ],
+      "operation_id": "usage_by_product_over_time",
+      "summary": "Get Workspace Usage"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/workspace/analytics/requests",
+      "tags": [
+        "access:all"
+      ],
+      "operation_id": "requests_list",
+      "summary": "List Api Requests"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/audio-isolation",
+      "tags": [
+        "audio-isolation"
+      ],
+      "operation_id": "audio_isolation",
+      "summary": "Audio Isolation"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/audio-isolation/history",
+      "tags": [
+        "audio-isolation"
+      ],
+      "operation_id": "get_audio_isolation_history",
+      "summary": "Get Audio Isolation History"
+    },
+    {
+      "method": "DELETE",
+      "path": "/v1/audio-isolation/history/{history_item_id}",
+      "tags": [
+        "audio-isolation"
+      ],
+      "operation_id": "delete_audio_isolation_history_item",
+      "summary": "Delete Audio Isolation History Item"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/audio-isolation/stream",
+      "tags": [
+        "audio-isolation"
+      ],
+      "operation_id": "audio_isolation_stream",
+      "summary": "Audio Isolation Stream"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/audio-native",
+      "tags": [
+        "audio-native"
+      ],
+      "operation_id": "create_audio_native_project",
+      "summary": "Creates Audio Native Enabled Project."
+    },
+    {
+      "method": "POST",
+      "path": "/v1/audio-native/content",
+      "tags": [
+        "audio-native"
+      ],
+      "operation_id": "audio_native_update_content_from_url",
+      "summary": "Update Audio-Native Content From Url"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/audio-native/{project_id}/content",
+      "tags": [
+        "audio-native"
+      ],
+      "operation_id": "audio_native_project_update_content_endpoint",
+      "summary": "Update Audio-Native Project Content"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/audio-native/{project_id}/settings",
+      "tags": [
+        "audio-native"
+      ],
+      "operation_id": "get_audio_native_project_settings_endpoint",
+      "summary": "Get Audio Native Project Settings"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/dubbing",
+      "tags": [
+        "dubbing",
+        "dubbing",
+        "dubbing"
+      ],
+      "operation_id": "list_dubs",
+      "summary": "List Dubs"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/dubbing",
+      "tags": [
+        "dubbing",
+        "dubbing",
+        "dubbing"
+      ],
+      "operation_id": "create_dubbing",
+      "summary": "Dub A Video Or An Audio File"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/dubbing/resource/{dubbing_id}",
+      "tags": [
+        "dubbing",
+        "dubbing",
+        "resource",
+        "segment",
+        "enterprise"
+      ],
+      "operation_id": "get_dubbing_resource",
+      "summary": "Get The Dubbing Resource For An Id."
+    },
+    {
+      "method": "POST",
+      "path": "/v1/dubbing/resource/{dubbing_id}/dub",
+      "tags": [
+        "dubbing",
+        "dubbing",
+        "resource",
+        "segment",
+        "enterprise"
+      ],
+      "operation_id": "dub",
+      "summary": "Dubs All Or Some Segments And Languages"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/dubbing/resource/{dubbing_id}/language",
+      "tags": [
+        "dubbing",
+        "dubbing",
+        "resource",
+        "segment",
+        "enterprise"
+      ],
+      "operation_id": "add_language",
+      "summary": "Add A Language To The Resource"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/dubbing/resource/{dubbing_id}/migrate-segments",
+      "tags": [
+        "dubbing",
+        "dubbing",
+        "resource",
+        "segment",
+        "enterprise"
+      ],
+      "operation_id": "migrate_segments",
+      "summary": "Move Segments Between Speakers"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/dubbing/resource/{dubbing_id}/render/{language}",
+      "tags": [
+        "dubbing",
+        "dubbing",
+        "resource",
+        "segment",
+        "enterprise"
+      ],
+      "operation_id": "render",
+      "summary": "Render Audio Or Video For The Given Language"
+    },
+    {
+      "method": "DELETE",
+      "path": "/v1/dubbing/resource/{dubbing_id}/segment/{segment_id}",
+      "tags": [
+        "dubbing",
+        "dubbing",
+        "resource",
+        "segment",
+        "enterprise"
+      ],
+      "operation_id": "delete_segment",
+      "summary": "Deletes A Single Segment"
+    },
+    {
+      "method": "PATCH",
+      "path": "/v1/dubbing/resource/{dubbing_id}/segment/{segment_id}/{language}",
+      "tags": [
+        "dubbing",
+        "dubbing",
+        "resource",
+        "segment",
+        "enterprise"
+      ],
+      "operation_id": "update_segment_language",
+      "summary": "Modify A Single Segment"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/dubbing/resource/{dubbing_id}/speaker",
+      "tags": [
+        "dubbing",
+        "dubbing",
+        "resource",
+        "segment",
+        "enterprise"
+      ],
+      "operation_id": "create_speaker",
+      "summary": "Create A New Speaker"
+    },
+    {
+      "method": "PATCH",
+      "path": "/v1/dubbing/resource/{dubbing_id}/speaker/{speaker_id}",
+      "tags": [
+        "dubbing",
+        "dubbing",
+        "resource",
+        "segment",
+        "enterprise"
+      ],
+      "operation_id": "update_speaker",
+      "summary": "Update Metadata For A Speaker"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/dubbing/resource/{dubbing_id}/speaker/{speaker_id}/segment",
+      "tags": [
+        "dubbing",
+        "dubbing",
+        "resource",
+        "segment",
+        "enterprise"
+      ],
+      "operation_id": "create_clip",
+      "summary": "Create A Segment For The Speaker"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/dubbing/resource/{dubbing_id}/speaker/{speaker_id}/similar-voices",
+      "tags": [
+        "dubbing",
+        "dubbing",
+        "resource",
+        "segment",
+        "enterprise"
+      ],
+      "operation_id": "get_similar_voices_for_speaker",
+      "summary": "Search The Elevenlabs Library For Voices Similar To A Speaker."
+    },
+    {
+      "method": "POST",
+      "path": "/v1/dubbing/resource/{dubbing_id}/transcribe",
+      "tags": [
+        "dubbing",
+        "dubbing",
+        "resource",
+        "segment",
+        "enterprise"
+      ],
+      "operation_id": "transcribe",
+      "summary": "Transcribes Segments"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/dubbing/resource/{dubbing_id}/translate",
+      "tags": [
+        "dubbing",
+        "dubbing",
+        "resource",
+        "segment",
+        "enterprise"
+      ],
+      "operation_id": "translate",
+      "summary": "Translates All Or Some Segments And Languages"
+    },
+    {
+      "method": "DELETE",
+      "path": "/v1/dubbing/{dubbing_id}",
+      "tags": [
+        "dubbing",
+        "dubbing",
+        "dubbing"
+      ],
+      "operation_id": "delete_dubbing",
+      "summary": "Delete Dubbing"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/dubbing/{dubbing_id}",
+      "tags": [
+        "dubbing",
+        "dubbing",
+        "dubbing"
+      ],
+      "operation_id": "get_dubbed_metadata",
+      "summary": "Get Dubbing"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/dubbing/{dubbing_id}/audio/{language_code}",
+      "tags": [
+        "dubbing",
+        "dubbing",
+        "dubbing"
+      ],
+      "operation_id": "get_dubbed_file",
+      "summary": "Get Dubbed File"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/dubbing/{dubbing_id}/transcript/{language_code}",
+      "tags": [
+        "dubbing",
+        "dubbing",
+        "dubbing"
+      ],
+      "operation_id": "get_dubbed_transcript_file",
+      "summary": "Get Dubbed Transcript"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/dubbing/{dubbing_id}/transcripts/{language_code}/format/{format_type}",
+      "tags": [
+        "dubbing",
+        "dubbing",
+        "dubbing"
+      ],
+      "operation_id": "get_dubbing_transcripts",
+      "summary": "Retrieve A Transcript"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/forced-alignment",
+      "tags": [
+        "forced-alignment"
+      ],
+      "operation_id": "forced_alignment",
+      "summary": "Create Forced Alignment"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/models",
+      "tags": [
+        "models"
+      ],
+      "operation_id": "get_models",
+      "summary": "Get Models"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/music",
+      "tags": [
+        "music-generation"
+      ],
+      "operation_id": "generate",
+      "summary": "Compose Music"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/music/detailed",
+      "tags": [
+        "music-generation"
+      ],
+      "operation_id": "compose_detailed",
+      "summary": "Compose Music With A Detailed Response"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/music/plan",
+      "tags": [
+        "music-generation"
+      ],
+      "operation_id": "compose_plan",
+      "summary": "Generate Composition Plan"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/music/stem-separation",
+      "tags": [
+        "music-generation"
+      ],
+      "operation_id": "separate_song_stems",
+      "summary": "Stem Separation"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/music/stream",
+      "tags": [
+        "music-generation"
+      ],
+      "operation_id": "stream_compose",
+      "summary": "Stream Composed Music"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/music/upload",
+      "tags": [
+        "music-generation"
+      ],
+      "operation_id": "upload_song",
+      "summary": "Upload Music"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/productions/orders",
+      "tags": [
+        "productions"
+      ],
+      "operation_id": "public_list_orders",
+      "summary": "List Orders"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/productions/orders",
+      "tags": [
+        "productions"
+      ],
+      "operation_id": "public_create_order",
+      "summary": "Create Order"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/productions/orders/languages/{order_item_kind}",
+      "tags": [
+        "productions"
+      ],
+      "operation_id": "public_get_available_languages",
+      "summary": "Get Available Languages"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/productions/orders/{order_id}",
+      "tags": [
+        "productions"
+      ],
+      "operation_id": "public_get_order",
+      "summary": "Get Order"
+    },
+    {
+      "method": "PATCH",
+      "path": "/v1/productions/orders/{order_id}",
+      "tags": [
+        "productions"
+      ],
+      "operation_id": "public_update_order",
+      "summary": "Update Order"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/productions/orders/{order_id}/deliverables",
+      "tags": [
+        "productions"
+      ],
+      "operation_id": "public_get_order_deliverables",
+      "summary": "Get Order Deliverables"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/productions/orders/{order_id}/items",
+      "tags": [
+        "productions"
+      ],
+      "operation_id": "public_upsert_order_item",
+      "summary": "Upsert Order Item"
+    },
+    {
+      "method": "DELETE",
+      "path": "/v1/productions/orders/{order_id}/items/{item_id}",
+      "tags": [
+        "productions"
+      ],
+      "operation_id": "public_remove_order_item",
+      "summary": "Remove Order Item"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/productions/orders/{order_id}/media",
+      "tags": [
+        "productions"
+      ],
+      "operation_id": "public_register_media",
+      "summary": "Register Media"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/productions/orders/{order_id}/media/{media_id}",
+      "tags": [
+        "productions"
+      ],
+      "operation_id": "public_get_media_info",
+      "summary": "Get Media Info"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/productions/orders/{order_id}/submit",
+      "tags": [
+        "productions"
+      ],
+      "operation_id": "public_submit_order",
+      "summary": "Submit Order"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/voices/pvc",
+      "tags": [
+        "pvc-voices"
+      ],
+      "operation_id": "create_pvc_voice",
+      "summary": "Create Pvc Voice"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/voices/pvc/{voice_id}",
+      "tags": [
+        "pvc-voices"
+      ],
+      "operation_id": "edit_pvc_voice",
+      "summary": "Edit Pvc Voice"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/voices/pvc/{voice_id}/captcha",
+      "tags": [
+        "pvc-voices"
+      ],
+      "operation_id": "get_pvc_voice_captcha",
+      "summary": "Get Pvc Voice Captcha"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/voices/pvc/{voice_id}/captcha",
+      "tags": [
+        "pvc-voices"
+      ],
+      "operation_id": "verify_pvc_voice_captcha",
+      "summary": "Verify Pvc Voice Captcha"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/voices/pvc/{voice_id}/samples",
+      "tags": [
+        "pvc-voices"
+      ],
+      "operation_id": "add_pvc_voice_samples",
+      "summary": "Add Samples To Pvc Voice"
+    },
+    {
+      "method": "DELETE",
+      "path": "/v1/voices/pvc/{voice_id}/samples/{sample_id}",
+      "tags": [
+        "pvc-voices"
+      ],
+      "operation_id": "delete_pvc_voice_sample",
+      "summary": "Delete Pvc Voice Sample"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/voices/pvc/{voice_id}/samples/{sample_id}",
+      "tags": [
+        "pvc-voices"
+      ],
+      "operation_id": "edit_pvc_voice_sample",
+      "summary": "Update Pvc Voice Sample"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/voices/pvc/{voice_id}/samples/{sample_id}/audio",
+      "tags": [
+        "pvc-voices"
+      ],
+      "operation_id": "get_pvc_sample_audio",
+      "summary": "Retrieve Voice Sample Audio"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/voices/pvc/{voice_id}/samples/{sample_id}/separate-speakers",
+      "tags": [
+        "pvc-voices"
+      ],
+      "operation_id": "start_speaker_separation",
+      "summary": "Start Speaker Separation"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/voices/pvc/{voice_id}/samples/{sample_id}/speakers",
+      "tags": [
+        "pvc-voices"
+      ],
+      "operation_id": "get_pvc_sample_speakers",
+      "summary": "Retrieve Speaker Separation Status"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/voices/pvc/{voice_id}/samples/{sample_id}/speakers/{speaker_id}/audio",
+      "tags": [
+        "pvc-voices"
+      ],
+      "operation_id": "get_speaker_audio",
+      "summary": "Retrieve Separated Speaker Audio"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/voices/pvc/{voice_id}/samples/{sample_id}/waveform",
+      "tags": [
+        "pvc-voices"
+      ],
+      "operation_id": "get_pvc_sample_visual_waveform",
+      "summary": "Retrieve Voice Sample Visual Waveform"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/voices/pvc/{voice_id}/train",
+      "tags": [
+        "pvc-voices"
+      ],
+      "operation_id": "run_pvc_voice_training",
+      "summary": "Run Pvc Training"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/voices/pvc/{voice_id}/verification",
+      "tags": [
+        "pvc-voices"
+      ],
+      "operation_id": "request_pvc_manual_verification",
+      "summary": "Request Manual Verification"
+    },
+    {
+      "method": "DELETE",
+      "path": "/v1/voices/{voice_id}/samples/{sample_id}",
+      "tags": [
+        "samples"
+      ],
+      "operation_id": "delete_sample",
+      "summary": "Delete Sample"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/voices/{voice_id}/samples/{sample_id}/audio",
+      "tags": [
+        "samples"
+      ],
+      "operation_id": "get_audio_from_sample",
+      "summary": "Get Audio From Sample"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/sound-generation",
+      "tags": [
+        "sound-generation"
+      ],
+      "operation_id": "sound_generation",
+      "summary": "Sound Generation"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/history",
+      "tags": [
+        "speech-history"
+      ],
+      "operation_id": "get_speech_history",
+      "summary": "List Generated Items"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/history/download",
+      "tags": [
+        "speech-history"
+      ],
+      "operation_id": "download_speech_history_items",
+      "summary": "Download History Items"
+    },
+    {
+      "method": "DELETE",
+      "path": "/v1/history/{history_item_id}",
+      "tags": [
+        "speech-history"
+      ],
+      "operation_id": "delete_speech_history_item",
+      "summary": "Delete History Item"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/history/{history_item_id}",
+      "tags": [
+        "speech-history"
+      ],
+      "operation_id": "get_speech_history_item_by_id",
+      "summary": "Get History Item"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/history/{history_item_id}/audio",
+      "tags": [
+        "speech-history"
+      ],
+      "operation_id": "get_audio_full_from_speech_history_item",
+      "summary": "Get Audio From History Item"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/speech-to-speech/{voice_id}",
+      "tags": [
+        "speech-to-speech"
+      ],
+      "operation_id": "speech_to_speech_full",
+      "summary": "Speech To Speech"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/speech-to-speech/{voice_id}/stream",
+      "tags": [
+        "speech-to-speech"
+      ],
+      "operation_id": "speech_to_speech_stream",
+      "summary": "Speech To Speech Streaming"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/speech-to-text",
+      "tags": [
+        "speech-to-text"
+      ],
+      "operation_id": "speech_to_text",
+      "summary": "Speech To Text"
+    },
+    {
+      "method": "DELETE",
+      "path": "/v1/speech-to-text/transcripts/{transcription_id}",
+      "tags": [
+        "speech-to-text"
+      ],
+      "operation_id": "delete_transcript_by_id",
+      "summary": "Delete Transcript By Id"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/speech-to-text/transcripts/{transcription_id}",
+      "tags": [
+        "speech-to-text"
+      ],
+      "operation_id": "get_transcript_by_id",
+      "summary": "Get Transcript By Id"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/studio/podcasts",
+      "tags": [
+        "studio"
+      ],
+      "operation_id": "create_podcast",
+      "summary": "Create Podcast"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/studio/projects",
+      "tags": [
+        "studio"
+      ],
+      "operation_id": "get_projects",
+      "summary": "List Studio Projects"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/studio/projects",
+      "tags": [
+        "studio"
+      ],
+      "operation_id": "add_project",
+      "summary": "Create Studio Project"
+    },
+    {
+      "method": "DELETE",
+      "path": "/v1/studio/projects/{project_id}",
+      "tags": [
+        "studio"
+      ],
+      "operation_id": "delete_project",
+      "summary": "Delete Studio Project"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/studio/projects/{project_id}",
+      "tags": [
+        "studio"
+      ],
+      "operation_id": "get_project_by_id",
+      "summary": "Get Studio Project"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/studio/projects/{project_id}",
+      "tags": [
+        "studio"
+      ],
+      "operation_id": "edit_project",
+      "summary": "Update Studio Project"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/studio/projects/{project_id}/chapters",
+      "tags": [
+        "studio"
+      ],
+      "operation_id": "get_chapters",
+      "summary": "List Chapters"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/studio/projects/{project_id}/chapters",
+      "tags": [
+        "studio"
+      ],
+      "operation_id": "add_chapter",
+      "summary": "Create Chapter"
+    },
+    {
+      "method": "DELETE",
+      "path": "/v1/studio/projects/{project_id}/chapters/{chapter_id}",
+      "tags": [
+        "studio"
+      ],
+      "operation_id": "delete_chapter_endpoint",
+      "summary": "Delete Chapter"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/studio/projects/{project_id}/chapters/{chapter_id}",
+      "tags": [
+        "studio"
+      ],
+      "operation_id": "get_chapter_by_id_endpoint",
+      "summary": "Get Chapter"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/studio/projects/{project_id}/chapters/{chapter_id}",
+      "tags": [
+        "studio"
+      ],
+      "operation_id": "edit_chapter",
+      "summary": "Update Chapter"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/studio/projects/{project_id}/chapters/{chapter_id}/convert",
+      "tags": [
+        "studio"
+      ],
+      "operation_id": "convert_chapter_endpoint",
+      "summary": "Convert Chapter"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/studio/projects/{project_id}/chapters/{chapter_id}/snapshots",
+      "tags": [
+        "studio"
+      ],
+      "operation_id": "get_chapter_snapshots",
+      "summary": "List Chapter Snapshots"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/studio/projects/{project_id}/chapters/{chapter_id}/snapshots/{chapter_snapshot_id}",
+      "tags": [
+        "studio"
+      ],
+      "operation_id": "get_chapter_snapshot_endpoint",
+      "summary": "Get Chapter Snapshot"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/studio/projects/{project_id}/chapters/{chapter_id}/snapshots/{chapter_snapshot_id}/stream",
+      "tags": [
+        "studio"
+      ],
+      "operation_id": "stream_chapter_snapshot_audio",
+      "summary": "Stream Chapter Audio"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/studio/projects/{project_id}/content",
+      "tags": [
+        "studio"
+      ],
+      "operation_id": "edit_project_content",
+      "summary": "Update Studio Project Content"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/studio/projects/{project_id}/convert",
+      "tags": [
+        "studio"
+      ],
+      "operation_id": "convert_project_endpoint",
+      "summary": "Convert Studio Project"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/studio/projects/{project_id}/muted-tracks",
+      "tags": [
+        "studio"
+      ],
+      "operation_id": "get_project_muted_tracks_endpoint",
+      "summary": "Get Project Muted Tracks"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/studio/projects/{project_id}/pronunciation-dictionaries",
+      "tags": [
+        "studio"
+      ],
+      "operation_id": "update_pronunciation_dictionaries",
+      "summary": "Create Pronunciation Dictionaries"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/studio/projects/{project_id}/snapshots",
+      "tags": [
+        "studio"
+      ],
+      "operation_id": "get_project_snapshots",
+      "summary": "List Studio Project Snapshots"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/studio/projects/{project_id}/snapshots/{project_snapshot_id}",
+      "tags": [
+        "studio"
+      ],
+      "operation_id": "get_project_snapshot_endpoint",
+      "summary": "Get Project Snapshot"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/studio/projects/{project_id}/snapshots/{project_snapshot_id}/archive",
+      "tags": [
+        "studio"
+      ],
+      "operation_id": "stream_project_snapshot_archive_endpoint",
+      "summary": "Stream Archive With Studio Project Audio"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/studio/projects/{project_id}/snapshots/{project_snapshot_id}/stream",
+      "tags": [
+        "studio"
+      ],
+      "operation_id": "stream_project_snapshot_audio_endpoint",
+      "summary": "Stream Studio Project Audio"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/text-to-dialogue",
+      "tags": [
+        "text-to-dialogue"
+      ],
+      "operation_id": "text_to_dialogue",
+      "summary": "Text To Dialogue (Multi-Voice)"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/text-to-dialogue/stream",
+      "tags": [
+        "text-to-dialogue"
+      ],
+      "operation_id": "text_to_dialogue_stream",
+      "summary": "Text To Dialogue (Multi-Voice) Streaming"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/text-to-dialogue/stream/with-timestamps",
+      "tags": [
+        "text-to-dialogue"
+      ],
+      "operation_id": "text_to_dialogue_stream_with_timestamps",
+      "summary": "Text To Dialogue Streaming With Timestamps"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/text-to-dialogue/with-timestamps",
+      "tags": [
+        "text-to-dialogue"
+      ],
+      "operation_id": "text_to_dialogue_full_with_timestamps",
+      "summary": "Text To Dialogue With Timestamps"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/text-to-speech/{voice_id}",
+      "tags": [
+        "text-to-speech"
+      ],
+      "operation_id": "text_to_speech_full",
+      "summary": "Text To Speech"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/text-to-speech/{voice_id}/stream",
+      "tags": [
+        "text-to-speech"
+      ],
+      "operation_id": "text_to_speech_stream",
+      "summary": "Text To Speech Streaming"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/text-to-speech/{voice_id}/stream/with-timestamps",
+      "tags": [
+        "text-to-speech"
+      ],
+      "operation_id": "text_to_speech_stream_with_timestamps",
+      "summary": "Text To Speech Streaming With Timestamps"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/text-to-speech/{voice_id}/with-timestamps",
+      "tags": [
+        "text-to-speech"
+      ],
+      "operation_id": "text_to_speech_full_with_timestamps",
+      "summary": "Text To Speech With Timestamps"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/text-to-voice",
+      "tags": [
+        "text-to-voice"
+      ],
+      "operation_id": "create_voice",
+      "summary": "Create A New Voice From Voice Preview"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/text-to-voice/create-previews",
+      "tags": [
+        "text-to-voice"
+      ],
+      "operation_id": "text_to_voice",
+      "summary": "[Deprecated] Generate A Voice Preview From Description"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/text-to-voice/design",
+      "tags": [
+        "text-to-voice"
+      ],
+      "operation_id": "text_to_voice_design",
+      "summary": "Design A Voice."
+    },
+    {
+      "method": "GET",
+      "path": "/v1/text-to-voice/{generated_voice_id}/stream",
+      "tags": [
+        "text-to-voice"
+      ],
+      "operation_id": "text_to_voice_preview_stream",
+      "summary": "Text To Voice Preview Streaming"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/text-to-voice/{voice_id}/remix",
+      "tags": [
+        "text-to-voice"
+      ],
+      "operation_id": "text_to_voice_remix",
+      "summary": "Remix A Voice."
+    },
+    {
+      "method": "GET",
+      "path": "/docs",
+      "tags": [
+        "untagged"
+      ],
+      "operation_id": "redirect_to_mintlify",
+      "summary": "Redirect To Mintlify"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/convai/agent-testing",
+      "tags": [
+        "untagged"
+      ],
+      "operation_id": "list_chat_response_tests_route",
+      "summary": "List Agent Response Tests"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/convai/agent-testing/create",
+      "tags": [
+        "untagged"
+      ],
+      "operation_id": "create_agent_response_test_route",
+      "summary": "Create Agent Response Test"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/convai/agent-testing/summaries",
+      "tags": [
+        "untagged"
+      ],
+      "operation_id": "get_agent_response_tests_summaries_route",
+      "summary": "Get Agent Response Test Summaries By Ids"
+    },
+    {
+      "method": "DELETE",
+      "path": "/v1/convai/agent-testing/{test_id}",
+      "tags": [
+        "untagged"
+      ],
+      "operation_id": "delete_chat_response_test_route",
+      "summary": "Delete Agent Response Test"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/convai/agent-testing/{test_id}",
+      "tags": [
+        "untagged"
+      ],
+      "operation_id": "get_agent_response_test_route",
+      "summary": "Get Agent Response Test By Id"
+    },
+    {
+      "method": "PUT",
+      "path": "/v1/convai/agent-testing/{test_id}",
+      "tags": [
+        "untagged"
+      ],
+      "operation_id": "update_agent_response_test_route",
+      "summary": "Update Agent Response Test"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/convai/agents/{agent_id}/run-tests",
+      "tags": [
+        "untagged"
+      ],
+      "operation_id": "run_agent_test_suite_route",
+      "summary": "Run Tests On The Agent"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/convai/test-invocations",
+      "tags": [
+        "untagged"
+      ],
+      "operation_id": "list_test_invocations_route",
+      "summary": "List Test Invocations"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/convai/test-invocations/{test_invocation_id}",
+      "tags": [
+        "untagged"
+      ],
+      "operation_id": "get_test_invocation_route",
+      "summary": "Get Test Invocation"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/convai/test-invocations/{test_invocation_id}/resubmit",
+      "tags": [
+        "untagged"
+      ],
+      "operation_id": "resubmit_tests_route",
+      "summary": "Resubmit Tests"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/usage/character-stats",
+      "tags": [
+        "untagged"
+      ],
+      "operation_id": "usage_characters",
+      "summary": "Get Characters Usage Metrics (Deprecated)"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/user",
+      "tags": [
+        "untagged"
+      ],
+      "operation_id": "get_user_info",
+      "summary": "Get User Info"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/user/subscription",
+      "tags": [
+        "untagged"
+      ],
+      "operation_id": "get_user_subscription_info",
+      "summary": "Get User Subscription Info"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/music/video-to-music",
+      "tags": [
+        "video-to-music"
+      ],
+      "operation_id": "video_to_music",
+      "summary": "Video To Music"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/shared-voices",
+      "tags": [
+        "voices"
+      ],
+      "operation_id": "get_library_voices",
+      "summary": "Get Voices"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/similar-voices",
+      "tags": [
+        "voices"
+      ],
+      "operation_id": "get_similar_library_voices",
+      "summary": "Get Similar Library Voices"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/voices",
+      "tags": [
+        "voices",
+        "voices"
+      ],
+      "operation_id": "get_voices",
+      "summary": "List Voices"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/voices/add",
+      "tags": [
+        "voices"
+      ],
+      "operation_id": "add_voice",
+      "summary": "Add Voice"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/voices/add/{public_user_id}/{voice_id}",
+      "tags": [
+        "voices"
+      ],
+      "operation_id": "add_sharing_voice",
+      "summary": "Add Shared Voice"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/voices/settings/default",
+      "tags": [
+        "voices",
+        "voices"
+      ],
+      "operation_id": "get_voice_settings_default",
+      "summary": "Get Default Voice Settings."
+    },
+    {
+      "method": "DELETE",
+      "path": "/v1/voices/{voice_id}",
+      "tags": [
+        "voices",
+        "voices"
+      ],
+      "operation_id": "delete_voice",
+      "summary": "Delete Voice"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/voices/{voice_id}",
+      "tags": [
+        "voices",
+        "voices"
+      ],
+      "operation_id": "get_voice_by_id",
+      "summary": "Get Voice"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/voices/{voice_id}/edit",
+      "tags": [
+        "voices"
+      ],
+      "operation_id": "edit_voice",
+      "summary": "Edit Voice"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/voices/{voice_id}/settings",
+      "tags": [
+        "voices",
+        "voices"
+      ],
+      "operation_id": "get_voice_settings",
+      "summary": "Get Voice Settings"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/voices/{voice_id}/settings/edit",
+      "tags": [
+        "voices",
+        "voices"
+      ],
+      "operation_id": "edit_voice_settings",
+      "summary": "Edit Voice Settings"
+    },
+    {
+      "method": "GET",
+      "path": "/v2/voices",
+      "tags": [
+        "voices"
+      ],
+      "operation_id": "get_user_voices_v2",
+      "summary": "Get Voices V2"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/service-accounts",
+      "tags": [
+        "workspace"
+      ],
+      "operation_id": "get_workspace_service_accounts",
+      "summary": "Get Workspace Service Accounts"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/service-accounts/{service_account_user_id}/api-keys",
+      "tags": [
+        "workspace"
+      ],
+      "operation_id": "get_service_account_api_keys_route",
+      "summary": "Get Service Account Api Keys Route"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/service-accounts/{service_account_user_id}/api-keys",
+      "tags": [
+        "workspace"
+      ],
+      "operation_id": "create_service_account_api_key",
+      "summary": "Create Service Account Api Key"
+    },
+    {
+      "method": "DELETE",
+      "path": "/v1/service-accounts/{service_account_user_id}/api-keys/{api_key_id}",
+      "tags": [
+        "workspace"
+      ],
+      "operation_id": "delete_service_account_api_key",
+      "summary": "Delete Service Account Api Key"
+    },
+    {
+      "method": "PATCH",
+      "path": "/v1/service-accounts/{service_account_user_id}/api-keys/{api_key_id}",
+      "tags": [
+        "workspace"
+      ],
+      "operation_id": "edit_service_account_api_key",
+      "summary": "Edit Service Account Api Key"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/workspace/audit-logs",
+      "tags": [
+        "workspace"
+      ],
+      "operation_id": "get_workspace_audit_logs",
+      "summary": "Get Workspace Audit Logs"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/workspace/auth-connections",
+      "tags": [
+        "workspace"
+      ],
+      "operation_id": "list_auth_connections",
+      "summary": "Get Workspace Auth Connections"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/workspace/auth-connections",
+      "tags": [
+        "workspace"
+      ],
+      "operation_id": "create_auth_connection",
+      "summary": "Create Workspace Auth Connection"
+    },
+    {
+      "method": "DELETE",
+      "path": "/v1/workspace/auth-connections/{auth_connection_id}",
+      "tags": [
+        "workspace"
+      ],
+      "operation_id": "delete_auth_connection",
+      "summary": "Delete Workspace Auth Connection"
+    },
+    {
+      "method": "PATCH",
+      "path": "/v1/workspace/auth-connections/{auth_connection_id}",
+      "tags": [
+        "workspace"
+      ],
+      "operation_id": "update_auth_connection",
+      "summary": "Update Workspace Auth Connection"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/workspace/groups",
+      "tags": [
+        "workspace"
+      ],
+      "operation_id": "get_groups_endpoint",
+      "summary": "Get All Groups"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/workspace/groups/search",
+      "tags": [
+        "workspace"
+      ],
+      "operation_id": "search_groups",
+      "summary": "Search User Groups"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/workspace/groups/{group_id}/members",
+      "tags": [
+        "workspace"
+      ],
+      "operation_id": "add_member",
+      "summary": "Add Member To User Group"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/workspace/groups/{group_id}/members/remove",
+      "tags": [
+        "workspace"
+      ],
+      "operation_id": "remove_member",
+      "summary": "Delete Member From User Group"
+    },
+    {
+      "method": "DELETE",
+      "path": "/v1/workspace/invites",
+      "tags": [
+        "workspace"
+      ],
+      "operation_id": "delete_invite",
+      "summary": "Delete Existing Invitation"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/workspace/invites/add",
+      "tags": [
+        "workspace"
+      ],
+      "operation_id": "invite_user",
+      "summary": "Invite User"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/workspace/invites/add-bulk",
+      "tags": [
+        "workspace"
+      ],
+      "operation_id": "invite_users_bulk",
+      "summary": "Invite Multiple Users"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/workspace/members",
+      "tags": [
+        "workspace"
+      ],
+      "operation_id": "update_workspace_member",
+      "summary": "Update Member"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/workspace/resources/{resource_id}",
+      "tags": [
+        "workspace"
+      ],
+      "operation_id": "get_resource_metadata",
+      "summary": "Get Resource"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/workspace/resources/{resource_id}/share",
+      "tags": [
+        "workspace"
+      ],
+      "operation_id": "share_resource_endpoint",
+      "summary": "Share Workspace Resource"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/workspace/resources/{resource_id}/unshare",
+      "tags": [
+        "workspace"
+      ],
+      "operation_id": "unshare_resource_endpoint",
+      "summary": "Unshare Workspace Resource"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/workspace/webhooks",
+      "tags": [
+        "workspace"
+      ],
+      "operation_id": "get_workspace_webhooks_route",
+      "summary": "List Workspace Webhooks"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/workspace/webhooks",
+      "tags": [
+        "workspace"
+      ],
+      "operation_id": "create_workspace_webhook_route",
+      "summary": "Create Workspace Webhook"
+    },
+    {
+      "method": "DELETE",
+      "path": "/v1/workspace/webhooks/{webhook_id}",
+      "tags": [
+        "workspace"
+      ],
+      "operation_id": "delete_workspace_webhook_route",
+      "summary": "Delete Workspace Webhook"
+    },
+    {
+      "method": "PATCH",
+      "path": "/v1/workspace/webhooks/{webhook_id}",
+      "tags": [
+        "workspace"
+      ],
+      "operation_id": "edit_workspace_webhook_route",
+      "summary": "Update Workspace Webhook"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/workspaces/api-keys/disable",
+      "tags": [
+        "workspace",
+        "api-key"
+      ],
+      "operation_id": "disable",
+      "summary": "Disable Api Key"
+    }
+  ]
+}
