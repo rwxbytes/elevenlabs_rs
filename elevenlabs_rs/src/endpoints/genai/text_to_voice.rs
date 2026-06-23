@@ -41,7 +41,9 @@ use crate::shared::{
     VoiceSettings, VoiceVerification,
 };
 use base64::prelude::{Engine as _, BASE64_STANDARD};
+use futures_util::{Stream, StreamExt};
 use std::collections::HashMap;
+use std::pin::Pin;
 
 /// Generate voices from a single text prompt.
 ///
@@ -109,6 +111,60 @@ pub struct TextToVoiceBody {
     guidance_scale: Option<f32>,
 }
 
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct TextToVoiceDesignBody {
+    voice_description: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    model_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    text: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    auto_generate_text: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    loudness: Option<f32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    seed: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    guidance_scale: Option<f32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    stream_previews: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    should_enhance: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    remixing_session_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    remixing_session_iteration_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    quality: Option<f32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    reference_audio_base64: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    prompt_strength: Option<f32>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct TextToVoiceRemixBody {
+    voice_description: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    text: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    auto_generate_text: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    loudness: Option<f32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    seed: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    guidance_scale: Option<f32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    stream_previews: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    remixing_session_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    remixing_session_iteration_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    prompt_strength: Option<f32>,
+}
+
 impl TextToVoiceBody {
     pub fn new(voice_description: impl Into<String>) -> Self {
         Self {
@@ -148,6 +204,163 @@ impl TextToVoiceBody {
     }
 }
 
+impl TextToVoiceDesignBody {
+    pub fn new(voice_description: impl Into<String>) -> Self {
+        Self {
+            voice_description: voice_description.into(),
+            model_id: None,
+            text: None,
+            auto_generate_text: None,
+            loudness: None,
+            seed: None,
+            guidance_scale: None,
+            stream_previews: None,
+            should_enhance: None,
+            remixing_session_id: None,
+            remixing_session_iteration_id: None,
+            quality: None,
+            reference_audio_base64: None,
+            prompt_strength: None,
+        }
+    }
+
+    pub fn with_model_id(mut self, model_id: impl Into<String>) -> Self {
+        self.model_id = Some(model_id.into());
+        self
+    }
+
+    pub fn with_text(mut self, text: impl Into<String>) -> Self {
+        self.text = Some(text.into());
+        self
+    }
+
+    pub fn with_auto_generated_text(mut self) -> Self {
+        self.auto_generate_text = Some(true);
+        self
+    }
+
+    pub fn with_loudness(mut self, loudness: f32) -> Self {
+        self.loudness = Some(loudness);
+        self
+    }
+
+    pub fn with_seed(mut self, seed: u32) -> Self {
+        self.seed = Some(seed);
+        self
+    }
+
+    pub fn with_guidance_scale(mut self, guidance_scale: f32) -> Self {
+        self.guidance_scale = Some(guidance_scale);
+        self
+    }
+
+    pub fn stream_previews(mut self, stream_previews: bool) -> Self {
+        self.stream_previews = Some(stream_previews);
+        self
+    }
+
+    pub fn should_enhance(mut self, should_enhance: bool) -> Self {
+        self.should_enhance = Some(should_enhance);
+        self
+    }
+
+    pub fn with_remixing_session_id(mut self, remixing_session_id: impl Into<String>) -> Self {
+        self.remixing_session_id = Some(remixing_session_id.into());
+        self
+    }
+
+    pub fn with_remixing_session_iteration_id(
+        mut self,
+        remixing_session_iteration_id: impl Into<String>,
+    ) -> Self {
+        self.remixing_session_iteration_id = Some(remixing_session_iteration_id.into());
+        self
+    }
+
+    pub fn with_quality(mut self, quality: f32) -> Self {
+        self.quality = Some(quality);
+        self
+    }
+
+    pub fn with_reference_audio_base64(
+        mut self,
+        reference_audio_base64: impl Into<String>,
+    ) -> Self {
+        self.reference_audio_base64 = Some(reference_audio_base64.into());
+        self
+    }
+
+    pub fn with_prompt_strength(mut self, prompt_strength: f32) -> Self {
+        self.prompt_strength = Some(prompt_strength);
+        self
+    }
+}
+
+impl TextToVoiceRemixBody {
+    pub fn new(voice_description: impl Into<String>) -> Self {
+        Self {
+            voice_description: voice_description.into(),
+            text: None,
+            auto_generate_text: None,
+            loudness: None,
+            seed: None,
+            guidance_scale: None,
+            stream_previews: None,
+            remixing_session_id: None,
+            remixing_session_iteration_id: None,
+            prompt_strength: None,
+        }
+    }
+
+    pub fn with_text(mut self, text: impl Into<String>) -> Self {
+        self.text = Some(text.into());
+        self
+    }
+
+    pub fn with_auto_generated_text(mut self) -> Self {
+        self.auto_generate_text = Some(true);
+        self
+    }
+
+    pub fn with_loudness(mut self, loudness: f32) -> Self {
+        self.loudness = Some(loudness);
+        self
+    }
+
+    pub fn with_seed(mut self, seed: u32) -> Self {
+        self.seed = Some(seed);
+        self
+    }
+
+    pub fn with_guidance_scale(mut self, guidance_scale: f32) -> Self {
+        self.guidance_scale = Some(guidance_scale);
+        self
+    }
+
+    pub fn stream_previews(mut self, stream_previews: bool) -> Self {
+        self.stream_previews = Some(stream_previews);
+        self
+    }
+
+    pub fn with_remixing_session_id(mut self, remixing_session_id: impl Into<String>) -> Self {
+        self.remixing_session_id = Some(remixing_session_id.into());
+        self
+    }
+
+    pub fn with_remixing_session_iteration_id(
+        mut self,
+        remixing_session_iteration_id: impl Into<String>,
+    ) -> Self {
+        self.remixing_session_iteration_id = Some(remixing_session_iteration_id.into());
+        self
+    }
+
+    pub fn with_prompt_strength(mut self, prompt_strength: f32) -> Self {
+        self.prompt_strength = Some(prompt_strength);
+        self
+    }
+}
+
 #[derive(Clone, Debug, Default)]
 pub struct TextToVoiceQuery {
     params: QueryValues,
@@ -183,6 +396,130 @@ impl ElevenLabsEndpoint for TextToVoice {
     }
 }
 
+#[derive(Clone, Debug)]
+pub struct TextToVoiceDesign {
+    body: TextToVoiceDesignBody,
+    query: Option<TextToVoiceQuery>,
+}
+
+impl TextToVoiceDesign {
+    pub fn new(body: TextToVoiceDesignBody) -> Self {
+        Self { body, query: None }
+    }
+
+    pub fn with_query(mut self, query: TextToVoiceQuery) -> Self {
+        self.query = Some(query);
+        self
+    }
+}
+
+impl crate::endpoints::sealed::Sealed for TextToVoiceDesign {}
+
+impl ElevenLabsEndpoint for TextToVoiceDesign {
+    const PATH: &'static str = "/v1/text-to-voice/design";
+
+    const METHOD: Method = Method::POST;
+
+    type ResponseBody = TextToVoiceResponse;
+
+    fn query_params(&self) -> Option<QueryValues> {
+        self.query.as_ref().map(|q| q.params.clone())
+    }
+
+    async fn request_body(&self) -> Result<RequestBody> {
+        Ok(RequestBody::Json(serde_json::to_value(&self.body)?))
+    }
+
+    async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
+        Ok(resp.json().await?)
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct TextToVoiceRemix {
+    voice_id: String,
+    body: TextToVoiceRemixBody,
+    query: Option<TextToVoiceQuery>,
+}
+
+impl TextToVoiceRemix {
+    pub fn new(voice_id: impl Into<String>, body: TextToVoiceRemixBody) -> Self {
+        Self {
+            voice_id: voice_id.into(),
+            body,
+            query: None,
+        }
+    }
+
+    pub fn with_query(mut self, query: TextToVoiceQuery) -> Self {
+        self.query = Some(query);
+        self
+    }
+}
+
+impl crate::endpoints::sealed::Sealed for TextToVoiceRemix {}
+
+impl ElevenLabsEndpoint for TextToVoiceRemix {
+    const PATH: &'static str = "/v1/text-to-voice/:voice_id/remix";
+
+    const METHOD: Method = Method::POST;
+
+    type ResponseBody = TextToVoiceResponse;
+
+    fn query_params(&self) -> Option<QueryValues> {
+        self.query.as_ref().map(|q| q.params.clone())
+    }
+
+    fn path_params(&self) -> Vec<(&'static str, &str)> {
+        vec![self.voice_id.and_param(PathParam::VoiceID)]
+    }
+
+    async fn request_body(&self) -> Result<RequestBody> {
+        Ok(RequestBody::Json(serde_json::to_value(&self.body)?))
+    }
+
+    async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
+        Ok(resp.json().await?)
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct TextToVoicePreviewStream {
+    generated_voice_id: String,
+}
+
+impl TextToVoicePreviewStream {
+    pub fn new(generated_voice_id: impl Into<String>) -> Self {
+        Self {
+            generated_voice_id: generated_voice_id.into(),
+        }
+    }
+}
+
+type TextToVoicePreviewStreamResponse = Pin<Box<dyn Stream<Item = Result<Bytes>> + Send>>;
+
+impl crate::endpoints::sealed::Sealed for TextToVoicePreviewStream {}
+
+impl ElevenLabsEndpoint for TextToVoicePreviewStream {
+    const PATH: &'static str = "/v1/text-to-voice/:generated_voice_id/stream";
+
+    const METHOD: Method = Method::GET;
+
+    type ResponseBody = TextToVoicePreviewStreamResponse;
+
+    fn path_params(&self) -> Vec<(&'static str, &str)> {
+        vec![self
+            .generated_voice_id
+            .and_param(PathParam::GeneratedVoiceID)]
+    }
+
+    async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
+        let stream = resp.bytes_stream();
+        let stream = stream.map(|chunk| chunk.map_err(Into::into));
+        Ok(Box::pin(stream))
+    }
+}
+
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct TextToVoiceResponse {
     pub previews: Vec<VoicePreview>,
@@ -191,10 +528,12 @@ pub struct TextToVoiceResponse {
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct VoicePreview {
+    #[serde(default)]
     pub audio_base_64: String,
     pub generated_voice_id: String,
     pub media_type: String,
     pub duration_secs: f32,
+    pub language: Option<String>,
 }
 
 impl VoicePreview {

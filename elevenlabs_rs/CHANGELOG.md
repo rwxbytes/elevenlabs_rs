@@ -24,6 +24,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - WebSocket TTS serialization tests for escaped text/control messages
 - OpenAPI coverage snapshot, report, and maintainer tooling
 - `ElevenLabsClient::raw` for authenticated raw HTTP calls to endpoints not yet modeled by the crate
+- `CreateSingleUseToken` endpoint
+- `CreateForcedAlignment` endpoint
+- `GetTranscript` and `DeleteTranscript` endpoints
+- `TextToVoiceDesign`, `TextToVoiceRemix`, and `TextToVoicePreviewStream` endpoints
 
 ### Changed
 - **Breaking**: `elevenlabs_rs::Result` now uses `elevenlabs_rs::error::Error` instead of a boxed trait-object error

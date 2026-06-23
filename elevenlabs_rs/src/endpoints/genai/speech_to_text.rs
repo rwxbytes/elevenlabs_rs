@@ -80,6 +80,68 @@ impl CreateTranscript {
     }
 }
 
+#[derive(Clone, Debug)]
+pub struct GetTranscript {
+    transcription_id: String,
+}
+
+impl GetTranscript {
+    pub fn new(transcription_id: impl Into<String>) -> Self {
+        Self {
+            transcription_id: transcription_id.into(),
+        }
+    }
+}
+
+impl crate::endpoints::sealed::Sealed for GetTranscript {}
+
+impl ElevenLabsEndpoint for GetTranscript {
+    const PATH: &'static str = "/v1/speech-to-text/transcripts/:transcription_id";
+
+    const METHOD: Method = Method::GET;
+
+    type ResponseBody = GetTranscriptResponse;
+
+    fn path_params(&self) -> Vec<(&'static str, &str)> {
+        vec![self.transcription_id.and_param(PathParam::TranscriptionID)]
+    }
+
+    async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
+        Ok(resp.json().await?)
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct DeleteTranscript {
+    transcription_id: String,
+}
+
+impl DeleteTranscript {
+    pub fn new(transcription_id: impl Into<String>) -> Self {
+        Self {
+            transcription_id: transcription_id.into(),
+        }
+    }
+}
+
+impl crate::endpoints::sealed::Sealed for DeleteTranscript {}
+
+impl ElevenLabsEndpoint for DeleteTranscript {
+    const PATH: &'static str = "/v1/speech-to-text/transcripts/:transcription_id";
+
+    const METHOD: Method = Method::DELETE;
+
+    type ResponseBody = ();
+
+    fn path_params(&self) -> Vec<(&'static str, &str)> {
+        vec![self.transcription_id.and_param(PathParam::TranscriptionID)]
+    }
+
+    async fn response_body(self, _resp: Response) -> Result<Self::ResponseBody> {
+        Ok(())
+    }
+}
+
 #[derive(Clone, Debug, Default)]
 pub struct CreateTranscriptQuery {
     params: QueryValues,
@@ -322,7 +384,25 @@ pub struct CreateTranscriptResponse {
     pub language_probability: f32,
     pub text: String,
     pub words: Vec<Word>,
+    pub channel_index: Option<u32>,
     pub additional_formats: Option<Vec<RequestedAdditionalFormat>>,
+    pub transcription_id: Option<String>,
+    pub entities: Option<Vec<DetectedEntity>>,
+    pub audio_duration_secs: Option<f32>,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+#[serde(untagged)]
+pub enum GetTranscriptResponse {
+    Single(CreateTranscriptResponse),
+    Multichannel(MultichannelTranscriptResponse),
+}
+
+#[derive(Clone, Debug, Deserialize)]
+pub struct MultichannelTranscriptResponse {
+    pub transcripts: Vec<CreateTranscriptResponse>,
+    pub transcription_id: Option<String>,
+    pub audio_duration_secs: Option<f32>,
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -341,7 +421,9 @@ pub struct Word {
     pub start: Option<f32>,
     pub end: Option<f32>,
     pub speaker_id: Option<String>,
+    pub logprob: Option<f32>,
     pub characters: Option<Vec<Character>>,
+    pub channel_index: Option<u32>,
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -357,6 +439,14 @@ pub struct Character {
     pub text: String,
     pub start: Option<f32>,
     pub end: Option<f32>,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+pub struct DetectedEntity {
+    pub text: String,
+    pub entity_type: String,
+    pub start_char: u32,
+    pub end_char: u32,
 }
 
 impl TryFrom<CreateTranscriptBody> for RequestBody {

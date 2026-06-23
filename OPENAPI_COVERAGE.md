@@ -1,6 +1,6 @@
 # OpenAPI coverage
 
-Generated: 2026-06-22T15:27:47Z
+Generated: 2026-06-23T00:27:17Z
 Snapshot: `openapi/elevenlabs-openapi.paths.json`
 Source: https://api.elevenlabs.io/openapi.json
 
@@ -9,9 +9,9 @@ Source: https://api.elevenlabs.io/openapi.json
 | Metric | Value |
 | --- | ---: |
 | OpenAPI operations | 317 |
-| Implemented method/path pairs | 93 |
-| Coverage | 29.3% |
-| Local endpoint constants checked | 93 |
+| Implemented method/path pairs | 100 |
+| Coverage | 31.5% |
+| Local endpoint constants checked | 100 |
 | Local constants missing from snapshot | 0 |
 
 ## Coverage By Tag
@@ -23,13 +23,13 @@ Source: https://api.elevenlabs.io/openapi.json
 | Agents Workspace Analytics | 0 | 2 | 0.0% |
 | Conversational AI | 0 | 3 | 0.0% |
 | Pronunciation Dictionary | 4 | 9 | 44.4% |
-| Single Use Token | 0 | 1 | 0.0% |
+| Single Use Token | 1 | 1 | 100.0% |
 | Speech Engine | 0 | 5 | 0.0% |
 | access:all | 0 | 2 | 0.0% |
 | audio-isolation | 2 | 4 | 50.0% |
 | audio-native | 1 | 4 | 25.0% |
 | dubbing | 6 | 20 | 30.0% |
-| forced-alignment | 0 | 1 | 0.0% |
+| forced-alignment | 1 | 1 | 100.0% |
 | models | 1 | 1 | 100.0% |
 | music-generation | 0 | 6 | 0.0% |
 | productions | 0 | 11 | 0.0% |
@@ -38,11 +38,11 @@ Source: https://api.elevenlabs.io/openapi.json
 | sound-generation | 1 | 1 | 100.0% |
 | speech-history | 5 | 5 | 100.0% |
 | speech-to-speech | 2 | 2 | 100.0% |
-| speech-to-text | 1 | 3 | 33.3% |
+| speech-to-text | 3 | 3 | 100.0% |
 | studio | 0 | 23 | 0.0% |
 | text-to-dialogue | 4 | 4 | 100.0% |
 | text-to-speech | 4 | 4 | 100.0% |
-| text-to-voice | 2 | 5 | 40.0% |
+| text-to-voice | 5 | 5 | 100.0% |
 | untagged | 3 | 14 | 21.4% |
 | video-to-music | 0 | 1 | 0.0% |
 | voices | 11 | 12 | 91.7% |
@@ -183,12 +183,6 @@ All local endpoint method/path constants match the snapshot.
 | `POST` | `/v1/pronunciation-dictionaries/{pronunciation_dictionary_id}/remove-rules` | Remove Rules From The Pronunciation Dictionary |
 | `POST` | `/v1/pronunciation-dictionaries/{pronunciation_dictionary_id}/set-rules` | Set Rules On The Pronunciation Dictionary |
 
-### Single Use Token
-
-| Method | Path | Summary |
-| --- | --- | --- |
-| `POST` | `/v1/single-use-token/{token_type}` | Create Single Use Token |
-
 ### Speech Engine
 
 | Method | Path | Summary |
@@ -240,12 +234,6 @@ All local endpoint method/path constants match the snapshot.
 | `POST` | `/v1/dubbing/resource/{dubbing_id}/translate` | Translates All Or Some Segments And Languages |
 | `GET` | `/v1/dubbing/{dubbing_id}/transcripts/{language_code}/format/{format_type}` | Retrieve A Transcript |
 
-### forced-alignment
-
-| Method | Path | Summary |
-| --- | --- | --- |
-| `POST` | `/v1/forced-alignment` | Create Forced Alignment |
-
 ### music-generation
 
 | Method | Path | Summary |
@@ -292,13 +280,6 @@ All local endpoint method/path constants match the snapshot.
 | `POST` | `/v1/voices/pvc/{voice_id}/train` | Run Pvc Training |
 | `POST` | `/v1/voices/pvc/{voice_id}/verification` | Request Manual Verification |
 
-### speech-to-text
-
-| Method | Path | Summary |
-| --- | --- | --- |
-| `DELETE` | `/v1/speech-to-text/transcripts/{transcription_id}` | Delete Transcript By Id |
-| `GET` | `/v1/speech-to-text/transcripts/{transcription_id}` | Get Transcript By Id |
-
 ### studio
 
 | Method | Path | Summary |
@@ -326,14 +307,6 @@ All local endpoint method/path constants match the snapshot.
 | `GET` | `/v1/studio/projects/{project_id}/snapshots/{project_snapshot_id}` | Get Project Snapshot |
 | `POST` | `/v1/studio/projects/{project_id}/snapshots/{project_snapshot_id}/archive` | Stream Archive With Studio Project Audio |
 | `POST` | `/v1/studio/projects/{project_id}/snapshots/{project_snapshot_id}/stream` | Stream Studio Project Audio |
-
-### text-to-voice
-
-| Method | Path | Summary |
-| --- | --- | --- |
-| `POST` | `/v1/text-to-voice/design` | Design A Voice. |
-| `GET` | `/v1/text-to-voice/{generated_voice_id}/stream` | Text To Voice Preview Streaming |
-| `POST` | `/v1/text-to-voice/{voice_id}/remix` | Remix A Voice. |
 
 ### untagged
 

@@ -1,0 +1,64 @@
+name: Release gate
+
+on:
+  pull_request:
+  push:
+    branches:
+      - master
+      - develop
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  release-gate:
+    name: Rust release gate
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y pkg-config libssl-dev libasound2-dev
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Cache Rust build artifacts
+        uses: Swatinem/rust-cache@v2
+
+      - name: Install Nushell
+        uses: hustcer/setup-nu@v3.25
+
+      - name: Check formatting
+        run: cargo fmt --check
+
+      - name: Test elevenlabs_rs library
+        run: cargo test -p elevenlabs_rs --all-features --lib
+
+      - name: Check workspace
+        run: cargo check --workspace --all-features
+
+      - name: Check elevenlabs_rs without default features
+        run: cargo check -p elevenlabs_rs --no-default-features
+
+      - name: Check elevenlabs_rs admin feature
+        run: cargo check -p elevenlabs_rs --no-default-features --features admin
+
+      - name: Check elevenlabs_rs genai feature
+        run: cargo check -p elevenlabs_rs --no-default-features --features genai
+
+      - name: Check elevenlabs_rs convai feature
+        run: cargo check -p elevenlabs_rs --no-default-features --features convai
+
+      - name: Run clippy
+        run: cargo clippy --workspace --all-targets --all-features -- -D warnings
+
+      - name: Check OpenAPI endpoint coverage snapshot
+        run: nu tools/openapi_coverage.nu check

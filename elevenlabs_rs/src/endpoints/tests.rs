@@ -16,17 +16,21 @@ use crate::endpoints::convai::phone_numbers::{
     CreatePhoneNumber, CreatePhoneNumberBody, GetPhoneNumber, ListPhoneNumbers,
 };
 use crate::endpoints::convai::tools::{CreateTool, GetTool};
+use crate::endpoints::genai::forced_alignment::{CreateForcedAlignment, CreateForcedAlignmentBody};
 use crate::endpoints::genai::speech_to_text::{
-    AdditionalFormat, CreateTranscript, CreateTranscriptBody, CreateTranscriptQuery, Granularity,
-    SpeechToTextModel,
+    AdditionalFormat, CreateTranscript, CreateTranscriptBody, CreateTranscriptQuery,
+    DeleteTranscript, GetTranscript, Granularity, SpeechToTextModel,
 };
 use crate::endpoints::genai::text_to_dialogue::{
     DialogueInput, TextToDialogue, TextToDialogueBody, TextToDialogueQuery, TextToDialogueStream,
     TextToDialogueStreamWithTimestamps, TextToDialogueWithTimestamps,
 };
 use crate::endpoints::genai::text_to_voice::{
-    SaveVoiceFromPreview, SaveVoiceFromPreviewBody, TextToVoice, TextToVoiceBody, TextToVoiceQuery,
+    SaveVoiceFromPreview, SaveVoiceFromPreviewBody, TextToVoice, TextToVoiceBody,
+    TextToVoiceDesign, TextToVoiceDesignBody, TextToVoicePreviewStream, TextToVoiceQuery,
+    TextToVoiceRemix, TextToVoiceRemixBody,
 };
+use crate::endpoints::genai::tokens::{CreateSingleUseToken, SingleUseTokenType};
 use crate::endpoints::genai::tts::{
     TextToSpeech, TextToSpeechBody, TextToSpeechQuery, TextToSpeechStream,
     TextToSpeechStreamWithTimestamps, TextToSpeechWithTimestamps,
@@ -204,6 +208,42 @@ async fn speech_to_text_exposes_query_and_builds_multipart_body() {
         "https://api.elevenlabs.io/v1/speech-to-text?enable_logging=false",
     );
     assert_multipart_body(&endpoint).await;
+
+    let get_transcript = GetTranscript::new("transcript/id");
+    assert_endpoint(
+        &get_transcript,
+        Method::GET,
+        "https://api.elevenlabs.io/v1/speech-to-text/transcripts/transcript%2Fid",
+    );
+
+    let delete_transcript = DeleteTranscript::new("transcript/id");
+    assert_endpoint(
+        &delete_transcript,
+        Method::DELETE,
+        "https://api.elevenlabs.io/v1/speech-to-text/transcripts/transcript%2Fid",
+    );
+}
+
+#[tokio::test]
+async fn speech_core_gap_endpoints_match_openapi_shape() {
+    let token = CreateSingleUseToken::new(SingleUseTokenType::realtime_scribe());
+    assert_endpoint(
+        &token,
+        Method::POST,
+        "https://api.elevenlabs.io/v1/single-use-token/realtime_scribe",
+    );
+
+    let forced_audio = TempFile::new("mp3", b"fake audio");
+    let forced = CreateForcedAlignment::new(CreateForcedAlignmentBody::new(
+        forced_audio.path_str(),
+        "hello world",
+    ));
+    assert_endpoint(
+        &forced,
+        Method::POST,
+        "https://api.elevenlabs.io/v1/forced-alignment",
+    );
+    assert_multipart_body(&forced).await;
 }
 
 #[tokio::test]
@@ -384,6 +424,44 @@ async fn text_to_voice_paths_and_queries_match_current_api_shape() {
     assert_eq!(
         json_body(&save).await["generated_voice_id"],
         "generated_voice_id"
+    );
+
+    let design_body = TextToVoiceDesignBody::new("warm narrator with a steady studio tone")
+        .with_model_id("eleven_ttv_v3")
+        .stream_previews(true)
+        .should_enhance(true)
+        .with_reference_audio_base64("ZmFrZQ==")
+        .with_prompt_strength(0.25);
+    let design = TextToVoiceDesign::new(design_body).with_query(
+        TextToVoiceQuery::default().with_output_format(OutputFormat::Mp3_44100Hz192kbps),
+    );
+    assert_endpoint(
+        &design,
+        Method::POST,
+        "https://api.elevenlabs.io/v1/text-to-voice/design?output_format=mp3_44100_192",
+    );
+    let design_body = json_body(&design).await;
+    assert_eq!(design_body["model_id"], "eleven_ttv_v3");
+    assert_eq!(design_body["stream_previews"], true);
+
+    let remix_body = TextToVoiceRemixBody::new("make the voice brighter")
+        .with_auto_generated_text()
+        .with_guidance_scale(2.0)
+        .with_prompt_strength(0.5);
+    let remix = TextToVoiceRemix::new("voice/id", remix_body)
+        .with_query(TextToVoiceQuery::default().with_output_format(OutputFormat::Pcm16000Hz));
+    assert_endpoint(
+        &remix,
+        Method::POST,
+        "https://api.elevenlabs.io/v1/text-to-voice/voice%2Fid/remix?output_format=pcm_16000",
+    );
+    assert_eq!(json_body(&remix).await["auto_generate_text"], true);
+
+    let preview_stream = TextToVoicePreviewStream::new("generated/id");
+    assert_endpoint(
+        &preview_stream,
+        Method::GET,
+        "https://api.elevenlabs.io/v1/text-to-voice/generated%2Fid/stream",
     );
 }
 
