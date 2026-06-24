@@ -111,9 +111,11 @@ where
     type Output = O;
 
     fn encode(input: Self::Input, context: WebSocketErrorContext) -> Result<Message> {
-        Ok(Message::Text(serde_json::to_string(&input).map_err(
-            |source| WebSocketError::Encode { context, source },
-        )?))
+        Ok(Message::Text(
+            serde_json::to_string(&input)
+                .map_err(|source| WebSocketError::Encode { context, source })?
+                .into(),
+        ))
     }
 
     fn decode(message: Message, context: WebSocketErrorContext) -> Result<Option<Self::Output>> {
@@ -582,7 +584,7 @@ where
 }
 
 async fn handle_close_frame<T>(
-    msg: Option<tokio_tungstenite::tungstenite::protocol::CloseFrame<'_>>,
+    msg: Option<tokio_tungstenite::tungstenite::protocol::CloseFrame>,
     tx: &mpsc::Sender<Result<T>>,
     context: WebSocketErrorContext,
 ) -> Result<()> {
