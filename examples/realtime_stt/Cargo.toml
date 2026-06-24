@@ -1,0 +1,14 @@
+[package]
+name = "realtime_stt"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+# The realtime speech-to-text WebSocket lives behind the `ws` feature.
+elevenlabs_rs = { path = "../../elevenlabs_rs", features = ["ws"] }
+tokio = { version = "1.42.0", features = ["macros", "rt-multi-thread", "signal"] }
+tokio-stream = "0.1.16"
+cpal = "0.15.3"
+dasp = { version = "0.11.0", features = ["signal", "interpolate-linear", "interpolate"] }
+bytemuck = "1.21.0"
