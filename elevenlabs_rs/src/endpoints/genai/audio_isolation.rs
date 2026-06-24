@@ -1,9 +1,8 @@
 //! The audio isolation endpoint
 
 use super::*;
-use crate::error::Error;
+use crate::shared::{audio_mime_from_extension, FilePart};
 use futures_util::{Stream, StreamExt};
-use std::path::Path;
 use std::pin::Pin;
 
 /// Removes background noise from audio.
@@ -39,28 +38,38 @@ impl AudioIsolation {
 
 #[derive(Clone, Debug)]
 pub struct AudioIsolationBody {
-    audio_file: String,
+    audio_file: FilePart,
 }
 
 impl AudioIsolationBody {
-    pub fn new(audio_file: impl Into<String>) -> Self {
+    pub fn new(audio_file: impl Into<FilePart>) -> Self {
         Self {
             audio_file: audio_file.into(),
         }
+    }
+
+    pub fn from_bytes(
+        file_name: impl Into<String>,
+        mime: impl Into<String>,
+        bytes: impl Into<Bytes>,
+    ) -> Self {
+        Self::new(FilePart::bytes(file_name, mime, bytes))
     }
 }
 
 impl From<&str> for AudioIsolationBody {
     fn from(audio_file: &str) -> Self {
         Self {
-            audio_file: audio_file.to_string(),
+            audio_file: FilePart::from(audio_file),
         }
     }
 }
 
 impl From<String> for AudioIsolationBody {
     fn from(audio_file: String) -> Self {
-        Self { audio_file }
+        Self {
+            audio_file: FilePart::from(audio_file),
+        }
     }
 }
 
@@ -136,18 +145,19 @@ impl TryFrom<&AudioIsolationBody> for RequestBody {
     type Error = crate::error::Error;
 
     fn try_from(body: &AudioIsolationBody) -> Result<Self> {
-        let path = Path::new(&body.audio_file);
-        let audio_bytes = std::fs::read(&body.audio_file)?;
-        let mut part = Part::bytes(audio_bytes);
-        let file_path_str = path.to_str().ok_or(Error::PathNotValidUTF8)?;
-        part = part.file_name(file_path_str.to_string());
-        let mime_subtype = path
-            .extension()
-            .ok_or(Error::FileExtensionNotFound)?
-            .to_str()
-            .ok_or(Error::FileExtensionNotValidUTF8)?;
-        let mime = format!("audio/{}", mime_subtype);
-        part = part.mime_str(&mime)?;
-        Ok(RequestBody::Multipart(Form::new().part("audio", part)))
+        let inferred_mime = inferred_audio_mime(&body.audio_file)?;
+        Ok(RequestBody::Multipart(Form::new().part(
+            "audio",
+            body.audio_file.clone().into_part(inferred_mime)?,
+        )))
     }
+}
+
+fn inferred_audio_mime(file: &FilePart) -> Result<Option<String>> {
+    if file.mime().is_some() {
+        return Ok(None);
+    }
+
+    let extension = file.extension()?;
+    Ok(Some(audio_mime_from_extension(&extension)?.to_owned()))
 }

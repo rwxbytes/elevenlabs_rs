@@ -4,7 +4,7 @@ pub(crate) use crate::shared::response_bodies::*;
 #[cfg(any(feature = "admin", feature = "convai", feature = "genai"))]
 pub(crate) use crate::shared::url::*;
 pub(crate) use bytes::Bytes;
-#[cfg(any(feature = "admin", feature = "convai", feature = "genai"))]
+#[cfg(feature = "admin")]
 pub(crate) use reqwest::multipart::Part;
 pub(crate) use reqwest::{multipart::Form, Method, Response, Url};
 #[cfg(any(feature = "admin", feature = "convai", feature = "genai"))]

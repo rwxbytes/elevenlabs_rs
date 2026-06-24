@@ -1,6 +1,7 @@
 //! Speech to Text endpoints
 use super::*;
 use crate::error::Error;
+use crate::shared::FilePart;
 use std::string::ToString;
 use strum::{self, Display};
 
@@ -160,7 +161,8 @@ impl CreateTranscriptQuery {
 #[derive(Clone, Debug, Default, Serialize)]
 pub struct CreateTranscriptBody {
     model_id: String,
-    file: String,
+    #[serde(skip)]
+    file: FilePart,
     language_code: Option<String>,
     tag_audio_events: Option<bool>,
     num_speakers: Option<u32>,
@@ -285,12 +287,21 @@ impl From<&str> for Granularity {
 }
 
 impl CreateTranscriptBody {
-    pub fn new(model_id: impl Into<String>, file: impl Into<String>) -> Self {
+    pub fn new(model_id: impl Into<String>, file: impl Into<FilePart>) -> Self {
         Self {
             model_id: model_id.into(),
             file: file.into(),
             ..Default::default()
         }
+    }
+
+    pub fn from_bytes(
+        model_id: impl Into<String>,
+        file_name: impl Into<String>,
+        mime: impl Into<String>,
+        bytes: impl Into<Bytes>,
+    ) -> Self {
+        Self::new(model_id, FilePart::bytes(file_name, mime, bytes))
     }
     pub fn with_language_code(mut self, language_code: impl Into<String>) -> Self {
         self.language_code = Some(language_code.into());
@@ -453,31 +464,17 @@ impl TryFrom<CreateTranscriptBody> for RequestBody {
     type Error = crate::error::Error;
 
     fn try_from(body: CreateTranscriptBody) -> Result<Self> {
-        let path = std::path::Path::new(&body.file);
-
-        let filename = path
-            .file_name()
-            .and_then(|n| n.to_str())
-            .ok_or(Error::PathNotValidUTF8)?;
-
-        let ext = path
-            .extension()
-            .and_then(|e| e.to_str())
-            .ok_or(Error::FileExtensionNotFound)?;
-
-        let is_preference = body.prefer_video.unwrap_or_default();
-
-        let file_type = TranscriptFileType::from_extension(ext, is_preference)?;
-
-        let content = std::fs::read(path)?;
-
-        let part = Part::bytes(content)
-            .file_name(filename.to_string())
-            .mime_str(&file_type.mime_type())?;
+        let inferred_mime = if body.file.mime().is_some() {
+            None
+        } else {
+            let ext = body.file.extension()?;
+            let prefer_video = body.prefer_video.unwrap_or_default();
+            Some(TranscriptFileType::from_extension(&ext, prefer_video)?.mime_type())
+        };
 
         let mut form = Form::new();
         form = form.text("model_id", body.model_id);
-        form = form.part("file", part);
+        form = form.part("file", body.file.into_part(inferred_mime)?);
 
         if let Some(language_code) = body.language_code {
             form = form.text("language_code", language_code);

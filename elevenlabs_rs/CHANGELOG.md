@@ -35,6 +35,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - realtime speech-to-text WebSocket support via `RealtimeSpeechToText`
 - multi-context text-to-speech WebSocket support via `MultiContextWebSocketTTS`
 - `with_sync_alignment`, `with_text_normalization`, and `with_seed` methods to `TTSWebSocketQuery`
+- `FilePart` for multipart uploads from either paths or in-memory bytes
+- in-memory upload constructors for speech-to-text, forced alignment, audio isolation, voice changer, dubbing, knowledge base, voice, similar voice, and widget avatar bodies
 
 ### Changed
 - **Breaking**: `elevenlabs_rs::Result` now uses `elevenlabs_rs::error::Error` instead of a boxed trait-object error

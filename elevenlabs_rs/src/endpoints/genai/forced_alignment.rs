@@ -2,8 +2,7 @@
 
 use super::*;
 use crate::endpoints::genai::speech_to_text::TranscriptFileType;
-use crate::error::Error;
-use std::path::Path;
+use crate::shared::FilePart;
 
 #[derive(Clone, Debug)]
 pub struct CreateForcedAlignment {
@@ -18,16 +17,25 @@ impl CreateForcedAlignment {
 
 #[derive(Clone, Debug)]
 pub struct CreateForcedAlignmentBody {
-    file: String,
+    file: FilePart,
     text: String,
 }
 
 impl CreateForcedAlignmentBody {
-    pub fn new(file: impl Into<String>, text: impl Into<String>) -> Self {
+    pub fn new(file: impl Into<FilePart>, text: impl Into<String>) -> Self {
         Self {
             file: file.into(),
             text: text.into(),
         }
+    }
+
+    pub fn from_bytes(
+        file_name: impl Into<String>,
+        mime: impl Into<String>,
+        bytes: impl Into<Bytes>,
+        text: impl Into<String>,
+    ) -> Self {
+        Self::new(FilePart::bytes(file_name, mime, bytes), text)
     }
 }
 
@@ -59,24 +67,16 @@ impl TryFrom<&CreateForcedAlignmentBody> for RequestBody {
     type Error = crate::error::Error;
 
     fn try_from(body: &CreateForcedAlignmentBody) -> Result<Self> {
-        let path = Path::new(&body.file);
-        let filename = path
-            .file_name()
-            .and_then(|name| name.to_str())
-            .ok_or(Error::PathNotValidUTF8)?;
-        let extension = path
-            .extension()
-            .and_then(|extension| extension.to_str())
-            .ok_or(Error::FileExtensionNotFound)?;
-        let file_type = TranscriptFileType::from_extension(extension, false)?;
-        let audio = std::fs::read(path)?;
-        let part = Part::bytes(audio)
-            .file_name(filename.to_string())
-            .mime_str(&file_type.mime_type())?;
+        let inferred_mime = if body.file.mime().is_some() {
+            None
+        } else {
+            let extension = body.file.extension()?;
+            Some(TranscriptFileType::from_extension(&extension, false)?.mime_type())
+        };
 
         Ok(RequestBody::Multipart(
             Form::new()
-                .part("file", part)
+                .part("file", body.file.clone().into_part(inferred_mime)?)
                 .text("text", body.text.clone()),
         ))
     }

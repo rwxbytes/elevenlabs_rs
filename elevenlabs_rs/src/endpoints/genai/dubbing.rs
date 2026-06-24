@@ -2,7 +2,7 @@
 
 use super::*;
 use crate::error::Error;
-use std::path::Path;
+use crate::shared::FilePart;
 use std::string::ToString;
 use strum::Display;
 
@@ -68,7 +68,7 @@ impl ElevenLabsEndpoint for DubAVideoOrAnAudioFile {
 // TODO: wrap `file` and `source_url` in an enum an make it required in fn new
 #[derive(Clone, Debug, Default)]
 pub struct DubbingBody {
-    file: Option<String>,
+    file: Option<FilePart>,
     name: Option<String>,
     source_url: Option<String>,
     source_lang: Option<String>,
@@ -96,8 +96,18 @@ impl DubbingBody {
             ..Default::default()
         }
     }
-    pub fn with_file(mut self, file: impl Into<String>) -> Self {
+    pub fn with_file(mut self, file: impl Into<FilePart>) -> Self {
         self.file = Some(file.into());
+        self
+    }
+
+    pub fn with_file_bytes(
+        mut self,
+        file_name: impl Into<String>,
+        mime: impl Into<String>,
+        bytes: impl Into<Bytes>,
+    ) -> Self {
+        self.file = Some(FilePart::bytes(file_name, mime, bytes));
         self
     }
 
@@ -429,27 +439,8 @@ impl TryFrom<&DubbingBody> for RequestBody {
         let mut form = Form::new();
 
         if let Some(file) = &body.file {
-            let path = Path::new(file);
-            let dubbing_file = std::fs::read(path)?;
-            let mut part = Part::bytes(dubbing_file);
-            part = part.file_name(
-                path.to_str()
-                    .ok_or(Error::FileExtensionNotValidUTF8)?
-                    .to_string(),
-            );
-            let mime_subtype = path
-                .extension()
-                .ok_or(Error::FileExtensionNotFound)?
-                .to_str()
-                .ok_or(Error::FileExtensionNotValidUTF8)?;
-            if mime_subtype == "mp4" {
-                part = part.mime_str("video/mp4")?;
-            } else if mime_subtype == "mp3" {
-                part = part.mime_str("audio/mp3")?;
-            } else {
-                return Err(Error::FileExtensionNotSupported);
-            }
-            form = form.part("file", part);
+            let inferred_mime = inferred_dubbing_mime(file)?;
+            form = form.part("file", file.clone().into_part(inferred_mime)?);
         }
         if let Some(source_url) = &body.source_url {
             form = form.text("source_url", source_url.clone());
@@ -483,6 +474,18 @@ impl TryFrom<&DubbingBody> for RequestBody {
             form = form.text("use_profanity_filter", use_profanity_filter.to_string());
         }
         Ok(RequestBody::Multipart(form))
+    }
+}
+
+fn inferred_dubbing_mime(file: &FilePart) -> Result<Option<String>> {
+    if file.mime().is_some() {
+        return Ok(None);
+    }
+
+    match file.extension()?.to_lowercase().as_str() {
+        "mp4" => Ok(Some("video/mp4".to_owned())),
+        "mp3" => Ok(Some("audio/mpeg".to_owned())),
+        _ => Err(Error::FileExtensionNotSupported),
     }
 }
 

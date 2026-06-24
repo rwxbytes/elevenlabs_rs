@@ -1,8 +1,7 @@
 use super::*;
 use crate::endpoints::convai::agents::AccessInfo;
 use crate::error::Error;
-use crate::shared::AccessLevel;
-use std::path::Path;
+use crate::shared::{AccessLevel, FilePart};
 use std::string::ToString;
 
 /// Get details about a specific documentation making up the agent’s knowledge base.
@@ -197,28 +196,15 @@ impl TryFrom<&CreateKnowledgeBaseDocBody> for RequestBody {
         }
 
         match body.knowledge_base_doc.clone() {
-            KnowledgeBaseDoc::File(path) => {
-                let path = Path::new(&path);
+            KnowledgeBaseDoc::File(file) => {
+                let inferred_mime = if file.mime().is_some() {
+                    None
+                } else {
+                    let ext = file.extension()?;
+                    Some(FileType::from_extension(&ext)?.mime_type().to_owned())
+                };
 
-                let filename = path
-                    .file_name()
-                    .and_then(|n| n.to_str())
-                    .ok_or(Error::PathNotValidUTF8)?;
-
-                let ext = path
-                    .extension()
-                    .and_then(|e| e.to_str())
-                    .ok_or(Error::FileExtensionNotFound)?;
-
-                let file_type = FileType::from_extension(ext)?;
-
-                let content = std::fs::read(path)?;
-
-                let part = Part::bytes(content)
-                    .file_name(filename.to_string())
-                    .mime_str(file_type.mime_type())?;
-
-                form = form.part("file", part);
+                form = form.part("file", file.into_part(inferred_mime)?);
                 Ok(RequestBody::Multipart(form))
             }
 
@@ -270,13 +256,20 @@ pub struct CreateKnowledgeBaseDocResponse {
 
 #[derive(Debug, Clone)]
 pub enum KnowledgeBaseDoc {
-    File(String),
+    File(FilePart),
     Url(String),
 }
 
 impl KnowledgeBaseDoc {
-    pub fn file(path: impl Into<String>) -> Self {
+    pub fn file(path: impl Into<FilePart>) -> Self {
         Self::File(path.into())
+    }
+    pub fn file_bytes(
+        file_name: impl Into<String>,
+        mime: impl Into<String>,
+        bytes: impl Into<Bytes>,
+    ) -> Self {
+        Self::File(FilePart::bytes(file_name, mime, bytes))
     }
     pub fn url(url: impl Into<String>) -> Self {
         Self::Url(url.into())

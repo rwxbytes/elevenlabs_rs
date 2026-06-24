@@ -52,7 +52,7 @@
 //! inbound buffering and the graceful-close timeout.
 pub use crate::client::{ApiResponse, ElevenLabsClient, RawRequestBuilder, Result};
 pub use crate::shared::query_params::*;
-pub use crate::shared::{DefaultVoice, Language, LegacyVoice, Model, VoiceSettings};
+pub use crate::shared::{DefaultVoice, FilePart, Language, LegacyVoice, Model, VoiceSettings};
 #[cfg(all(feature = "ws", feature = "genai"))]
 pub use crate::ws::{
     WebSocketOptions, WebSocketSession, WebSocketSessionReport, WebSocketTaskStatus,

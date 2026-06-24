@@ -3,11 +3,158 @@ use serde::{Deserialize, Serialize, Serializer};
 use serde_json::Value;
 #[cfg(any(feature = "admin", feature = "genai"))]
 use std::collections::HashMap;
+use std::path::{Path, PathBuf};
 #[cfg(any(feature = "admin", feature = "genai"))]
 use strum::Display;
 
+use crate::error::Error;
+use crate::Result;
+use bytes::Bytes;
+use reqwest::multipart::Part;
+
 #[cfg(any(feature = "admin", feature = "convai", feature = "genai"))]
 pub(crate) mod url;
+
+/// Source for a multipart file field.
+///
+/// Path-backed values preserve the existing API style while byte-backed values
+/// support serverless runtimes, tests, and callers that already hold the file
+/// in memory.
+#[derive(Clone, Debug)]
+pub enum FilePart {
+    Path(PathBuf),
+    Bytes {
+        file_name: String,
+        mime: String,
+        bytes: Bytes,
+    },
+}
+
+impl FilePart {
+    pub fn path(path: impl Into<PathBuf>) -> Self {
+        Self::Path(path.into())
+    }
+
+    pub fn bytes(
+        file_name: impl Into<String>,
+        mime: impl Into<String>,
+        bytes: impl Into<Bytes>,
+    ) -> Self {
+        Self::Bytes {
+            file_name: file_name.into(),
+            mime: mime.into(),
+            bytes: bytes.into(),
+        }
+    }
+
+    pub fn file_name(&self) -> Result<String> {
+        match self {
+            Self::Path(path) => path_file_name(path),
+            Self::Bytes { file_name, .. } => Ok(file_name.clone()),
+        }
+    }
+
+    pub fn extension(&self) -> Result<String> {
+        match self {
+            Self::Path(path) => path_extension(path),
+            Self::Bytes { file_name, .. } => path_extension(Path::new(file_name)),
+        }
+    }
+
+    pub fn mime(&self) -> Option<&str> {
+        match self {
+            Self::Path(_) => None,
+            Self::Bytes { mime, .. } => Some(mime),
+        }
+    }
+
+    pub fn into_part(self, inferred_mime: Option<String>) -> Result<Part> {
+        let file_name = self.file_name()?;
+        let mime = self
+            .mime()
+            .map(ToOwned::to_owned)
+            .or(inferred_mime)
+            .ok_or(Error::FileExtensionNotSupported)?;
+        let bytes = match self {
+            Self::Path(path) => std::fs::read(path)?,
+            Self::Bytes { bytes, .. } => bytes.to_vec(),
+        };
+
+        Ok(Part::bytes(bytes).file_name(file_name).mime_str(&mime)?)
+    }
+}
+
+impl Default for FilePart {
+    fn default() -> Self {
+        Self::Path(PathBuf::new())
+    }
+}
+
+impl From<&str> for FilePart {
+    fn from(path: &str) -> Self {
+        Self::path(path)
+    }
+}
+
+impl From<String> for FilePart {
+    fn from(path: String) -> Self {
+        Self::path(path)
+    }
+}
+
+impl From<&Path> for FilePart {
+    fn from(path: &Path) -> Self {
+        Self::path(path)
+    }
+}
+
+impl From<PathBuf> for FilePart {
+    fn from(path: PathBuf) -> Self {
+        Self::path(path)
+    }
+}
+
+#[cfg(any(feature = "admin", feature = "genai"))]
+pub(crate) fn audio_mime_from_extension(extension: &str) -> Result<&'static str> {
+    match extension.to_lowercase().as_str() {
+        "aac" => Ok("audio/aac"),
+        "aif" | "aiff" => Ok("audio/x-aiff"),
+        "ogg" | "oga" | "spx" => Ok("audio/ogg"),
+        "mp3" | "m2a" | "m3a" | "mp2" | "mp2a" | "mpga" => Ok("audio/mpeg"),
+        "opus" => Ok("audio/opus"),
+        "wav" | "wave" => Ok("audio/wav"),
+        "flac" => Ok("audio/flac"),
+        "m4a" => Ok("audio/x-m4a"),
+        "mp4" => Ok("audio/mp4"),
+        "webm" => Ok("audio/webm"),
+        _ => Err(Error::FileExtensionNotSupported),
+    }
+}
+
+#[cfg(feature = "convai")]
+pub(crate) fn image_mime_from_extension(extension: &str) -> Result<&'static str> {
+    match extension.to_lowercase().as_str() {
+        "jpg" | "jpeg" => Ok("image/jpeg"),
+        "png" => Ok("image/png"),
+        "webp" => Ok("image/webp"),
+        "gif" => Ok("image/gif"),
+        _ => Err(Error::FileExtensionNotSupported),
+    }
+}
+
+fn path_file_name(path: &Path) -> Result<String> {
+    path.file_name()
+        .and_then(|name| name.to_str())
+        .map(ToOwned::to_owned)
+        .ok_or(Error::PathNotValidUTF8)
+}
+
+fn path_extension(path: &Path) -> Result<String> {
+    path.extension()
+        .and_then(|extension| extension.to_str())
+        .map(ToOwned::to_owned)
+        .ok_or(Error::FileExtensionNotFound)
+}
 
 #[cfg(any(feature = "admin", feature = "genai"))]
 pub mod response_bodies {

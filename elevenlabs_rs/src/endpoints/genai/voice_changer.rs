@@ -1,6 +1,6 @@
 //! The voice changer endpoints
 use super::*;
-use crate::error::Error;
+use crate::shared::{audio_mime_from_extension, FilePart};
 pub use crate::shared::{query_params::OutputFormat, VoiceSettings};
 use futures_util::{Stream, StreamExt};
 use std::pin::Pin;
@@ -102,7 +102,7 @@ impl VoiceChangerQuery {
 
 #[derive(Debug, Clone, Default)]
 pub struct VoiceChangerBody {
-    audio: String,
+    audio: FilePart,
     model_id: Option<String>,
     voice_settings: Option<VoiceSettings>,
     seed: Option<u64>,
@@ -110,12 +110,21 @@ pub struct VoiceChangerBody {
 }
 
 impl VoiceChangerBody {
-    pub fn new(audio: impl Into<String>) -> Self {
+    pub fn new(audio: impl Into<FilePart>) -> Self {
         VoiceChangerBody {
             audio: audio.into(),
             ..Default::default()
         }
     }
+
+    pub fn from_bytes(
+        file_name: impl Into<String>,
+        mime: impl Into<String>,
+        bytes: impl Into<Bytes>,
+    ) -> Self {
+        Self::new(FilePart::bytes(file_name, mime, bytes))
+    }
+
     pub fn with_model_id(mut self, model_id: impl Into<String>) -> Self {
         self.model_id = Some(model_id.into());
         self
@@ -218,19 +227,8 @@ impl TryFrom<&VoiceChangerBody> for RequestBody {
     type Error = crate::error::Error;
 
     fn try_from(body: &VoiceChangerBody) -> Result<Self> {
-        let path = std::path::Path::new(&body.audio);
-        let audio_bytes = std::fs::read(path)?;
-        let mut part = Part::bytes(audio_bytes);
-        let file_path_str = path.to_str().ok_or(Error::PathNotValidUTF8)?;
-        part = part.file_name(file_path_str.to_string());
-        let mime_subtype = path
-            .extension()
-            .ok_or(Error::FileExtensionNotFound)?
-            .to_str()
-            .ok_or(Error::FileExtensionNotValidUTF8)?;
-        let mime_type = format!("audio/{}", mime_subtype);
-        part = part.mime_str(&mime_type)?;
-        let mut form = Form::new().part("audio", part);
+        let inferred_mime = inferred_audio_mime(&body.audio)?;
+        let mut form = Form::new().part("audio", body.audio.clone().into_part(inferred_mime)?);
         if let Some(model_id) = &body.model_id {
             form = form.text("model_id", model_id.clone());
         }
@@ -242,4 +240,13 @@ impl TryFrom<&VoiceChangerBody> for RequestBody {
         }
         Ok(RequestBody::Multipart(form))
     }
+}
+
+fn inferred_audio_mime(file: &FilePart) -> Result<Option<String>> {
+    if file.mime().is_some() {
+        return Ok(None);
+    }
+
+    let extension = file.extension()?;
+    Ok(Some(audio_mime_from_extension(&extension)?.to_owned()))
 }

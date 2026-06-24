@@ -3,7 +3,10 @@ use crate::endpoints::admin::history::{GetGeneratedItems, GetHistoryItem, Histor
 use crate::endpoints::admin::pronunciation::{
     AddRules, AddRulesBody, GetDictionaries, GetDictionariesQuery, Rule,
 };
-use crate::endpoints::admin::voice::{GetVoice, GetVoices, GetVoicesQuery, VoiceType};
+use crate::endpoints::admin::voice::{
+    AddVoice, GetVoice, GetVoices, GetVoicesQuery, ListSimilarVoices, ListSimilarVoicesBody,
+    VoiceBody, VoiceType,
+};
 use crate::endpoints::convai::agents::{
     AgentQuery, ApiSchema, ConvAIModel, ConversationConfig, CreateAgent, CreateAgentBody,
     TTSConfig, WebHook, LLM,
@@ -11,11 +14,16 @@ use crate::endpoints::convai::agents::{
 use crate::endpoints::convai::conversations::{
     GetConversations, GetConversationsQuery, OutboundCallViaTwilio, OutboundCallViaTwilioBody,
 };
-use crate::endpoints::convai::knowledge_base::EmbeddingModel;
+use crate::endpoints::convai::knowledge_base::{
+    CreateKnowledgeBaseDoc, EmbeddingModel, KnowledgeBaseDoc,
+};
 use crate::endpoints::convai::phone_numbers::{
     CreatePhoneNumber, CreatePhoneNumberBody, GetPhoneNumber, ListPhoneNumbers,
 };
 use crate::endpoints::convai::tools::{CreateTool, GetTool};
+use crate::endpoints::convai::widget::{CreateWidgetAvatar, CreateWidgetAvatarBody};
+use crate::endpoints::genai::audio_isolation::{AudioIsolation, AudioIsolationBody};
+use crate::endpoints::genai::dubbing::{DubAVideoOrAnAudioFile, DubbingBody};
 use crate::endpoints::genai::forced_alignment::{CreateForcedAlignment, CreateForcedAlignmentBody};
 use crate::endpoints::genai::speech_to_text::{
     AdditionalFormat, CreateTranscript, CreateTranscriptBody, CreateTranscriptQuery,
@@ -35,7 +43,8 @@ use crate::endpoints::genai::tts::{
     TextToSpeech, TextToSpeechBody, TextToSpeechQuery, TextToSpeechStream,
     TextToSpeechStreamWithTimestamps, TextToSpeechWithTimestamps,
 };
-use crate::{Model, OutputFormat};
+use crate::endpoints::genai::voice_changer::{VoiceChanger, VoiceChangerBody};
+use crate::{FilePart, Model, OutputFormat};
 use reqwest::Method;
 use serde_json::{json, Value};
 use std::path::{Path, PathBuf};
@@ -222,6 +231,12 @@ async fn speech_to_text_exposes_query_and_builds_multipart_body() {
         Method::DELETE,
         "https://api.elevenlabs.io/v1/speech-to-text/transcripts/transcript%2Fid",
     );
+
+    let bytes_body = CreateTranscriptBody::new(
+        SpeechToTextModel::ScribeV2,
+        FilePart::bytes("memory.mp3", "audio/mpeg", b"fake audio".to_vec()),
+    );
+    assert_multipart_body(&CreateTranscript::new(bytes_body)).await;
 }
 
 #[tokio::test]
@@ -244,6 +259,50 @@ async fn speech_core_gap_endpoints_match_openapi_shape() {
         "https://api.elevenlabs.io/v1/forced-alignment",
     );
     assert_multipart_body(&forced).await;
+
+    let forced = CreateForcedAlignment::new(CreateForcedAlignmentBody::from_bytes(
+        "memory.mp3",
+        "audio/mpeg",
+        b"fake audio".to_vec(),
+        "hello world",
+    ));
+    assert_multipart_body(&forced).await;
+}
+
+#[tokio::test]
+async fn speech_upload_endpoints_accept_in_memory_file_parts() {
+    let audio = FilePart::bytes("memory.wav", "audio/wav", b"fake audio".to_vec());
+
+    let isolation = AudioIsolation::new(AudioIsolationBody::new(audio.clone()));
+    assert_endpoint(
+        &isolation,
+        Method::POST,
+        "https://api.elevenlabs.io/v1/audio-isolation",
+    );
+    assert_multipart_body(&isolation).await;
+
+    let voice_changer = VoiceChanger::new(
+        "voice/id",
+        VoiceChangerBody::new(audio).with_model_id(Model::ElevenMultilingualV2STS),
+    );
+    assert_endpoint(
+        &voice_changer,
+        Method::POST,
+        "https://api.elevenlabs.io/v1/speech-to-speech/voice%2Fid",
+    );
+    assert_multipart_body(&voice_changer).await;
+
+    let dubbing = DubAVideoOrAnAudioFile::new(DubbingBody::new("es").with_file_bytes(
+        "clip.mp3",
+        "audio/mpeg",
+        b"fake audio".to_vec(),
+    ));
+    assert_endpoint(
+        &dubbing,
+        Method::POST,
+        "https://api.elevenlabs.io/v1/dubbing",
+    );
+    assert_multipart_body(&dubbing).await;
 }
 
 #[tokio::test]
@@ -266,6 +325,35 @@ async fn admin_endpoint_shapes_cover_voices_history_and_dictionaries() {
         Method::GET,
         "https://api.elevenlabs.io/v1/voices/voice%2Fid",
     );
+
+    let add_voice = AddVoice::new(
+        VoiceBody::add(
+            "Studio",
+            vec![FilePart::bytes(
+                "sample.mp3",
+                "audio/mpeg",
+                b"fake audio".to_vec(),
+            )],
+        )
+        .with_remove_background_noise(true),
+    );
+    assert_endpoint(
+        &add_voice,
+        Method::POST,
+        "https://api.elevenlabs.io/v1/voices/add",
+    );
+    assert_multipart_body(&add_voice).await;
+
+    let similar_voices = ListSimilarVoices::new(
+        ListSimilarVoicesBody::from_bytes("sample.mp3", "audio/mpeg", b"fake audio".to_vec())
+            .with_top_k(3),
+    );
+    assert_endpoint(
+        &similar_voices,
+        Method::POST,
+        "https://api.elevenlabs.io/v1/similar-voices",
+    );
+    assert_multipart_body(&similar_voices).await;
 
     let history = GetGeneratedItems::with_query(
         HistoryQuery::default()
@@ -355,6 +443,29 @@ async fn convai_endpoint_shapes_cover_agents_conversations_tools_and_calls() {
         "https://api.elevenlabs.io/v1/convai/tools",
     );
     assert_eq!(json_body(&tool).await["tool_config"]["name"], "lookup");
+
+    let knowledge_doc = CreateKnowledgeBaseDoc::new(KnowledgeBaseDoc::file_bytes(
+        "guide.txt",
+        "text/plain",
+        b"hello".to_vec(),
+    ));
+    assert_endpoint(
+        &knowledge_doc,
+        Method::POST,
+        "https://api.elevenlabs.io/v1/convai/knowledge-base",
+    );
+    assert_multipart_body(&knowledge_doc).await;
+
+    let avatar = CreateWidgetAvatar::new(
+        "agent/id",
+        CreateWidgetAvatarBody::from_bytes("avatar.png", "image/png", b"fake image".to_vec()),
+    );
+    assert_endpoint(
+        &avatar,
+        Method::POST,
+        "https://api.elevenlabs.io/v1/convai/agents/agent%2Fid/avatar",
+    );
+    assert_multipart_body(&avatar).await;
 
     let create_phone = CreatePhoneNumber::new(CreatePhoneNumberBody::new_twilio(
         "+15551234567",

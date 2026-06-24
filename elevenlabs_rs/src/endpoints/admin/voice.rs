@@ -1,12 +1,12 @@
 //! The voice endpoints
 use super::*;
 use crate::endpoints::admin::voice_library::SharedVoice;
+use crate::shared::{audio_mime_from_extension, FilePart};
 pub use crate::shared::{
     FineTuning, FineTuningState, SafetyControl, Sharing, VerifiedLanguage, VoiceCategory,
     VoiceSample, VoiceSettings, VoiceVerification,
 };
 use std::collections::HashMap;
-use std::path::Path;
 use strum::Display;
 
 /// Gets a list of all available voices for a user.
@@ -415,17 +415,20 @@ impl ElevenLabsEndpoint for AddVoice {
 #[derive(Clone, Debug)]
 pub struct VoiceBody {
     name: String,
-    files: Vec<String>,
+    files: Vec<FilePart>,
     description: Option<String>,
     labels: Option<Vec<(String, String)>>,
     remove_background_noise: Option<bool>,
 }
 
 impl VoiceBody {
-    pub fn add(name: &str, files: Vec<String>) -> Self {
+    pub fn add<F>(name: &str, files: Vec<F>) -> Self
+    where
+        F: Into<FilePart>,
+    {
         Self {
             name: name.to_string(),
-            files,
+            files: files.into_iter().map(Into::into).collect(),
             description: None,
             labels: None,
             remove_background_noise: None,
@@ -461,21 +464,9 @@ impl TryFrom<VoiceBody> for Form {
         let mut form = Form::new();
         form = form.text("name", body.name);
 
-        for file_path in body.files {
-            let fp = Path::new(&file_path);
-            let audio_bytes = std::fs::read(fp)?;
-            let mut part = Part::bytes(audio_bytes);
-            let file_path_str = fp.to_str().ok_or("Path is not valid UTF-8")?;
-            part = part.file_name(file_path_str.to_string());
-
-            let mime_subtype = fp
-                .extension()
-                .ok_or("File extension not found")?
-                .to_str()
-                .ok_or("File extension is not valid UTF-8")?;
-            let mime = format!("audio/{}", mime_subtype);
-            part = part.mime_str(&mime)?;
-            form = form.part("files", part);
+        for file in body.files {
+            let inferred_mime = inferred_audio_mime(&file)?;
+            form = form.part("files", file.into_part(inferred_mime)?);
         }
 
         if let Some(description) = body.description {
@@ -693,18 +684,25 @@ impl ElevenLabsEndpoint for ListSimilarVoices {
 /// If similarity_threshold is provided, less than this number of voices may be returned. Must be in range <1, 100>.
 #[derive(Clone, Debug)]
 pub struct ListSimilarVoicesBody {
-    audio_sample: String,
+    audio_sample: FilePart,
     similarity_threshold: Option<f32>,
     top_k: Option<u32>,
 }
 
 impl ListSimilarVoicesBody {
-    pub fn new(audio_sample: &str) -> Self {
+    pub fn new(audio_sample: impl Into<FilePart>) -> Self {
         ListSimilarVoicesBody {
-            audio_sample: audio_sample.to_string(),
+            audio_sample: audio_sample.into(),
             similarity_threshold: None,
             top_k: None,
         }
+    }
+    pub fn from_bytes(
+        file_name: impl Into<String>,
+        mime: impl Into<String>,
+        bytes: impl Into<Bytes>,
+    ) -> Self {
+        Self::new(FilePart::bytes(file_name, mime, bytes))
     }
     pub fn with_similarity_threshold(mut self, similarity_threshold: f32) -> Self {
         self.similarity_threshold = Some(similarity_threshold);
@@ -721,14 +719,8 @@ impl TryFrom<ListSimilarVoicesBody> for Form {
 
     fn try_from(body: ListSimilarVoicesBody) -> Result<Self> {
         let mut form = Form::new();
-        let audio_bytes = std::fs::read(&body.audio_sample)?;
-        let mut part = Part::bytes(audio_bytes);
-        let file_path_str = Path::new(&body.audio_sample)
-            .to_str()
-            .ok_or("Path is not valid UTF-8")?;
-        part = part.file_name(file_path_str.to_string());
-        part = part.mime_str("audio/mpeg")?;
-        form = form.part("audio_file", part);
+        let inferred_mime = inferred_audio_mime(&body.audio_sample)?;
+        form = form.part("audio_file", body.audio_sample.into_part(inferred_mime)?);
 
         if let Some(similarity_threshold) = body.similarity_threshold {
             form = form.text("similarity_threshold", similarity_threshold.to_string());
@@ -740,6 +732,15 @@ impl TryFrom<ListSimilarVoicesBody> for Form {
 
         Ok(form)
     }
+}
+
+fn inferred_audio_mime(file: &FilePart) -> Result<Option<String>> {
+    if file.mime().is_some() {
+        return Ok(None);
+    }
+
+    let extension = file.extension()?;
+    Ok(Some(audio_mime_from_extension(&extension)?.to_owned()))
 }
 
 /// List similar voices response

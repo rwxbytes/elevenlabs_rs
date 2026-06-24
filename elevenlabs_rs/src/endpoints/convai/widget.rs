@@ -2,8 +2,7 @@
 
 use super::*;
 use crate::endpoints::convai::agents::Widget;
-use crate::error::Error;
-use std::path::Path;
+use crate::shared::{image_mime_from_extension, FilePart};
 
 /// Retrieve the widget configuration for an agent
 ///
@@ -116,14 +115,22 @@ impl CreateWidgetAvatar {
 
 #[derive(Clone, Debug)]
 pub struct CreateWidgetAvatarBody {
-    pub avatar_file: String,
+    pub avatar_file: FilePart,
 }
 
 impl CreateWidgetAvatarBody {
-    pub fn new(avatar_file: impl Into<String>) -> Self {
+    pub fn new(avatar_file: impl Into<FilePart>) -> Self {
         Self {
             avatar_file: avatar_file.into(),
         }
+    }
+
+    pub fn from_bytes(
+        file_name: impl Into<String>,
+        mime: impl Into<String>,
+        bytes: impl Into<Bytes>,
+    ) -> Self {
+        Self::new(FilePart::bytes(file_name, mime, bytes))
     }
 }
 
@@ -131,22 +138,21 @@ impl TryFrom<&CreateWidgetAvatarBody> for RequestBody {
     type Error = crate::error::Error;
 
     fn try_from(body: &CreateWidgetAvatarBody) -> Result<Self> {
-        let path = Path::new(&body.avatar_file);
-        let bytes = std::fs::read(path)?;
-        let mut part = Part::bytes(bytes);
-        let file_path_str = path.to_str().ok_or(Error::PathNotValidUTF8)?;
-        part = part.file_name(file_path_str.to_string());
-        let mime_subtype = path
-            .extension()
-            .ok_or(Error::FileExtensionNotFound)?
-            .to_str()
-            .ok_or(Error::FileExtensionNotValidUTF8)?;
-        let mime = format!("image/{}", mime_subtype);
-        part = part.mime_str(&mime)?;
-        Ok(RequestBody::Multipart(
-            Form::new().part("avatar_file", part),
-        ))
+        let inferred_mime = inferred_image_mime(&body.avatar_file)?;
+        Ok(RequestBody::Multipart(Form::new().part(
+            "avatar_file",
+            body.avatar_file.clone().into_part(inferred_mime)?,
+        )))
     }
+}
+
+fn inferred_image_mime(file: &FilePart) -> Result<Option<String>> {
+    if file.mime().is_some() {
+        return Ok(None);
+    }
+
+    let extension = file.extension()?;
+    Ok(Some(image_mime_from_extension(&extension)?.to_owned()))
 }
 
 impl crate::endpoints::sealed::Sealed for CreateWidgetAvatar {}
