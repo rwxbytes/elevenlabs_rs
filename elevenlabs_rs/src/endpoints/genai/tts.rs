@@ -227,6 +227,22 @@ pub enum Normalization {
     Off,
 }
 
+impl Normalization {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Auto => "auto",
+            Self::On => "on",
+            Self::Off => "off",
+        }
+    }
+}
+
+impl std::fmt::Display for Normalization {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
 #[derive(Clone, Debug, Default)]
 pub struct TextToSpeechQuery {
     params: QueryValues,
@@ -587,13 +603,14 @@ pub mod ws {
     //! Websocket Text to Speech endpoints
 
     use super::*;
-    use crate::error::Error;
     use crate::OutputFormat;
-    use std::str::FromStr;
+    use serde_json::{Map, Value};
+    use std::pin::Pin;
     use tokio_tungstenite::tungstenite::Message;
 
     const WS_BASE_URL: &str = "wss://api.elevenlabs.io";
     const WS_PATH: &str = "/v1/text-to-speech/:voice_id/stream-input";
+    const MULTI_CONTEXT_WS_PATH: &str = "/v1/text-to-speech/:voice_id/multi-stream-input";
 
     /// This API provides real-time text-to-speech conversion using WebSockets.
     /// This allows you to send a text message and receive audio data back in real-time.
@@ -624,9 +641,11 @@ pub mod ws {
     ///     let endpoint = WebSocketTTS::new(DefaultVoice::Alice, body);
     ///
     ///     let client = ElevenLabsClient::from_env()?;
-    ///     let stream = client.hit_ws(endpoint).await?;
+    ///     let mut session = client.connect_text_to_speech(endpoint).await?;
     ///
-    ///     stream_audio(stream.map(|r| r?.audio_as_bytes())).await?;
+    ///     stream_audio(session.by_ref().map(|r| r?.audio_as_bytes())).await?;
+    ///     session.close().await?;
+    ///     let _report = session.join().await;
     ///
     ///     Ok(())
     /// }
@@ -639,6 +658,8 @@ pub mod ws {
         pub(crate) voice_id: String,
         pub(crate) body: WebSocketTTSBody<S>,
         pub(crate) query: Option<TTSWebSocketQuery>,
+        #[cfg(test)]
+        pub(crate) base_url: String,
     }
 
     impl<S> WebSocketTTS<S>
@@ -650,33 +671,96 @@ pub mod ws {
                 voice_id: voice_id.into(),
                 body,
                 query: None,
+                #[cfg(test)]
+                base_url: WS_BASE_URL.to_owned(),
             }
         }
         pub fn with_query(mut self, query: TTSWebSocketQuery) -> Self {
             self.query = Some(query);
             self
         }
+        #[cfg(test)]
+        pub(crate) fn with_base_url(mut self, base_url: impl Into<String>) -> Self {
+            self.base_url = base_url.into();
+            self
+        }
         pub(crate) fn url(&self) -> Result<String> {
-            let mut base_url = Url::from_str(WS_BASE_URL)
-                .map_err(|e| Error::InvalidInput(format!("invalid websocket base URL: {e}")))?;
-
-            let mut path = WS_PATH.to_string();
-
-            path = path.replace(":voice_id", &self.voice_id.to_string());
-
-            base_url.set_path(&path);
-
-            if let Some(query_values) = &self.query {
-                let query_string = query_values
+            let path_params = [(":voice_id", self.voice_id.as_str())];
+            let query_params = self.query.as_ref().into_iter().flat_map(|query| {
+                query
                     .params
                     .iter()
-                    .map(|(k, v)| format!("{}={}", k, v))
-                    .collect::<Vec<String>>()
-                    .join("&");
+                    .map(|(name, value)| (*name, value.as_str()))
+            });
 
-                base_url.set_query(Some(&query_string));
+            #[cfg(test)]
+            let base_url = self.base_url.as_str();
+            #[cfg(not(test))]
+            let base_url = WS_BASE_URL;
+
+            crate::ws::websocket_url(base_url, WS_PATH, path_params, query_params)
+        }
+
+        pub(crate) fn auth(&self) -> crate::ws::WebSocketAuth {
+            crate::ws::WebSocketAuth::None
+        }
+
+        pub(crate) fn should_inject_bos_api_key(&self) -> bool {
+            let query_has_auth = self
+                .query
+                .as_ref()
+                .is_some_and(TTSWebSocketQuery::uses_auth);
+            !query_has_auth
+                && self.body.bos_message.authorization.is_none()
+                && self.body.bos_message.xi_api_key.is_none()
+        }
+    }
+
+    impl<S> crate::ws::sealed::Sealed for WebSocketTTS<S> where S: Stream<Item = String> + Send + 'static
+    {}
+
+    impl<S> crate::ws::WebSocketEndpoint for WebSocketTTS<S>
+    where
+        S: Stream<Item = String> + Send + 'static,
+    {
+        type Codec = crate::ws::JsonTextCodec<WebSocketTTSInput, WebSocketTTSResponse>;
+        type InputStream = Pin<Box<dyn Stream<Item = Result<WebSocketTTSInput>> + Send>>;
+
+        fn url(&self) -> Result<String> {
+            WebSocketTTS::url(self)
+        }
+
+        fn auth(&self) -> crate::ws::WebSocketAuth {
+            WebSocketTTS::auth(self)
+        }
+
+        fn endpoint_name(&self) -> &'static str {
+            "text_to_speech.websocket"
+        }
+
+        fn input_stream(mut self, api_key: &str) -> Result<Self::InputStream> {
+            if self.should_inject_bos_api_key() {
+                self.body.bos_message.xi_api_key = Some(api_key.to_owned());
             }
-            Ok(base_url.to_string())
+
+            let bos_message = self.body.bos_message;
+            let text_stream = self.body.text_stream;
+            let flush = self.body.flush;
+
+            Ok(Box::pin(async_stream::try_stream! {
+                yield WebSocketTTSInput::Bos(bos_message);
+
+                futures_util::pin_mut!(text_stream);
+                while let Some(chunk) = text_stream.next().await {
+                    yield WebSocketTTSInput::Text(WebSocketTextMessage::new(chunk));
+                }
+
+                if flush {
+                    yield WebSocketTTSInput::Text(WebSocketTextMessage::flush());
+                }
+
+                yield WebSocketTTSInput::Text(WebSocketTextMessage::end_of_sequence());
+            }))
         }
     }
 
@@ -718,6 +802,17 @@ pub mod ws {
             self
         }
 
+        pub fn with_authorization(mut self, authorization: impl Into<String>) -> Self {
+            self.params.push(("authorization", authorization.into()));
+            self
+        }
+
+        pub fn with_single_use_token(mut self, single_use_token: impl Into<String>) -> Self {
+            self.params
+                .push(("single_use_token", single_use_token.into()));
+            self
+        }
+
         pub fn with_language_code(mut self, language_code: impl Into<String>) -> Self {
             self.params.push(("language_code", language_code.into()));
             self
@@ -751,14 +846,43 @@ pub mod ws {
             self.params.push(("auto_mode", auto_mode.to_string()));
             self
         }
+
+        pub fn with_sync_alignment(mut self, sync_alignment: bool) -> Self {
+            self.params
+                .push(("sync_alignment", sync_alignment.to_string()));
+            self
+        }
+
+        pub fn with_text_normalization(mut self, normalization: Normalization) -> Self {
+            self.params.push((
+                "apply_text_normalization",
+                normalization.as_str().to_owned(),
+            ));
+            self
+        }
+
+        pub fn with_seed(mut self, seed: u32) -> Self {
+            self.params.push(("seed", seed.to_string()));
+            self
+        }
+
+        pub(crate) fn uses_auth(&self) -> bool {
+            self.params
+                .iter()
+                .any(|(name, _)| matches!(*name, "authorization" | "single_use_token"))
+        }
     }
 
     #[derive(Clone, Debug, Serialize)]
     pub struct BOSMessage {
         pub text: String,
+        #[serde(skip_serializing_if = "Option::is_none")]
         pub xi_api_key: Option<String>,
+        #[serde(skip_serializing_if = "Option::is_none")]
         pub voice_settings: Option<VoiceSettings>,
+        #[serde(skip_serializing_if = "Option::is_none")]
         pub authorization: Option<String>,
+        #[serde(skip_serializing_if = "Option::is_none")]
         pub generation_config: Option<GenerationConfig>,
     }
     impl BOSMessage {
@@ -775,9 +899,7 @@ pub mod ws {
             self
         }
         pub fn with_generation_config(mut self, generation_config: [usize; 4]) -> Self {
-            self.generation_config = Some(GenerationConfig {
-                chunk_length_schedule: generation_config,
-            });
+            self.generation_config = Some(GenerationConfig::new(generation_config));
             self
         }
         pub fn to_message(&self) -> Result<Message> {
@@ -798,50 +920,244 @@ pub mod ws {
         }
     }
 
+    /// Multi-context realtime text-to-speech over a single WebSocket.
+    ///
+    /// Each outbound message belongs to a `context_id`. A single socket can
+    /// keep several contexts alive at once and the server includes the context
+    /// id on each audio response.
+    pub struct MultiContextWebSocketTTS<S>
+    where
+        S: Stream<Item = MultiContextTTSInput> + Send + 'static,
+    {
+        pub(crate) voice_id: String,
+        pub(crate) input_stream: S,
+        pub(crate) query: Option<TTSWebSocketQuery>,
+        #[cfg(test)]
+        pub(crate) base_url: String,
+    }
+
+    impl<S> MultiContextWebSocketTTS<S>
+    where
+        S: Stream<Item = MultiContextTTSInput> + Send + 'static,
+    {
+        pub fn new(voice_id: impl Into<String>, input_stream: S) -> Self {
+            Self {
+                voice_id: voice_id.into(),
+                input_stream,
+                query: None,
+                #[cfg(test)]
+                base_url: WS_BASE_URL.to_owned(),
+            }
+        }
+
+        pub fn with_query(mut self, query: TTSWebSocketQuery) -> Self {
+            self.query = Some(query);
+            self
+        }
+
+        #[cfg(test)]
+        pub(crate) fn with_base_url(mut self, base_url: impl Into<String>) -> Self {
+            self.base_url = base_url.into();
+            self
+        }
+
+        pub(crate) fn url(&self) -> Result<String> {
+            let path_params = [(":voice_id", self.voice_id.as_str())];
+            let query_params = self.query.as_ref().into_iter().flat_map(|query| {
+                query
+                    .params
+                    .iter()
+                    .map(|(name, value)| (*name, value.as_str()))
+            });
+
+            #[cfg(test)]
+            let base_url = self.base_url.as_str();
+            #[cfg(not(test))]
+            let base_url = WS_BASE_URL;
+
+            crate::ws::websocket_url(base_url, MULTI_CONTEXT_WS_PATH, path_params, query_params)
+        }
+
+        pub(crate) fn auth(&self) -> crate::ws::WebSocketAuth {
+            if self
+                .query
+                .as_ref()
+                .is_some_and(TTSWebSocketQuery::uses_auth)
+            {
+                crate::ws::WebSocketAuth::None
+            } else {
+                crate::ws::WebSocketAuth::XiApiKeyHeader
+            }
+        }
+    }
+
+    impl<S> crate::ws::sealed::Sealed for MultiContextWebSocketTTS<S> where
+        S: Stream<Item = MultiContextTTSInput> + Send + 'static
+    {
+    }
+
+    impl<S> crate::ws::WebSocketEndpoint for MultiContextWebSocketTTS<S>
+    where
+        S: Stream<Item = MultiContextTTSInput> + Send + 'static,
+    {
+        type Codec = crate::ws::JsonTextCodec<MultiContextTTSInput, MultiContextTTSResponse>;
+        type InputStream = Pin<Box<dyn Stream<Item = Result<MultiContextTTSInput>> + Send>>;
+
+        fn url(&self) -> Result<String> {
+            MultiContextWebSocketTTS::url(self)
+        }
+
+        fn auth(&self) -> crate::ws::WebSocketAuth {
+            MultiContextWebSocketTTS::auth(self)
+        }
+
+        fn endpoint_name(&self) -> &'static str {
+            "text_to_speech.multi_context_websocket"
+        }
+
+        fn input_stream(self, _api_key: &str) -> Result<Self::InputStream> {
+            let input_stream = self.input_stream;
+
+            Ok(Box::pin(async_stream::try_stream! {
+                futures_util::pin_mut!(input_stream);
+                while let Some(input) = input_stream.next().await {
+                    yield input;
+                }
+            }))
+        }
+    }
+
+    #[derive(Clone, Debug, Default, Serialize)]
+    pub struct MultiContextTTSInput {
+        #[serde(skip_serializing_if = "Option::is_none")]
+        pub text: Option<String>,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        pub context_id: Option<String>,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        pub voice_settings: Option<VoiceSettings>,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        pub generation_config: Option<GenerationConfig>,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        pub flush: Option<bool>,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        pub close_context: Option<bool>,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        pub close_socket: Option<bool>,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        pub keep_context_alive: Option<bool>,
+    }
+
+    impl MultiContextTTSInput {
+        pub fn text(context_id: impl Into<String>, text: impl Into<String>) -> Self {
+            Self {
+                text: Some(text.into()),
+                context_id: Some(context_id.into()),
+                ..Default::default()
+            }
+        }
+
+        pub fn start_context(context_id: impl Into<String>) -> Self {
+            Self::text(context_id, " ")
+        }
+
+        pub fn flush(context_id: impl Into<String>) -> Self {
+            Self {
+                context_id: Some(context_id.into()),
+                flush: Some(true),
+                ..Default::default()
+            }
+        }
+
+        pub fn close_context(context_id: impl Into<String>) -> Self {
+            Self {
+                context_id: Some(context_id.into()),
+                close_context: Some(true),
+                ..Default::default()
+            }
+        }
+
+        pub fn keep_context_alive(context_id: impl Into<String>) -> Self {
+            Self {
+                context_id: Some(context_id.into()),
+                keep_context_alive: Some(true),
+                ..Default::default()
+            }
+        }
+
+        pub fn close_socket() -> Self {
+            Self {
+                close_socket: Some(true),
+                ..Default::default()
+            }
+        }
+
+        pub fn with_voice_settings(mut self, voice_settings: VoiceSettings) -> Self {
+            self.voice_settings = Some(voice_settings);
+            self
+        }
+
+        pub fn with_generation_config(mut self, generation_config: [usize; 4]) -> Self {
+            self.generation_config = Some(GenerationConfig::new(generation_config));
+            self
+        }
+
+        pub fn with_flush(mut self) -> Self {
+            self.flush = Some(true);
+            self
+        }
+    }
+
     #[derive(Clone, Debug, Serialize)]
     pub struct GenerationConfig {
         chunk_length_schedule: [usize; 4],
     }
 
-    pub(crate) trait TextChunkMessage {
-        fn to_message(&self) -> Result<Message>;
+    impl GenerationConfig {
+        pub fn new(chunk_length_schedule: [usize; 4]) -> Self {
+            Self {
+                chunk_length_schedule,
+            }
+        }
+
+        pub fn chunk_length_schedule(&self) -> [usize; 4] {
+            self.chunk_length_schedule
+        }
     }
 
     #[derive(Clone, Debug, Serialize)]
-    pub(crate) struct WebSocketTextMessage<'a> {
-        text: &'a str,
+    #[serde(untagged)]
+    pub(crate) enum WebSocketTTSInput {
+        Bos(BOSMessage),
+        Text(WebSocketTextMessage),
+    }
+
+    #[derive(Clone, Debug, Serialize)]
+    pub(crate) struct WebSocketTextMessage {
+        text: String,
         #[serde(skip_serializing_if = "Option::is_none")]
         flush: Option<bool>,
     }
 
-    impl<'a> WebSocketTextMessage<'a> {
-        pub(crate) fn new(text: &'a str) -> Self {
-            Self { text, flush: None }
+    impl WebSocketTextMessage {
+        pub(crate) fn new(text: impl Into<String>) -> Self {
+            Self {
+                text: text.into(),
+                flush: None,
+            }
         }
 
         pub(crate) fn flush() -> Self {
             Self {
-                text: " ",
+                text: " ".to_owned(),
                 flush: Some(true),
             }
         }
 
         pub(crate) fn end_of_sequence() -> Self {
             Self {
-                text: "",
+                text: String::new(),
                 flush: None,
             }
-        }
-
-        pub(crate) fn to_message(&self) -> Result<Message> {
-            let json = serde_json::to_string(self)?;
-            Ok(Message::Text(json))
-        }
-    }
-
-    impl TextChunkMessage for String {
-        fn to_message(&self) -> Result<Message> {
-            WebSocketTextMessage::new(self).to_message()
         }
     }
 
@@ -852,17 +1168,117 @@ pub mod ws {
         pub is_final: Option<bool>,
         pub normalized_alignment: Option<WebSocketAlignment>,
         pub alignment: Option<WebSocketAlignment>,
+        pub code: Option<WebSocketTTSErrorCode>,
+        pub error: Option<String>,
+        pub message: Option<String>,
+        #[serde(flatten)]
+        pub extra: Map<String, Value>,
     }
 
     impl WebSocketTTSResponse {
         pub fn audio_as_bytes(&self) -> Result<Bytes> {
-            if self.is_final.is_some() {
+            if self.is_final() {
                 return Ok(Bytes::new());
             }
             if let Some(audio_b64) = &self.audio {
                 return Ok(Bytes::from(general_purpose::STANDARD.decode(audio_b64)?));
             }
             Ok(Bytes::new())
+        }
+
+        pub fn is_final(&self) -> bool {
+            self.is_final.unwrap_or_default()
+        }
+
+        pub fn audio_base64(&self) -> Option<&str> {
+            self.audio.as_deref()
+        }
+
+        pub fn has_audio(&self) -> bool {
+            self.audio_base64().is_some_and(|audio| !audio.is_empty()) && !self.is_final()
+        }
+
+        pub fn is_error(&self) -> bool {
+            self.error.is_some() || self.message.is_some() || self.code.is_some()
+        }
+
+        pub fn error_name(&self) -> Option<&str> {
+            self.error.as_deref()
+        }
+
+        pub fn error_message(&self) -> Option<&str> {
+            self.message.as_deref()
+        }
+    }
+
+    #[derive(Clone, Debug, Default, Deserialize)]
+    #[serde(rename_all = "camelCase")]
+    pub struct MultiContextTTSResponse {
+        pub audio: Option<String>,
+        pub is_final: Option<bool>,
+        pub context_id: Option<String>,
+        pub normalized_alignment: Option<WebSocketAlignment>,
+        pub alignment: Option<WebSocketAlignment>,
+        pub code: Option<WebSocketTTSErrorCode>,
+        pub error: Option<String>,
+        pub message: Option<String>,
+        #[serde(flatten)]
+        pub extra: Map<String, Value>,
+    }
+
+    impl MultiContextTTSResponse {
+        pub fn audio_as_bytes(&self) -> Result<Bytes> {
+            if self.is_final() {
+                return Ok(Bytes::new());
+            }
+            if let Some(audio_b64) = &self.audio {
+                return Ok(Bytes::from(general_purpose::STANDARD.decode(audio_b64)?));
+            }
+            Ok(Bytes::new())
+        }
+
+        pub fn is_final(&self) -> bool {
+            self.is_final.unwrap_or_default()
+        }
+
+        pub fn context_id(&self) -> Option<&str> {
+            self.context_id.as_deref()
+        }
+
+        pub fn audio_base64(&self) -> Option<&str> {
+            self.audio.as_deref()
+        }
+
+        pub fn has_audio(&self) -> bool {
+            self.audio_base64().is_some_and(|audio| !audio.is_empty()) && !self.is_final()
+        }
+
+        pub fn is_error(&self) -> bool {
+            self.error.is_some() || self.message.is_some() || self.code.is_some()
+        }
+
+        pub fn error_name(&self) -> Option<&str> {
+            self.error.as_deref()
+        }
+
+        pub fn error_message(&self) -> Option<&str> {
+            self.message.as_deref()
+        }
+    }
+
+    #[derive(Clone, Debug, Deserialize, PartialEq, Eq)]
+    #[serde(untagged)]
+    pub enum WebSocketTTSErrorCode {
+        Number(u16),
+        Text(String),
+    }
+
+    impl std::fmt::Display for WebSocketTTSErrorCode {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            match self {
+                Self::Number(code) => write!(f, "{code}"),
+                Self::Text(code) => f.write_str(code),
+            }
         }
     }
 
@@ -872,6 +1288,8 @@ pub mod ws {
         pub char_start_times_ms: Vec<f32>,
         pub char_durations_ms: Vec<f32>,
         pub chars: Vec<String>,
+        #[serde(flatten)]
+        pub extra: Map<String, Value>,
     }
 
     #[cfg(test)]
@@ -882,10 +1300,8 @@ pub mod ws {
         #[test]
         fn text_chunk_message_serializes_with_json_escaping() {
             let text = "quotes \" backslash \\ newline \n snowman \u{2603}".to_string();
-
-            let Message::Text(encoded) = text.to_message().unwrap() else {
-                panic!("expected text websocket message");
-            };
+            let message = WebSocketTextMessage::new(text.clone());
+            let encoded = serde_json::to_string(&message).unwrap();
 
             let value: Value = serde_json::from_str(&encoded).unwrap();
             assert_eq!(value, json!({ "text": text }));
@@ -893,24 +1309,238 @@ pub mod ws {
 
         #[test]
         fn websocket_control_text_messages_use_same_serializer() {
-            let Message::Text(flush) = WebSocketTextMessage::flush().to_message().unwrap() else {
-                panic!("expected text websocket message");
-            };
+            let flush = serde_json::to_string(&WebSocketTextMessage::flush()).unwrap();
             assert_eq!(
                 serde_json::from_str::<Value>(&flush).unwrap(),
                 json!({ "text": " ", "flush": true })
             );
 
-            let Message::Text(eos) = WebSocketTextMessage::end_of_sequence()
-                .to_message()
-                .unwrap()
-            else {
-                panic!("expected text websocket message");
-            };
+            let eos = serde_json::to_string(&WebSocketTextMessage::end_of_sequence()).unwrap();
             assert_eq!(
                 serde_json::from_str::<Value>(&eos).unwrap(),
                 json!({ "text": "" })
             );
+        }
+
+        #[test]
+        fn websocket_url_encodes_path_and_query_values() {
+            let endpoint = WebSocketTTS::new(
+                "voice id/with slash",
+                WebSocketTTSBody::new(BOSMessage::default(), futures_util::stream::empty()),
+            )
+            .with_query(
+                TTSWebSocketQuery::default()
+                    .with_model_id("model with spaces")
+                    .with_language_code("en-US")
+                    .with_single_use_token("token/with?chars&symbols"),
+            );
+
+            let url = endpoint.url().unwrap();
+            let parsed = Url::parse(&url).unwrap();
+
+            assert_eq!(
+                parsed.path(),
+                "/v1/text-to-speech/voice%20id%2Fwith%20slash/stream-input"
+            );
+            let query_pairs: Vec<_> = parsed.query_pairs().collect();
+            assert!(query_pairs.contains(&("model_id".into(), "model with spaces".into())));
+            assert!(query_pairs.contains(&("language_code".into(), "en-US".into())));
+            assert!(query_pairs
+                .contains(&("single_use_token".into(), "token/with?chars&symbols".into())));
+        }
+
+        #[test]
+        fn websocket_bos_api_key_injection_respects_explicit_auth() {
+            let endpoint = WebSocketTTS::new(
+                "voice-id",
+                WebSocketTTSBody::new(BOSMessage::default(), futures_util::stream::empty()),
+            );
+            assert!(endpoint.should_inject_bos_api_key());
+
+            let endpoint = endpoint
+                .with_query(TTSWebSocketQuery::default().with_single_use_token("single-use-token"));
+            assert!(!endpoint.should_inject_bos_api_key());
+
+            let endpoint = WebSocketTTS::new(
+                "voice-id",
+                WebSocketTTSBody::new(
+                    BOSMessage::default().with_authorization("bearer-token"),
+                    futures_util::stream::empty(),
+                ),
+            );
+            assert!(!endpoint.should_inject_bos_api_key());
+        }
+
+        #[test]
+        fn multi_context_tts_inputs_serialize_to_api_shapes() {
+            let start = MultiContextTTSInput::start_context("conv_1")
+                .with_voice_settings(
+                    VoiceSettings::default()
+                        .with_stability(0.5)
+                        .with_similarity_boost(0.75),
+                )
+                .with_generation_config([120, 160, 250, 290]);
+
+            assert_eq!(
+                serde_json::to_value(start).unwrap(),
+                json!({
+                    "text": " ",
+                    "context_id": "conv_1",
+                    "voice_settings": {
+                        "similarity_boost": 0.75,
+                        "stability": 0.5
+                    },
+                    "generation_config": {
+                        "chunk_length_schedule": [120, 160, 250, 290]
+                    }
+                })
+            );
+
+            assert_eq!(
+                serde_json::to_value(MultiContextTTSInput::text("conv_1", "Hello from one. "))
+                    .unwrap(),
+                json!({ "text": "Hello from one. ", "context_id": "conv_1" })
+            );
+            assert_eq!(
+                serde_json::to_value(MultiContextTTSInput::flush("conv_1")).unwrap(),
+                json!({ "context_id": "conv_1", "flush": true })
+            );
+            assert_eq!(
+                serde_json::to_value(MultiContextTTSInput::close_context("conv_1")).unwrap(),
+                json!({ "context_id": "conv_1", "close_context": true })
+            );
+            assert_eq!(
+                serde_json::to_value(MultiContextTTSInput::close_socket()).unwrap(),
+                json!({ "close_socket": true })
+            );
+        }
+
+        #[test]
+        fn multi_context_websocket_url_and_auth_follow_api_shape() {
+            let endpoint = MultiContextWebSocketTTS::new(
+                "voice id/with slash",
+                futures_util::stream::empty::<MultiContextTTSInput>(),
+            )
+            .with_base_url("wss://example.test")
+            .with_query(
+                TTSWebSocketQuery::default()
+                    .with_model_id("model with spaces")
+                    .with_single_use_token("token/with?chars&symbols")
+                    .with_sync_alignment(true)
+                    .with_text_normalization(Normalization::On)
+                    .with_seed(42),
+            );
+
+            let url = endpoint.url().unwrap();
+            let parsed = Url::parse(&url).unwrap();
+
+            assert_eq!(
+                parsed.path(),
+                "/v1/text-to-speech/voice%20id%2Fwith%20slash/multi-stream-input"
+            );
+            let query_pairs: Vec<_> = parsed.query_pairs().collect();
+            assert!(query_pairs.contains(&("model_id".into(), "model with spaces".into())));
+            assert!(query_pairs
+                .contains(&("single_use_token".into(), "token/with?chars&symbols".into())));
+            assert!(query_pairs.contains(&("sync_alignment".into(), "true".into())));
+            assert!(query_pairs.contains(&("apply_text_normalization".into(), "on".into())));
+            assert!(query_pairs.contains(&("seed".into(), "42".into())));
+            assert!(matches!(endpoint.auth(), crate::ws::WebSocketAuth::None));
+
+            let endpoint = MultiContextWebSocketTTS::new(
+                "voice-id",
+                futures_util::stream::empty::<MultiContextTTSInput>(),
+            );
+            assert!(matches!(
+                endpoint.auth(),
+                crate::ws::WebSocketAuth::XiApiKeyHeader
+            ));
+        }
+
+        #[test]
+        fn multi_context_tts_response_exposes_context_audio_and_errors() {
+            let response: MultiContextTTSResponse = serde_json::from_value(json!({
+                "audio": "aGVsbG8=",
+                "isFinal": false,
+                "contextId": "conv_1",
+                "futureField": "preserved"
+            }))
+            .unwrap();
+
+            assert_eq!(response.context_id(), Some("conv_1"));
+            assert!(response.has_audio());
+            assert_eq!(response.audio_as_bytes().unwrap().as_ref(), b"hello");
+            assert_eq!(response.extra.get("futureField"), Some(&json!("preserved")));
+
+            let response: MultiContextTTSResponse = serde_json::from_value(json!({
+                "contextId": "conv_1",
+                "code": 1008,
+                "error": "invalid_api_key",
+                "message": "Invalid API key"
+            }))
+            .unwrap();
+
+            assert!(response.is_error());
+            assert_eq!(response.context_id(), Some("conv_1"));
+            assert_eq!(response.code, Some(WebSocketTTSErrorCode::Number(1008)));
+            assert_eq!(response.error_name(), Some("invalid_api_key"));
+            assert_eq!(response.error_message(), Some("Invalid API key"));
+        }
+
+        #[test]
+        fn websocket_tts_audio_decodes_when_is_final_is_false() {
+            let response: WebSocketTTSResponse = serde_json::from_value(json!({
+                "audio": "aGVsbG8=",
+                "isFinal": false,
+                "futureField": "preserved"
+            }))
+            .unwrap();
+
+            assert!(!response.is_final());
+            assert!(response.has_audio());
+            assert_eq!(response.audio_as_bytes().unwrap().as_ref(), b"hello");
+            assert_eq!(response.extra.get("futureField"), Some(&json!("preserved")));
+        }
+
+        #[test]
+        fn websocket_tts_final_response_has_no_audio_bytes() {
+            let response: WebSocketTTSResponse = serde_json::from_value(json!({
+                "audio": "aGVsbG8=",
+                "isFinal": true
+            }))
+            .unwrap();
+
+            assert!(response.is_final());
+            assert_eq!(response.audio_as_bytes().unwrap(), Bytes::new());
+        }
+
+        #[test]
+        fn websocket_tts_error_payloads_are_exposed() {
+            let response: WebSocketTTSResponse = serde_json::from_value(json!({
+                "code": 1008,
+                "error": "invalid_api_key",
+                "message": "Invalid API key"
+            }))
+            .unwrap();
+
+            assert!(response.is_error());
+            assert_eq!(response.code, Some(WebSocketTTSErrorCode::Number(1008)));
+            assert_eq!(response.error_name(), Some("invalid_api_key"));
+            assert_eq!(response.error_message(), Some("Invalid API key"));
+            assert!(response.extra.is_empty());
+
+            let response: WebSocketTTSResponse = serde_json::from_value(json!({
+                "code": "future_code",
+                "message": "Future error shape"
+            }))
+            .unwrap();
+
+            assert!(response.is_error());
+            assert_eq!(
+                response.code,
+                Some(WebSocketTTSErrorCode::Text("future_code".to_string()))
+            );
+            assert_eq!(response.error_message(), Some("Future error shape"));
         }
     }
 }

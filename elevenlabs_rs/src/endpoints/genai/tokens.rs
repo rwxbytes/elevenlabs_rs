@@ -74,6 +74,10 @@ impl ElevenLabsEndpoint for CreateSingleUseToken {
         vec![self.token_type.0.and_param(PathParam::TokenType)]
     }
 
+    async fn request_body(&self) -> Result<RequestBody> {
+        Ok(RequestBody::Bytes(Bytes::new()))
+    }
+
     async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
         Ok(resp.json().await?)
     }

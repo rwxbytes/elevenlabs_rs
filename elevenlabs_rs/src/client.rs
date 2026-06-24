@@ -1,27 +1,22 @@
-#[cfg(feature = "ws")]
-use crate::endpoints::genai::tts::ws::*;
+#[cfg(all(feature = "ws", feature = "genai"))]
+use crate::endpoints::genai::speech_to_text::ws::{
+    RealtimeSpeechToText, RealtimeSpeechToTextInput, RealtimeSpeechToTextResponse,
+};
+#[cfg(all(feature = "ws", feature = "genai"))]
+use crate::endpoints::genai::tts::ws::{
+    MultiContextTTSInput, MultiContextTTSResponse, MultiContextWebSocketTTS, WebSocketTTS,
+    WebSocketTTSResponse,
+};
 use crate::endpoints::{ElevenLabsEndpoint, RequestBody, DEFAULT_BASE_URL};
-#[cfg(feature = "ws")]
-use crate::error::WebSocketError;
 use crate::error::{ApiError, Error};
 use bytes::Bytes;
-#[cfg(feature = "ws")]
-use futures_util::{pin_mut, SinkExt, Stream, StreamExt};
+#[cfg(all(feature = "ws", feature = "genai"))]
+use futures_util::Stream;
 use reqwest::{
-    header::{HeaderMap, CONTENT_TYPE},
+    header::{HeaderMap, CONTENT_LENGTH, CONTENT_TYPE},
     Method, StatusCode, Url,
 };
 use serde::{de::DeserializeOwned, Serialize};
-#[cfg(feature = "ws")]
-use std::pin::Pin;
-#[cfg(feature = "ws")]
-use std::task::{Context, Poll};
-#[cfg(feature = "ws")]
-use tokio::task::JoinHandle;
-#[cfg(feature = "ws")]
-use tokio_tungstenite::tungstenite::protocol::frame::coding::CloseCode;
-#[cfg(feature = "ws")]
-use tokio_tungstenite::{connect_async, tungstenite::protocol::Message};
 
 pub type Result<T> = std::result::Result<T, Error>;
 
@@ -157,104 +152,98 @@ impl ElevenLabsClient {
         Ok((resp, metadata))
     }
 
-    #[cfg(feature = "ws")]
-    pub async fn hit_ws<S>(
+    #[cfg(all(feature = "ws", feature = "genai"))]
+    /// Connect to the realtime text-to-speech WebSocket API.
+    pub async fn connect_text_to_speech<S>(
         &self,
-        mut endpoint: WebSocketTTS<S>,
-    ) -> Result<impl Stream<Item = Result<WebSocketTTSResponse>>>
+        endpoint: WebSocketTTS<S>,
+    ) -> Result<crate::ws::WebSocketSession<WebSocketTTSResponse>>
     where
         S: Stream<Item = String> + Send + 'static,
     {
-        let (ws_stream, _) = connect_async(endpoint.url()?).await?;
-        let (mut writer, mut reader) = ws_stream.split();
-        let (tx_to_caller, rx_for_caller) =
-            futures_channel::mpsc::unbounded::<Result<WebSocketTTSResponse>>();
+        crate::ws::connect_endpoint(endpoint, &self.api_key).await
+    }
 
-        // Perhaps remove api key setter from bos_message
-        // as it is already set in the client ?
-        if endpoint.body.bos_message.authorization.is_none() {
-            endpoint.body.bos_message.xi_api_key = Some(self.api_key.clone());
-        }
+    #[cfg(all(feature = "ws", feature = "genai"))]
+    /// Connect to the realtime text-to-speech WebSocket API with custom
+    /// session options.
+    pub async fn connect_text_to_speech_with_options<S>(
+        &self,
+        endpoint: WebSocketTTS<S>,
+        options: crate::ws::WebSocketOptions,
+    ) -> Result<crate::ws::WebSocketSession<WebSocketTTSResponse>>
+    where
+        S: Stream<Item = String> + Send + 'static,
+    {
+        crate::ws::connect_endpoint_with_options(endpoint, &self.api_key, options).await
+    }
 
-        let reader_tx = tx_to_caller.clone();
-        let reader_task: JoinHandle<Result<()>> = tokio::spawn(async move {
-            let result = async {
-                while let Some(msg_result) = reader.next().await {
-                    let msg = msg_result?;
-                    match msg {
-                        Message::Text(text) => {
-                            let response: WebSocketTTSResponse = serde_json::from_str(&text)?;
-                            reader_tx.unbounded_send(Ok(response))?;
-                        }
-                        Message::Close(msg) => {
-                            if let Some(close_frame) = msg {
-                                if close_frame.code == CloseCode::Normal {
-                                    return Ok(());
-                                }
-                                reader_tx.unbounded_send(Err(
-                                    WebSocketError::NonNormalCloseCode(
-                                        close_frame.reason.to_string(),
-                                    )
-                                    .into(),
-                                ))?;
-                                return Ok(());
-                            }
-                            reader_tx.unbounded_send(Err(
-                                WebSocketError::ClosedWithoutCloseFrame.into(),
-                            ))?;
-                            return Ok(());
-                        }
-                        _ => reader_tx
-                            .unbounded_send(Err(WebSocketError::UnexpectedMessageType.into()))?,
-                    }
-                }
-                Ok(())
-            }
-            .await;
+    #[cfg(all(feature = "ws", feature = "genai"))]
+    /// Compatibility alias for [`ElevenLabsClient::connect_text_to_speech`].
+    #[deprecated(
+        since = "0.7.0",
+        note = "use connect_text_to_speech; hit_ws will be removed after one release"
+    )]
+    pub async fn hit_ws<S>(
+        &self,
+        endpoint: WebSocketTTS<S>,
+    ) -> Result<crate::ws::WebSocketSession<WebSocketTTSResponse>>
+    where
+        S: Stream<Item = String> + Send + 'static,
+    {
+        self.connect_text_to_speech(endpoint).await
+    }
 
-            if let Err(error) = result {
-                let _ = reader_tx.unbounded_send(Err(error));
-            }
-            Ok(())
-        });
+    #[cfg(all(feature = "ws", feature = "genai"))]
+    /// Connect to the multi-context realtime text-to-speech WebSocket API.
+    pub async fn connect_multi_context_text_to_speech<S>(
+        &self,
+        endpoint: MultiContextWebSocketTTS<S>,
+    ) -> Result<crate::ws::WebSocketSession<MultiContextTTSResponse>>
+    where
+        S: Stream<Item = MultiContextTTSInput> + Send + 'static,
+    {
+        crate::ws::connect_endpoint(endpoint, &self.api_key).await
+    }
 
-        let writer_tx = tx_to_caller.clone();
-        let writer_task: JoinHandle<Result<()>> = tokio::spawn(async move {
-            let result = async {
-                let bos_message = endpoint.body.bos_message;
-                writer.send(bos_message.to_message()?).await?;
+    #[cfg(all(feature = "ws", feature = "genai"))]
+    /// Connect to the multi-context realtime text-to-speech WebSocket API with
+    /// custom session options.
+    pub async fn connect_multi_context_text_to_speech_with_options<S>(
+        &self,
+        endpoint: MultiContextWebSocketTTS<S>,
+        options: crate::ws::WebSocketOptions,
+    ) -> Result<crate::ws::WebSocketSession<MultiContextTTSResponse>>
+    where
+        S: Stream<Item = MultiContextTTSInput> + Send + 'static,
+    {
+        crate::ws::connect_endpoint_with_options(endpoint, &self.api_key, options).await
+    }
 
-                let text_stream = endpoint.body.text_stream;
-                pin_mut!(text_stream);
+    #[cfg(all(feature = "ws", feature = "genai"))]
+    /// Connect to the realtime speech-to-text WebSocket API.
+    pub async fn connect_realtime_speech_to_text<S>(
+        &self,
+        endpoint: RealtimeSpeechToText<S>,
+    ) -> Result<crate::ws::WebSocketSession<RealtimeSpeechToTextResponse>>
+    where
+        S: Stream<Item = RealtimeSpeechToTextInput> + Send + 'static,
+    {
+        crate::ws::connect_endpoint(endpoint, &self.api_key).await
+    }
 
-                while let Some(chunk) = text_stream.next().await {
-                    writer.send(chunk.to_message()?).await?;
-                }
-
-                if endpoint.body.flush {
-                    writer
-                        .send(WebSocketTextMessage::flush().to_message()?)
-                        .await?;
-                }
-
-                writer
-                    .send(WebSocketTextMessage::end_of_sequence().to_message()?)
-                    .await?;
-
-                Ok(())
-            }
-            .await;
-
-            if let Err(error) = result {
-                let _ = writer_tx.unbounded_send(Err(error));
-            }
-            Ok(())
-        });
-        Ok(WebSocketTTSStream {
-            inner: rx_for_caller,
-            reader_task,
-            writer_task,
-        })
+    #[cfg(all(feature = "ws", feature = "genai"))]
+    /// Connect to the realtime speech-to-text WebSocket API with custom
+    /// session options.
+    pub async fn connect_realtime_speech_to_text_with_options<S>(
+        &self,
+        endpoint: RealtimeSpeechToText<S>,
+        options: crate::ws::WebSocketOptions,
+    ) -> Result<crate::ws::WebSocketSession<RealtimeSpeechToTextResponse>>
+    where
+        S: Stream<Item = RealtimeSpeechToTextInput> + Send + 'static,
+    {
+        crate::ws::connect_endpoint_with_options(endpoint, &self.api_key, options).await
     }
 }
 
@@ -389,30 +378,6 @@ impl<'a> RawRequestBuilder<'a> {
     }
 }
 
-#[cfg(feature = "ws")]
-struct WebSocketTTSStream {
-    inner: futures_channel::mpsc::UnboundedReceiver<Result<WebSocketTTSResponse>>,
-    reader_task: JoinHandle<Result<()>>,
-    writer_task: JoinHandle<Result<()>>,
-}
-
-#[cfg(feature = "ws")]
-impl Stream for WebSocketTTSStream {
-    type Item = Result<WebSocketTTSResponse>;
-
-    fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
-        Pin::new(&mut self.inner).poll_next(cx)
-    }
-}
-
-#[cfg(feature = "ws")]
-impl Drop for WebSocketTTSStream {
-    fn drop(&mut self) {
-        self.reader_task.abort();
-        self.writer_task.abort();
-    }
-}
-
 fn attach_request_body(
     builder: reqwest::RequestBuilder,
     body: RequestBody,
@@ -420,6 +385,8 @@ fn attach_request_body(
     match body {
         RequestBody::Json(json) => builder.header(CONTENT_TYPE, APPLICATION_JSON).json(&json),
         RequestBody::Multipart(form) => builder.multipart(form),
+        RequestBody::Bytes(bytes) if bytes.is_empty() => builder.header(CONTENT_LENGTH, "0"),
+        RequestBody::Bytes(bytes) => builder.body(bytes),
         RequestBody::Empty => builder,
     }
 }
@@ -504,6 +471,30 @@ mod tests {
         }
     }
 
+    struct EmptyBytesPost {
+        base_url: String,
+    }
+
+    impl crate::endpoints::sealed::Sealed for EmptyBytesPost {}
+
+    impl ElevenLabsEndpoint for EmptyBytesPost {
+        const PATH: &'static str = "/v1/empty-bytes";
+        const METHOD: reqwest::Method = reqwest::Method::POST;
+        type ResponseBody = Value;
+
+        fn base_url(&self) -> &str {
+            &self.base_url
+        }
+
+        async fn request_body(&self) -> Result<RequestBody> {
+            Ok(RequestBody::Bytes(Bytes::new()))
+        }
+
+        async fn response_body(self, resp: reqwest::Response) -> Result<Self::ResponseBody> {
+            Ok(resp.json().await?)
+        }
+    }
+
     struct ErrorEndpoint {
         base_url: String,
     }
@@ -565,6 +556,19 @@ mod tests {
 
         assert_eq!(response, json!({ "ok": true }));
         assert!(request.starts_with("POST /v1/empty HTTP/1.1"));
+    }
+
+    #[tokio::test]
+    async fn hit_sends_content_length_for_empty_byte_posts() {
+        let (base_url, request) = serve_once(http_response("200 OK", &[], r#"{"ok":true}"#)).await;
+        let client = ElevenLabsClient::new("test-key");
+
+        let response = client.hit(EmptyBytesPost { base_url }).await.unwrap();
+        let request = request.await.unwrap();
+
+        assert_eq!(response, json!({ "ok": true }));
+        assert!(request.starts_with("POST /v1/empty-bytes HTTP/1.1"));
+        assert!(request.contains("content-length: 0"));
     }
 
     #[tokio::test]
@@ -683,6 +687,397 @@ mod tests {
                 );
             }
             other => panic!("expected api error, got {other:?}"),
+        }
+    }
+
+    #[cfg(all(feature = "ws", feature = "genai"))]
+    mod websocket_integration {
+        use super::*;
+        use crate::endpoints::genai::speech_to_text::ws::{
+            RealtimeSpeechToText, RealtimeSpeechToTextInput, RealtimeSpeechToTextQuery,
+            RealtimeSpeechToTextResponse,
+        };
+        use crate::endpoints::genai::tts::ws::{BOSMessage, WebSocketTTS, WebSocketTTSBody};
+        use crate::error::WebSocketError;
+        use futures_util::{SinkExt, StreamExt};
+        use std::sync::{Arc, Mutex};
+        use std::time::Duration;
+        use tokio::task::JoinHandle;
+        use tokio_tungstenite::tungstenite::handshake::server::{Request, Response};
+        use tokio_tungstenite::tungstenite::protocol::frame::coding::CloseCode;
+        use tokio_tungstenite::tungstenite::protocol::{CloseFrame, Message};
+        use tokio_tungstenite::{accept_async, accept_hdr_async};
+
+        #[tokio::test]
+        async fn tts_websocket_sends_bos_chunks_flush_and_eos_in_order() {
+            let (base_url, listener) = local_ws_listener().await;
+            let (messages_tx, messages_rx) = oneshot::channel();
+            let server = spawn_tts_collector(listener, messages_tx);
+
+            let text_stream =
+                futures_util::stream::iter(["hello".to_string(), "world".to_string()]);
+            let body = WebSocketTTSBody::new(BOSMessage::default(), text_stream).with_flush();
+            let endpoint = WebSocketTTS::new("voice-id", body).with_base_url(base_url);
+            let client = ElevenLabsClient::new("test-key");
+
+            let mut session = client.connect_text_to_speech(endpoint).await.unwrap();
+            let messages = messages_rx.await.unwrap();
+            session.close().await.unwrap();
+            await_server(server).await;
+
+            assert_eq!(messages[0]["text"], json!(" "));
+            assert_eq!(messages[0]["xi_api_key"], json!("test-key"));
+            assert_eq!(messages[1], json!({ "text": "hello" }));
+            assert_eq!(messages[2], json!({ "text": "world" }));
+            assert_eq!(messages[3], json!({ "text": " ", "flush": true }));
+            assert_eq!(messages[4], json!({ "text": "" }));
+        }
+
+        #[tokio::test]
+        async fn tts_websocket_does_not_overwrite_explicit_bearer_auth() {
+            let (base_url, listener) = local_ws_listener().await;
+            let (messages_tx, messages_rx) = oneshot::channel();
+            let server = spawn_tts_collector(listener, messages_tx);
+
+            let body = WebSocketTTSBody::new(
+                BOSMessage::default().with_authorization("bearer-token"),
+                futures_util::stream::empty(),
+            );
+            let endpoint = WebSocketTTS::new("voice-id", body).with_base_url(base_url);
+            let client = ElevenLabsClient::new("test-key");
+
+            let mut session = client.connect_text_to_speech(endpoint).await.unwrap();
+            let messages = messages_rx.await.unwrap();
+            session.close().await.unwrap();
+            await_server(server).await;
+
+            assert_eq!(messages[0]["authorization"], json!("Bearer bearer-token"));
+            assert!(messages[0].get("xi_api_key").is_none());
+        }
+
+        #[tokio::test]
+        async fn stt_websocket_sends_header_auth_without_token_query() {
+            let (base_url, listener) = local_ws_listener().await;
+            let captured = Arc::new(Mutex::new(None));
+            let server = spawn_handshake_capture(listener, Arc::clone(&captured));
+
+            let endpoint = RealtimeSpeechToText::new(
+                "scribe_v2_realtime",
+                futures_util::stream::empty::<RealtimeSpeechToTextInput>(),
+            )
+            .with_base_url(base_url);
+            let client = ElevenLabsClient::new("test-key");
+
+            let _session = client
+                .connect_realtime_speech_to_text(endpoint)
+                .await
+                .unwrap();
+            await_server(server).await;
+            let captured = captured.lock().unwrap().clone().unwrap();
+
+            assert_eq!(captured.xi_api_key.as_deref(), Some("test-key"));
+            assert!(captured.uri.contains("model_id=scribe_v2_realtime"));
+        }
+
+        #[tokio::test]
+        async fn stt_websocket_uses_token_query_without_api_key_header() {
+            let (base_url, listener) = local_ws_listener().await;
+            let captured = Arc::new(Mutex::new(None));
+            let server = spawn_handshake_capture(listener, Arc::clone(&captured));
+
+            let endpoint = RealtimeSpeechToText::new(
+                "scribe_v2_realtime",
+                futures_util::stream::empty::<RealtimeSpeechToTextInput>(),
+            )
+            .with_query(RealtimeSpeechToTextQuery::default().with_token("single-use-token"))
+            .with_base_url(base_url);
+            let client = ElevenLabsClient::new("test-key");
+
+            let _session = client
+                .connect_realtime_speech_to_text(endpoint)
+                .await
+                .unwrap();
+            await_server(server).await;
+            let captured = captured.lock().unwrap().clone().unwrap();
+
+            assert!(captured.xi_api_key.is_none());
+            assert!(captured.uri.contains("token=single-use-token"));
+        }
+
+        #[tokio::test]
+        async fn stt_websocket_sends_base64_audio_json_frames() {
+            let (base_url, listener) = local_ws_listener().await;
+            let (message_tx, message_rx) = oneshot::channel();
+            let server = tokio::spawn(async move {
+                let (stream, _) = listener.accept().await.unwrap();
+                let mut ws = accept_async(stream).await.unwrap();
+                let message = read_next_json_text(&mut ws).await;
+                let _ = message_tx.send(message);
+                wait_for_close(&mut ws).await;
+            });
+
+            let input_stream =
+                futures_util::stream::iter([
+                    RealtimeSpeechToTextInput::audio(b"hello").with_commit(true)
+                ]);
+            let endpoint = RealtimeSpeechToText::new("scribe_v2_realtime", input_stream)
+                .with_base_url(base_url);
+            let client = ElevenLabsClient::new("test-key");
+
+            let _session = client
+                .connect_realtime_speech_to_text(endpoint)
+                .await
+                .unwrap();
+            let message = message_rx.await.unwrap();
+            await_server(server).await;
+
+            assert_eq!(
+                message,
+                json!({
+                    "message_type": "input_audio_chunk",
+                    "audio_base_64": "aGVsbG8=",
+                    "commit": true
+                })
+            );
+        }
+
+        #[tokio::test]
+        async fn websocket_ping_frames_do_not_terminate_session() {
+            let (base_url, listener) = local_ws_listener().await;
+            let server = tokio::spawn(async move {
+                let (stream, _) = listener.accept().await.unwrap();
+                let mut ws = accept_async(stream).await.unwrap();
+                ws.send(Message::Ping(vec![1, 2, 3])).await.unwrap();
+                ws.send(Message::Text(
+                    r#"{"message_type":"partial_transcript","text":"hello"}"#.into(),
+                ))
+                .await
+                .unwrap();
+                wait_for_close(&mut ws).await;
+            });
+
+            let endpoint = RealtimeSpeechToText::new(
+                "scribe_v2_realtime",
+                futures_util::stream::pending::<RealtimeSpeechToTextInput>(),
+            )
+            .with_base_url(base_url);
+            let client = ElevenLabsClient::new("test-key");
+
+            let mut session = client
+                .connect_realtime_speech_to_text(endpoint)
+                .await
+                .unwrap();
+            let response = session.next().await.unwrap().unwrap();
+            session.close().await.unwrap();
+            await_server(server).await;
+
+            assert!(matches!(
+                response,
+                RealtimeSpeechToTextResponse::PartialTranscript(transcript)
+                    if transcript.text == "hello"
+            ));
+        }
+
+        #[tokio::test]
+        async fn websocket_non_normal_close_reports_code_and_reason() {
+            let (base_url, listener) = local_ws_listener().await;
+            let server = tokio::spawn(async move {
+                let (stream, _) = listener.accept().await.unwrap();
+                let mut ws = accept_async(stream).await.unwrap();
+                ws.send(Message::Close(Some(CloseFrame {
+                    code: CloseCode::Error,
+                    reason: "boom".into(),
+                })))
+                .await
+                .unwrap();
+            });
+
+            let endpoint = RealtimeSpeechToText::new(
+                "scribe_v2_realtime",
+                futures_util::stream::pending::<RealtimeSpeechToTextInput>(),
+            )
+            .with_base_url(base_url);
+            let client = ElevenLabsClient::new("test-key");
+
+            let mut session = client
+                .connect_realtime_speech_to_text(endpoint)
+                .await
+                .unwrap();
+            let error = session.next().await.unwrap().unwrap_err();
+            await_server(server).await;
+
+            assert!(matches!(
+                error,
+                Error::WebSocketError(WebSocketError::NonNormalClose {
+                    context,
+                    code,
+                    reason
+                }) if context.endpoint == "speech_to_text.realtime"
+                    && context.direction == crate::error::WebSocketDirection::Inbound
+                    && code == "1011"
+                    && reason == "boom"
+            ));
+        }
+
+        #[tokio::test]
+        async fn websocket_malformed_json_reports_bounded_decode_preview() {
+            let (base_url, listener) = local_ws_listener().await;
+            let invalid_payload = format!(
+                "{{\"message_type\":\"partial_transcript\",\"text\":\"{}\"",
+                "x".repeat(400)
+            );
+            let server_payload = invalid_payload.clone();
+            let server = tokio::spawn(async move {
+                let (stream, _) = listener.accept().await.unwrap();
+                let mut ws = accept_async(stream).await.unwrap();
+                ws.send(Message::Text(server_payload)).await.unwrap();
+            });
+
+            let endpoint = RealtimeSpeechToText::new(
+                "scribe_v2_realtime",
+                futures_util::stream::pending::<RealtimeSpeechToTextInput>(),
+            )
+            .with_base_url(base_url);
+            let client = ElevenLabsClient::new("test-key");
+
+            let mut session = client
+                .connect_realtime_speech_to_text(endpoint)
+                .await
+                .unwrap();
+            let error = session.next().await.unwrap().unwrap_err();
+            session.abort();
+            await_server(server).await;
+
+            assert!(matches!(
+                error,
+                Error::WebSocketError(WebSocketError::Decode { context, payload_preview, .. })
+                    if context.endpoint == "speech_to_text.realtime"
+                        && context.direction == crate::error::WebSocketDirection::Inbound
+                        && payload_preview.ends_with("...")
+                        && payload_preview.chars().count() == 259
+                        && invalid_payload.starts_with(payload_preview.trim_end_matches("..."))
+            ));
+        }
+
+        #[tokio::test]
+        async fn websocket_session_close_sends_close_frame() {
+            let (base_url, listener) = local_ws_listener().await;
+            let (closed_tx, closed_rx) = oneshot::channel();
+            let server = tokio::spawn(async move {
+                let (stream, _) = listener.accept().await.unwrap();
+                let mut ws = accept_async(stream).await.unwrap();
+                wait_for_close(&mut ws).await;
+                let _ = closed_tx.send(());
+            });
+
+            let endpoint = RealtimeSpeechToText::new(
+                "scribe_v2_realtime",
+                futures_util::stream::pending::<RealtimeSpeechToTextInput>(),
+            )
+            .with_base_url(base_url);
+            let client = ElevenLabsClient::new("test-key");
+
+            let mut session = client
+                .connect_realtime_speech_to_text(endpoint)
+                .await
+                .unwrap();
+            session.close().await.unwrap();
+            closed_rx.await.unwrap();
+            await_server(server).await;
+        }
+
+        #[derive(Clone, Debug)]
+        struct CapturedHandshake {
+            xi_api_key: Option<String>,
+            uri: String,
+        }
+
+        async fn local_ws_listener() -> (String, TcpListener) {
+            let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+            let address = listener.local_addr().unwrap();
+            (format!("ws://{address}"), listener)
+        }
+
+        fn spawn_tts_collector(
+            listener: TcpListener,
+            messages_tx: oneshot::Sender<Vec<Value>>,
+        ) -> JoinHandle<()> {
+            tokio::spawn(async move {
+                let (stream, _) = listener.accept().await.unwrap();
+                let mut ws = accept_async(stream).await.unwrap();
+                let mut messages = Vec::new();
+
+                loop {
+                    let message = read_next_json_text(&mut ws).await;
+                    let is_eos = message.get("text") == Some(&json!(""));
+                    messages.push(message);
+                    if is_eos {
+                        break;
+                    }
+                }
+
+                let _ = messages_tx.send(messages);
+                wait_for_close(&mut ws).await;
+            })
+        }
+
+        fn spawn_handshake_capture(
+            listener: TcpListener,
+            captured: Arc<Mutex<Option<CapturedHandshake>>>,
+        ) -> JoinHandle<()> {
+            tokio::spawn(async move {
+                let (stream, _) = listener.accept().await.unwrap();
+                let captured_for_callback = Arc::clone(&captured);
+                let mut ws =
+                    accept_hdr_async(stream, move |request: &Request, response: Response| {
+                        let xi_api_key = request
+                            .headers()
+                            .get("xi-api-key")
+                            .and_then(|value| value.to_str().ok())
+                            .map(ToOwned::to_owned);
+                        let uri = request.uri().to_string();
+                        *captured_for_callback.lock().unwrap() =
+                            Some(CapturedHandshake { xi_api_key, uri });
+                        Ok(response)
+                    })
+                    .await
+                    .unwrap();
+                wait_for_close(&mut ws).await;
+            })
+        }
+
+        async fn read_next_json_text<S>(ws: &mut S) -> Value
+        where
+            S: futures_util::Stream<
+                    Item = std::result::Result<Message, tokio_tungstenite::tungstenite::Error>,
+                > + Unpin,
+        {
+            loop {
+                let message = ws.next().await.unwrap().unwrap();
+                if let Message::Text(text) = message {
+                    return serde_json::from_str(&text).unwrap();
+                }
+            }
+        }
+
+        async fn wait_for_close<S>(ws: &mut S)
+        where
+            S: futures_util::Stream<
+                    Item = std::result::Result<Message, tokio_tungstenite::tungstenite::Error>,
+                > + Unpin,
+        {
+            while let Some(message) = ws.next().await {
+                if matches!(message.unwrap(), Message::Close(_)) {
+                    break;
+                }
+            }
+        }
+
+        async fn await_server(server: JoinHandle<()>) {
+            tokio::time::timeout(Duration::from_secs(3), server)
+                .await
+                .expect("websocket test server timed out")
+                .expect("websocket test server panicked");
         }
     }
 

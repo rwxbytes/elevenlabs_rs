@@ -1,5 +1,6 @@
 use reqwest::{header::HeaderMap, StatusCode};
 use serde_json::Value;
+use std::time::Duration;
 use thiserror::Error;
 
 #[derive(Clone, Debug)]
@@ -105,12 +106,78 @@ impl<T> From<futures_channel::mpsc::TrySendError<T>> for Error {
     }
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum WebSocketDirection {
+    Inbound,
+    Outbound,
+}
+
+impl std::fmt::Display for WebSocketDirection {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Inbound => f.write_str("inbound"),
+            Self::Outbound => f.write_str("outbound"),
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct WebSocketErrorContext {
+    pub endpoint: &'static str,
+    pub direction: WebSocketDirection,
+}
+
+impl WebSocketErrorContext {
+    pub const fn new(endpoint: &'static str, direction: WebSocketDirection) -> Self {
+        Self {
+            endpoint,
+            direction,
+        }
+    }
+}
+
+impl std::fmt::Display for WebSocketErrorContext {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{} {}", self.endpoint, self.direction)
+    }
+}
+
 #[derive(Error, Debug)]
 pub enum WebSocketError {
-    #[error("NonNormalCloseCode: {0}")]
-    NonNormalCloseCode(String),
-    #[error("ClosedWithoutCloseFrame")]
-    ClosedWithoutCloseFrame,
-    #[error("UnexpectedMessageType")]
-    UnexpectedMessageType,
+    #[error("websocket closed with non-normal close code {code}: {reason} ({context})")]
+    NonNormalClose {
+        context: WebSocketErrorContext,
+        code: String,
+        reason: String,
+    },
+    #[error("websocket closed without close frame ({context})")]
+    ClosedWithoutCloseFrame { context: WebSocketErrorContext },
+    #[error("unexpected websocket frame: expected {expected}, received {received} ({context})")]
+    UnexpectedFrame {
+        context: WebSocketErrorContext,
+        expected: &'static str,
+        received: &'static str,
+    },
+    #[error("websocket message encode error: {source} ({context})")]
+    Encode {
+        context: WebSocketErrorContext,
+        source: serde_json::Error,
+    },
+    #[error(
+        "websocket message decode error: {source}; payload preview: {payload_preview} ({context})"
+    )]
+    Decode {
+        context: WebSocketErrorContext,
+        source: serde_json::Error,
+        payload_preview: String,
+    },
+    #[error("websocket writer task has already finished for {endpoint}")]
+    WriterFinished { endpoint: &'static str },
+    #[error("websocket close command channel is closed for {endpoint}")]
+    SendQueueClosed { endpoint: &'static str },
+    #[error("websocket close timed out after {timeout:?} for {endpoint}")]
+    CloseTimeout {
+        endpoint: &'static str,
+        timeout: Duration,
+    },
 }

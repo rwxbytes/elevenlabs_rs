@@ -24,10 +24,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - WebSocket TTS serialization tests for escaped text/control messages
 - OpenAPI coverage snapshot, report, and maintainer tooling
 - `ElevenLabsClient::raw` for authenticated raw HTTP calls to endpoints not yet modeled by the crate
+- public `WebSocketSession<T>` with `close`, `abort`, and `is_closed` lifecycle controls
+- `ElevenLabsClient::connect_text_to_speech` and `ElevenLabsClient::connect_realtime_speech_to_text` as the preferred WebSocket session entry points
+- `WebSocketOptions`, `WebSocketSession::join`, and WebSocket task completion reports
+- local WebSocket integration tests for TTS/STT message order, auth, close, ping, non-normal close, and malformed JSON handling
 - `CreateSingleUseToken` endpoint
 - `CreateForcedAlignment` endpoint
 - `GetTranscript` and `DeleteTranscript` endpoints
 - `TextToVoiceDesign`, `TextToVoiceRemix`, and `TextToVoicePreviewStream` endpoints
+- realtime speech-to-text WebSocket support via `RealtimeSpeechToText`
+- multi-context text-to-speech WebSocket support via `MultiContextWebSocketTTS`
+- `with_sync_alignment`, `with_text_normalization`, and `with_seed` methods to `TTSWebSocketQuery`
 
 ### Changed
 - **Breaking**: `elevenlabs_rs::Result` now uses `elevenlabs_rs::error::Error` instead of a boxed trait-object error
@@ -36,13 +43,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Breaking**: model and format enums now include open custom variants for provider-owned values
 - Deprecated old ElevenLabs model variants and changed `ConvAIModel::default()` from `ElevenTurboV2` to `ElevenFlashV2`
 - WebSocket TTS streams now retain reader/writer task handles and abort them when the returned stream is dropped
+- WebSocket transport now uses shared URL/auth construction and more diagnostic close/frame/decode errors
+- WebSocket TTS and realtime STT now route through a sealed internal endpoint/codec transport abstraction
+- WebSocket protocol models now preserve unknown fields, realtime STT preserves unknown future events, and TTS audio decoding correctly handles `isFinal: false`
+- WebSocket TTS protocol error payloads now expose `code`, `error`, and `message` fields
+- Realtime STT WebSocket `invalid_request` and `input_error` events are now classified as protocol errors
+- WebSocket frame/decode/close errors now include endpoint and message-direction context
 - Internal workspace dependencies now resolve to local workspace members during development
 - Request bodies are now attached for all HTTP methods when an endpoint provides one
+
+### Deprecated
+- `ElevenLabsClient::hit_ws`; use `connect_text_to_speech`. It will be kept for one release.
 
 ### Fixed
 - Streaming-with-timestamps JSON parser (in `tts` and `text_to_dialogue`) now buffers across network chunk boundaries instead of assuming one chunk is exactly one message; `segment_text` offsets per-chunk character indices so it is correct for stream chunks
 - WebSocket TTS text chunks now serialize through `serde_json` instead of manual string formatting, so quotes, backslashes, control characters, and Unicode are escaped correctly
+- WebSocket TTS URL path/query construction now percent-encodes values correctly
+- WebSocket TTS BOS messages no longer serialize unset optional auth/config fields as JSON `null`
 - WebSocket TTS background task errors are now forwarded through the returned stream
+- Single-use token creation now sends an explicit zero-length request body so the API receives `Content-Length: 0`
 - Standalone feature builds, including `genai` without `admin`
 - Workspace check and clippy failures in examples and integrations
 - Endpoint path parameters are now percent-encoded by URL path segment

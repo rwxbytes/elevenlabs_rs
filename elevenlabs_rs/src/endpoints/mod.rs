@@ -3,7 +3,6 @@ pub(crate) use crate::client::Result;
 pub(crate) use crate::shared::response_bodies::*;
 #[cfg(any(feature = "admin", feature = "convai", feature = "genai"))]
 pub(crate) use crate::shared::url::*;
-#[cfg(any(feature = "admin", feature = "convai", feature = "genai"))]
 pub(crate) use bytes::Bytes;
 #[cfg(any(feature = "admin", feature = "convai", feature = "genai"))]
 pub(crate) use reqwest::multipart::Part;
@@ -29,6 +28,7 @@ pub(crate) const DEFAULT_BASE_URL: &str = "https://api.elevenlabs.io";
 pub enum RequestBody {
     Json(Value),
     Multipart(Form),
+    Bytes(Bytes),
     Empty,
 }
 
