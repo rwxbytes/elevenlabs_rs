@@ -847,7 +847,7 @@ mod tests {
             let server = tokio::spawn(async move {
                 let (stream, _) = listener.accept().await.unwrap();
                 let mut ws = accept_async(stream).await.unwrap();
-                ws.send(Message::Ping(vec![1, 2, 3])).await.unwrap();
+                ws.send(Message::Ping(vec![1, 2, 3].into())).await.unwrap();
                 ws.send(Message::Text(
                     r#"{"message_type":"partial_transcript","text":"hello"}"#.into(),
                 ))
@@ -930,7 +930,7 @@ mod tests {
             let server = tokio::spawn(async move {
                 let (stream, _) = listener.accept().await.unwrap();
                 let mut ws = accept_async(stream).await.unwrap();
-                ws.send(Message::Text(server_payload)).await.unwrap();
+                ws.send(Message::Text(server_payload.into())).await.unwrap();
             });
 
             let endpoint = RealtimeSpeechToText::new(

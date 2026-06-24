@@ -904,7 +904,7 @@ pub mod ws {
         }
         pub fn to_message(&self) -> Result<Message> {
             let json = serde_json::to_string(&self)?;
-            Ok(Message::Text(json))
+            Ok(Message::Text(json.into()))
         }
     }
 
