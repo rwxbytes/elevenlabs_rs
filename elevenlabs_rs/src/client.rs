@@ -1021,6 +1021,7 @@ mod tests {
             })
         }
 
+        #[allow(clippy::result_large_err)]
         fn spawn_handshake_capture(
             listener: TcpListener,
             captured: Arc<Mutex<Option<CapturedHandshake>>>,
