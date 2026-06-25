@@ -1,4 +1,9 @@
 use super::{ElevenLabsEndpoint, RequestBody};
+use crate::endpoints::admin::audio_native::{
+    GetAudioNativeProjectSettings, UpdateAudioNativeContentFromUrl,
+    UpdateAudioNativeContentFromUrlBody, UpdateAudioNativeProjectContent,
+    UpdateAudioNativeProjectContentBody,
+};
 use crate::endpoints::admin::history::{GetGeneratedItems, GetHistoryItem, HistoryQuery};
 use crate::endpoints::admin::pronunciation::{
     AddRules, AddRulesBody, GetDictionaries, GetDictionariesQuery, Rule,
@@ -22,11 +27,6 @@ use crate::endpoints::convai::phone_numbers::{
 };
 use crate::endpoints::convai::tools::{CreateTool, GetTool};
 use crate::endpoints::convai::widget::{CreateWidgetAvatar, CreateWidgetAvatarBody};
-use crate::endpoints::admin::audio_native::{
-    GetAudioNativeProjectSettings, UpdateAudioNativeContentFromUrl,
-    UpdateAudioNativeContentFromUrlBody, UpdateAudioNativeProjectContent,
-    UpdateAudioNativeProjectContentBody,
-};
 use crate::endpoints::genai::audio_isolation::{
     AudioIsolation, AudioIsolationBody, AudioIsolationHistoryQuery,
     DeleteAudioIsolationHistoryItem, GetAudioIsolationHistory,
@@ -34,9 +34,9 @@ use crate::endpoints::genai::audio_isolation::{
 use crate::endpoints::genai::dubbing::{DubAVideoOrAnAudioFile, DubbingBody};
 use crate::endpoints::genai::forced_alignment::{CreateForcedAlignment, CreateForcedAlignmentBody};
 use crate::endpoints::genai::music::{
-    ComposeMusic, ComposeMusicDetailed, CompositionPlanBody, GenerateCompositionPlan, MusicComposeBody,
-    MusicModel, MusicQuery, SeparateStems, StemSeparationBody, StemVariation, StreamMusic,
-    UploadMusic, UploadMusicBody,
+    ComposeMusic, ComposeMusicDetailed, CompositionPlanBody, GenerateCompositionPlan,
+    MusicComposeBody, MusicModel, MusicQuery, SeparateStems, StemSeparationBody, StemVariation,
+    StreamMusic, UploadMusic, UploadMusicBody,
 };
 use crate::endpoints::genai::speech_engine::{
     CreateSpeechEngine, CreateSpeechEngineBody, DeleteSpeechEngine, GetSpeechEngine,

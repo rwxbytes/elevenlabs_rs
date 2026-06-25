@@ -842,10 +842,7 @@ impl CompositionPlanBody {
     }
 
     /// An optional composition plan to use as a source for the new plan.
-    pub fn with_source_composition_plan(
-        mut self,
-        plan: impl Into<MusicCompositionPlan>,
-    ) -> Self {
+    pub fn with_source_composition_plan(mut self, plan: impl Into<MusicCompositionPlan>) -> Self {
         self.source_composition_plan = Some(plan.into());
         self
     }
@@ -1310,7 +1307,10 @@ mod tests {
         let value = serde_json::to_value(&body).unwrap();
 
         assert_eq!(value["model_id"], "music_v2");
-        assert_eq!(value["composition_plan"]["chunks"][0]["duration_ms"], 15_000);
+        assert_eq!(
+            value["composition_plan"]["chunks"][0]["duration_ms"],
+            15_000
+        );
         assert!(value.get("prompt").is_none());
     }
 
@@ -1333,9 +1333,10 @@ mod tests {
 
     #[test]
     fn composition_chunk_union_distinguishes_generation_and_audio_ref() {
-        let chunk: CompositionChunk =
-            serde_json::from_value(json!({ "song_id": "abc", "range": { "start_ms": 0, "end_ms": 5000 } }))
-                .unwrap();
+        let chunk: CompositionChunk = serde_json::from_value(
+            json!({ "song_id": "abc", "range": { "start_ms": 0, "end_ms": 5000 } }),
+        )
+        .unwrap();
         assert!(matches!(chunk, CompositionChunk::AudioRef(_)));
 
         let chunk: CompositionChunk = serde_json::from_value(json!({
@@ -1376,8 +1377,7 @@ mod tests {
         let parts = parse_multipart(boundary, &body);
         assert_eq!(parts.len(), 2);
 
-        let metadata: DetailedMusicMetadata =
-            serde_json::from_slice(&parts[0].body).unwrap();
+        let metadata: DetailedMusicMetadata = serde_json::from_slice(&parts[0].body).unwrap();
         assert_eq!(
             metadata.song_metadata.unwrap().title.as_deref(),
             Some("Song")
