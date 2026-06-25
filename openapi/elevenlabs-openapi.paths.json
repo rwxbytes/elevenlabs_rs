@@ -5,7 +5,7 @@
     "title": "ElevenLabs API Documentation",
     "version": "1.0"
   },
-  "operation_count": 317,
+  "operation_count": 320,
   "operations": [
     {
       "method": "GET",
@@ -189,6 +189,15 @@
       "summary": "Rebase A Branch Onto Main"
     },
     {
+      "method": "GET",
+      "path": "/v1/convai/agents/{agent_id}/branches/{branch_id}/rebase-preview",
+      "tags": [
+        "Agents Platform"
+      ],
+      "operation_id": "rebase_preview_route",
+      "summary": "Preview Rebased Configuration"
+    },
+    {
       "method": "POST",
       "path": "/v1/convai/agents/{agent_id}/branches/{source_branch_id}/merge",
       "tags": [
@@ -196,6 +205,15 @@
       ],
       "operation_id": "merge_branch_into_target",
       "summary": "Merge A Branch Into A Target Branch"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/convai/agents/{agent_id}/branches/{source_branch_id}/merge-preview",
+      "tags": [
+        "Agents Platform"
+      ],
+      "operation_id": "merge_preview_route",
+      "summary": "Preview Merged Configuration"
     },
     {
       "method": "POST",
@@ -2933,6 +2951,16 @@
       ],
       "operation_id": "disable",
       "summary": "Disable Api Key"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/workspaces/api-keys/third-party-disabling",
+      "tags": [
+        "workspace",
+        "api-key"
+      ],
+      "operation_id": "set_third_party_disabling_policy",
+      "summary": "Set Workspace Third-Party Disabling Policy"
     }
   ]
 }

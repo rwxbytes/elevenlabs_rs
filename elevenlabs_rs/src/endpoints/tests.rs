@@ -25,6 +25,11 @@ use crate::endpoints::convai::widget::{CreateWidgetAvatar, CreateWidgetAvatarBod
 use crate::endpoints::genai::audio_isolation::{AudioIsolation, AudioIsolationBody};
 use crate::endpoints::genai::dubbing::{DubAVideoOrAnAudioFile, DubbingBody};
 use crate::endpoints::genai::forced_alignment::{CreateForcedAlignment, CreateForcedAlignmentBody};
+use crate::endpoints::genai::music::{
+    ComposeMusic, ComposeMusicDetailed, CompositionPlanBody, GenerateCompositionPlan, MusicComposeBody,
+    MusicModel, MusicQuery, SeparateStems, StemSeparationBody, StemVariation, StreamMusic,
+    UploadMusic, UploadMusicBody,
+};
 use crate::endpoints::genai::speech_engine::{
     CreateSpeechEngine, CreateSpeechEngineBody, DeleteSpeechEngine, GetSpeechEngine,
     ListSpeechEngines, ListSpeechEnginesQuery, SpeechEngineAsrConfig, SpeechEngineConfig,
@@ -204,6 +209,70 @@ async fn text_to_dialogue_endpoints_share_query_and_body_shape() {
         Method::POST,
         "https://api.elevenlabs.io/v1/text-to-dialogue/stream/with-timestamps?output_format=alaw_8000&enable_logging=false",
     );
+}
+
+#[tokio::test]
+async fn music_endpoints_encode_paths_and_bodies() {
+    let query = MusicQuery::default().with_output_format(OutputFormat::Mp3_44100Hz128kbps);
+    let body = MusicComposeBody::from_prompt("an upbeat track").with_music_length_ms(30_000);
+
+    let endpoint = ComposeMusic::new(body.clone()).with_query(query.clone());
+    assert_endpoint(
+        &endpoint,
+        Method::POST,
+        "https://api.elevenlabs.io/v1/music?output_format=mp3_44100_128",
+    );
+    let body_json = json_body(&endpoint).await;
+    assert_eq!(body_json["prompt"], "an upbeat track");
+    assert_eq!(body_json["model_id"], "music_v1");
+
+    let endpoint = StreamMusic::new(body.clone()).with_query(query.clone());
+    assert_endpoint(
+        &endpoint,
+        Method::POST,
+        "https://api.elevenlabs.io/v1/music/stream?output_format=mp3_44100_128",
+    );
+
+    let endpoint = ComposeMusicDetailed::new(body).with_timestamps(true);
+    assert_endpoint(
+        &endpoint,
+        Method::POST,
+        "https://api.elevenlabs.io/v1/music/detailed",
+    );
+    assert_eq!(json_body(&endpoint).await["with_timestamps"], true);
+
+    let endpoint = GenerateCompositionPlan::new(
+        CompositionPlanBody::new("a three-part synthwave track").with_model(MusicModel::MusicV2),
+    );
+    assert_endpoint(
+        &endpoint,
+        Method::POST,
+        "https://api.elevenlabs.io/v1/music/plan",
+    );
+    assert_eq!(json_body(&endpoint).await["model_id"], "music_v2");
+
+    let endpoint = SeparateStems::new(
+        StemSeparationBody::from_bytes("song.mp3", "audio/mpeg", b"fake audio".to_vec())
+            .with_stem_variation(StemVariation::TwoStems),
+    );
+    assert_endpoint(
+        &endpoint,
+        Method::POST,
+        "https://api.elevenlabs.io/v1/music/stem-separation",
+    );
+    assert_multipart_body(&endpoint).await;
+
+    let endpoint = UploadMusic::new(UploadMusicBody::from_bytes(
+        "song.mp3",
+        "audio/mpeg",
+        b"fake audio".to_vec(),
+    ));
+    assert_endpoint(
+        &endpoint,
+        Method::POST,
+        "https://api.elevenlabs.io/v1/music/upload",
+    );
+    assert_multipart_body(&endpoint).await;
 }
 
 #[tokio::test]

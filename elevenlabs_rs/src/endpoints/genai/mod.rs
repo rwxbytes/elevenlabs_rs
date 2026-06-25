@@ -2,6 +2,7 @@ pub use super::*;
 pub mod audio_isolation;
 pub mod dubbing;
 pub mod forced_alignment;
+pub mod music;
 
 pub mod sound_effects;
 pub mod speech_engine;

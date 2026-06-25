@@ -39,6 +39,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - in-memory upload constructors for speech-to-text, forced alignment, audio isolation, voice changer, dubbing, knowledge base, voice, similar voice, and widget avatar bodies
 - Speech Engine REST endpoints: `ListSpeechEngines`, `CreateSpeechEngine`, `GetSpeechEngine`, `UpdateSpeechEngine`, and `DeleteSpeechEngine`
 - Speech Engine upstream WebSocket protocol types, JWT verification, and framework-neutral session wrapper
+- Music generation endpoints in a new `genai::music` module: `ComposeMusic`, `StreamMusic`, `ComposeMusicDetailed`, `GenerateCompositionPlan`, `SeparateStems`, and `UploadMusic`
+- Music composition-plan types: `MusicCompositionPlan`, `MusicPrompt`, `SongSection`, `SectionSource`, `TimeRange`, `CompositionPlan`, `CompositionChunk`, `GenerationChunk`, and `AudioRefChunk`
 
 ### Changed
 - **Breaking**: `elevenlabs_rs::Result` now uses `elevenlabs_rs::error::Error` instead of a boxed trait-object error

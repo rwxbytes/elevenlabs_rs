@@ -41,6 +41,11 @@ pub(crate) mod sealed {
 /// This trait is sealed, so downstream crates cannot implement their own typed
 /// endpoints. Use [`ElevenLabsClient::raw`](crate::ElevenLabsClient::raw) for
 /// ElevenLabs endpoints that are not modeled by this crate yet.
+///
+/// The `async_fn_in_trait` allow is intentional here because the sealed trait
+/// keeps downstream users from implementing it and needing to name future
+/// bounds. If the trait is ever unsealed, move async decoding behind
+/// client-owned futures first.
 #[allow(async_fn_in_trait)]
 pub trait ElevenLabsEndpoint: sealed::Sealed {
     const BASE_URL: &'static str = DEFAULT_BASE_URL;

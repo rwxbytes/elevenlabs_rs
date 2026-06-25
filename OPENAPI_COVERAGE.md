@@ -1,6 +1,6 @@
 # OpenAPI coverage
 
-Generated: 2026-06-25T12:42:57Z
+Generated: 2026-06-25T22:52:25Z
 Snapshot: `openapi/elevenlabs-openapi.paths.json`
 Source: https://api.elevenlabs.io/openapi.json
 
@@ -8,10 +8,10 @@ Source: https://api.elevenlabs.io/openapi.json
 
 | Metric | Value |
 | --- | ---: |
-| OpenAPI operations | 317 |
-| Implemented method/path pairs | 105 |
-| Coverage | 33.1% |
-| Local endpoint constants checked | 105 |
+| OpenAPI operations | 320 |
+| Implemented method/path pairs | 111 |
+| Coverage | 34.7% |
+| Local endpoint constants checked | 111 |
 | Local constants missing from snapshot | 0 |
 
 ## Coverage By Tag
@@ -19,7 +19,7 @@ Source: https://api.elevenlabs.io/openapi.json
 | Tag | Implemented | Total | Coverage |
 | --- | ---: | ---: | ---: |
 | Agents Insights | 0 | 1 | 0.0% |
-| Agents Platform | 38 | 131 | 29.0% |
+| Agents Platform | 38 | 133 | 28.6% |
 | Agents Workspace Analytics | 0 | 2 | 0.0% |
 | Conversational AI | 0 | 3 | 0.0% |
 | Pronunciation Dictionary | 4 | 9 | 44.4% |
@@ -31,7 +31,7 @@ Source: https://api.elevenlabs.io/openapi.json
 | dubbing | 6 | 20 | 30.0% |
 | forced-alignment | 1 | 1 | 100.0% |
 | models | 1 | 1 | 100.0% |
-| music-generation | 0 | 6 | 0.0% |
+| music-generation | 6 | 6 | 100.0% |
 | productions | 0 | 11 | 0.0% |
 | pvc-voices | 0 | 14 | 0.0% |
 | samples | 2 | 2 | 100.0% |
@@ -46,7 +46,7 @@ Source: https://api.elevenlabs.io/openapi.json
 | untagged | 3 | 14 | 21.4% |
 | video-to-music | 0 | 1 | 0.0% |
 | voices | 11 | 12 | 91.7% |
-| workspace | 6 | 26 | 23.1% |
+| workspace | 6 | 27 | 22.2% |
 
 ## Local Endpoint Constants Missing From Snapshot
 
@@ -77,7 +77,9 @@ All local endpoint method/path constants match the snapshot.
 | `GET` | `/v1/convai/agents/{agent_id}/branches/{branch_id}` | Get Agent Branch |
 | `PATCH` | `/v1/convai/agents/{agent_id}/branches/{branch_id}` | Update Agent Branch |
 | `POST` | `/v1/convai/agents/{agent_id}/branches/{branch_id}/rebase` | Rebase A Branch Onto Main |
+| `GET` | `/v1/convai/agents/{agent_id}/branches/{branch_id}/rebase-preview` | Preview Rebased Configuration |
 | `POST` | `/v1/convai/agents/{agent_id}/branches/{source_branch_id}/merge` | Merge A Branch Into A Target Branch |
+| `GET` | `/v1/convai/agents/{agent_id}/branches/{source_branch_id}/merge-preview` | Preview Merged Configuration |
 | `POST` | `/v1/convai/agents/{agent_id}/deployments` | Create Or Update Deployments |
 | `DELETE` | `/v1/convai/agents/{agent_id}/drafts` | Delete Agent Draft |
 | `POST` | `/v1/convai/agents/{agent_id}/drafts` | Create Agent Draft |
@@ -224,17 +226,6 @@ All local endpoint method/path constants match the snapshot.
 | `POST` | `/v1/dubbing/resource/{dubbing_id}/translate` | Translates All Or Some Segments And Languages |
 | `GET` | `/v1/dubbing/{dubbing_id}/transcripts/{language_code}/format/{format_type}` | Retrieve A Transcript |
 
-### music-generation
-
-| Method | Path | Summary |
-| --- | --- | --- |
-| `POST` | `/v1/music` | Compose Music |
-| `POST` | `/v1/music/detailed` | Compose Music With A Detailed Response |
-| `POST` | `/v1/music/plan` | Generate Composition Plan |
-| `POST` | `/v1/music/stem-separation` | Stem Separation |
-| `POST` | `/v1/music/stream` | Stream Composed Music |
-| `POST` | `/v1/music/upload` | Upload Music |
-
 ### productions
 
 | Method | Path | Summary |
@@ -350,6 +341,7 @@ All local endpoint method/path constants match the snapshot.
 | `DELETE` | `/v1/workspace/webhooks/{webhook_id}` | Delete Workspace Webhook |
 | `PATCH` | `/v1/workspace/webhooks/{webhook_id}` | Update Workspace Webhook |
 | `POST` | `/v1/workspaces/api-keys/disable` | Disable Api Key |
+| `POST` | `/v1/workspaces/api-keys/third-party-disabling` | Set Workspace Third-Party Disabling Policy |
 
 ## Maintainer Commands
 
