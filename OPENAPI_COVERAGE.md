@@ -1,6 +1,6 @@
 # OpenAPI coverage
 
-Generated: 2026-06-25T22:52:25Z
+Generated: 2026-06-25T23:09:02Z
 Snapshot: `openapi/elevenlabs-openapi.paths.json`
 Source: https://api.elevenlabs.io/openapi.json
 
@@ -9,9 +9,9 @@ Source: https://api.elevenlabs.io/openapi.json
 | Metric | Value |
 | --- | ---: |
 | OpenAPI operations | 320 |
-| Implemented method/path pairs | 111 |
-| Coverage | 34.7% |
-| Local endpoint constants checked | 111 |
+| Implemented method/path pairs | 116 |
+| Coverage | 36.3% |
+| Local endpoint constants checked | 116 |
 | Local constants missing from snapshot | 0 |
 
 ## Coverage By Tag
@@ -26,8 +26,8 @@ Source: https://api.elevenlabs.io/openapi.json
 | Single Use Token | 1 | 1 | 100.0% |
 | Speech Engine | 5 | 5 | 100.0% |
 | access:all | 0 | 2 | 0.0% |
-| audio-isolation | 2 | 4 | 50.0% |
-| audio-native | 1 | 4 | 25.0% |
+| audio-isolation | 4 | 4 | 100.0% |
+| audio-native | 4 | 4 | 100.0% |
 | dubbing | 6 | 20 | 30.0% |
 | forced-alignment | 1 | 1 | 100.0% |
 | models | 1 | 1 | 100.0% |
@@ -191,21 +191,6 @@ All local endpoint method/path constants match the snapshot.
 | --- | --- | --- |
 | `POST` | `/v1/workspace/analytics/query/usage-by-product-over-time` | Get Workspace Usage |
 | `POST` | `/v1/workspace/analytics/requests` | List Api Requests |
-
-### audio-isolation
-
-| Method | Path | Summary |
-| --- | --- | --- |
-| `GET` | `/v1/audio-isolation/history` | Get Audio Isolation History |
-| `DELETE` | `/v1/audio-isolation/history/{history_item_id}` | Delete Audio Isolation History Item |
-
-### audio-native
-
-| Method | Path | Summary |
-| --- | --- | --- |
-| `POST` | `/v1/audio-native/content` | Update Audio-Native Content From Url |
-| `POST` | `/v1/audio-native/{project_id}/content` | Update Audio-Native Project Content |
-| `GET` | `/v1/audio-native/{project_id}/settings` | Get Audio Native Project Settings |
 
 ### dubbing
 

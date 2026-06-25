@@ -22,7 +22,15 @@ use crate::endpoints::convai::phone_numbers::{
 };
 use crate::endpoints::convai::tools::{CreateTool, GetTool};
 use crate::endpoints::convai::widget::{CreateWidgetAvatar, CreateWidgetAvatarBody};
-use crate::endpoints::genai::audio_isolation::{AudioIsolation, AudioIsolationBody};
+use crate::endpoints::admin::audio_native::{
+    GetAudioNativeProjectSettings, UpdateAudioNativeContentFromUrl,
+    UpdateAudioNativeContentFromUrlBody, UpdateAudioNativeProjectContent,
+    UpdateAudioNativeProjectContentBody,
+};
+use crate::endpoints::genai::audio_isolation::{
+    AudioIsolation, AudioIsolationBody, AudioIsolationHistoryQuery,
+    DeleteAudioIsolationHistoryItem, GetAudioIsolationHistory,
+};
 use crate::endpoints::genai::dubbing::{DubAVideoOrAnAudioFile, DubbingBody};
 use crate::endpoints::genai::forced_alignment::{CreateForcedAlignment, CreateForcedAlignmentBody};
 use crate::endpoints::genai::music::{
@@ -430,6 +438,69 @@ async fn speech_engine_endpoints_match_openapi_shape() {
         &delete,
         Method::DELETE,
         "https://api.elevenlabs.io/v1/speech-engine/seng%2Fid",
+    );
+}
+
+#[tokio::test]
+async fn audio_isolation_history_endpoints_encode_paths_and_queries() {
+    let history = GetAudioIsolationHistory::default().with_query(
+        AudioIsolationHistoryQuery::default()
+            .with_page_size(10)
+            .with_page(2)
+            .with_search("podcast"),
+    );
+    assert_endpoint(
+        &history,
+        Method::GET,
+        "https://api.elevenlabs.io/v1/audio-isolation/history?page_size=10&page=2&search=podcast",
+    );
+
+    let delete = DeleteAudioIsolationHistoryItem::new("item/id");
+    assert_endpoint(
+        &delete,
+        Method::DELETE,
+        "https://api.elevenlabs.io/v1/audio-isolation/history/item%2Fid",
+    );
+}
+
+#[tokio::test]
+async fn audio_native_endpoints_encode_paths_and_bodies() {
+    let from_url = UpdateAudioNativeContentFromUrl::new(
+        UpdateAudioNativeContentFromUrlBody::new("https://example.com/article")
+            .with_title("My Article")
+            .with_author("Jane Doe"),
+    );
+    assert_endpoint(
+        &from_url,
+        Method::POST,
+        "https://api.elevenlabs.io/v1/audio-native/content",
+    );
+    let body_json = json_body(&from_url).await;
+    assert_eq!(body_json["url"], "https://example.com/article");
+    assert_eq!(body_json["title"], "My Article");
+    assert_eq!(body_json["author"], "Jane Doe");
+
+    let project_content = UpdateAudioNativeProjectContent::new(
+        "project/id",
+        UpdateAudioNativeProjectContentBody::from_bytes(
+            "article.html",
+            "text/html",
+            b"<html></html>".to_vec(),
+        )
+        .with_auto_convert(true),
+    );
+    assert_endpoint(
+        &project_content,
+        Method::POST,
+        "https://api.elevenlabs.io/v1/audio-native/project%2Fid/content",
+    );
+    assert_multipart_body(&project_content).await;
+
+    let settings = GetAudioNativeProjectSettings::new("project/id");
+    assert_endpoint(
+        &settings,
+        Method::GET,
+        "https://api.elevenlabs.io/v1/audio-native/project%2Fid/settings",
     );
 }
 

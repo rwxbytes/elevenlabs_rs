@@ -41,6 +41,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Speech Engine upstream WebSocket protocol types, JWT verification, and framework-neutral session wrapper
 - Music generation endpoints in a new `genai::music` module: `ComposeMusic`, `StreamMusic`, `ComposeMusicDetailed`, `GenerateCompositionPlan`, `SeparateStems`, and `UploadMusic`
 - Music composition-plan types: `MusicCompositionPlan`, `MusicPrompt`, `SongSection`, `SectionSource`, `TimeRange`, `CompositionPlan`, `CompositionChunk`, `GenerationChunk`, and `AudioRefChunk`
+- Audio isolation history endpoints: `GetAudioIsolationHistory` and `DeleteAudioIsolationHistoryItem`
+- Audio-native content endpoints: `UpdateAudioNativeContentFromUrl`, `UpdateAudioNativeProjectContent`, and `GetAudioNativeProjectSettings`
 
 ### Changed
 - **Breaking**: `elevenlabs_rs::Result` now uses `elevenlabs_rs::error::Error` instead of a boxed trait-object error

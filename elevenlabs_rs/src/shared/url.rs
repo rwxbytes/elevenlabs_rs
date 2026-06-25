@@ -31,6 +31,8 @@ pub(crate) enum PathParam {
     LanguageCodeID,
     #[strum(serialize = ":phone_number_id")]
     PhoneNumberID,
+    #[strum(serialize = ":project_id")]
+    ProjectID,
     #[strum(serialize = ":pronunciation_dictionary_id")]
     PronunciationDictionaryID,
     #[strum(serialize = ":public_user_id")]
