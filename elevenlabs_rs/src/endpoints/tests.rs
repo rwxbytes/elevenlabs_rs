@@ -36,7 +36,7 @@ use crate::endpoints::genai::forced_alignment::{CreateForcedAlignment, CreateFor
 use crate::endpoints::genai::music::{
     ComposeMusic, ComposeMusicDetailed, CompositionPlanBody, GenerateCompositionPlan,
     MusicComposeBody, MusicModel, MusicQuery, SeparateStems, StemSeparationBody, StemVariation,
-    StreamMusic, UploadMusic, UploadMusicBody,
+    StreamMusic, UploadMusic, UploadMusicBody, VideoToMusic, VideoToMusicBody,
 };
 use crate::endpoints::genai::speech_engine::{
     CreateSpeechEngine, CreateSpeechEngineBody, DeleteSpeechEngine, GetSpeechEngine,
@@ -279,6 +279,23 @@ async fn music_endpoints_encode_paths_and_bodies() {
         &endpoint,
         Method::POST,
         "https://api.elevenlabs.io/v1/music/upload",
+    );
+    assert_multipart_body(&endpoint).await;
+
+    let endpoint = VideoToMusic::new(
+        VideoToMusicBody::new([FilePart::bytes(
+            "clip.mp4",
+            "video/mp4",
+            b"fake video".to_vec(),
+        )])
+        .with_description("A tense cinematic score")
+        .with_tags(["cinematic", "suspense"]),
+    )
+    .with_query(MusicQuery::default().with_output_format(OutputFormat::Mp3_44100Hz128kbps));
+    assert_endpoint(
+        &endpoint,
+        Method::POST,
+        "https://api.elevenlabs.io/v1/music/video-to-music?output_format=mp3_44100_128",
     );
     assert_multipart_body(&endpoint).await;
 }

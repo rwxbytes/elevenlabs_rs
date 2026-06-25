@@ -183,6 +183,17 @@ def endpoint-key [endpoint: record] {
     $"($endpoint.method) ($endpoint.path)"
 }
 
+# Group key derived from the path: the version prefix plus the second segment,
+# e.g. `/v1/music/video-to-music` -> `/v1/music`.
+def path-group [path: string] {
+    let segments = ($path | split row "/" | where { |segment| $segment != "" })
+    if (($segments | length) >= 2) {
+        $"/($segments.0)/($segments.1)"
+    } else {
+        $path
+    }
+}
+
 def render-report [operations: list, local_endpoints: list, snapshot: path] {
     let openapi_keys = ($operations | each { |operation| endpoint-key $operation })
     let local_keys = ($local_endpoints | each { |endpoint| endpoint-key $endpoint })
@@ -211,23 +222,23 @@ def render-report [operations: list, local_endpoints: list, snapshot: path] {
         $"| Local endpoint constants checked | (($local_endpoints | length)) |"
         $"| Local constants missing from snapshot | (($missing_local | length)) |"
         ""
-        "## Coverage By Tag"
+        "## Coverage By Path"
         ""
-        "| Tag | Implemented | Total | Coverage |"
+        "| Path | Implemented | Total | Coverage |"
         "| --- | ---: | ---: | ---: |"
     ]
 
-    let tags = ($operations | each { |operation| $operation.tags.0 } | uniq | sort)
-    for tag in $tags {
-        let tag_operations = ($operations | where { |operation| $operation.tags.0 == $tag })
-        let tag_implemented = (
-            $tag_operations
+    let groups = ($operations | each { |operation| path-group $operation.path } | uniq | sort)
+    for group in $groups {
+        let group_operations = ($operations | where { |operation| (path-group $operation.path) == $group })
+        let group_implemented = (
+            $group_operations
             | where { |operation| (endpoint-key $operation) in $implemented_keys }
             | length
         )
-        let tag_total = ($tag_operations | length)
-        let tag_percent = coverage-percent $tag_implemented $tag_total
-        $lines = ($lines | append $"| (escape-pipe $tag) | ($tag_implemented) | ($tag_total) | ($tag_percent)% |")
+        let group_total = ($group_operations | length)
+        let group_percent = coverage-percent $group_implemented $group_total
+        $lines = ($lines | append $"| (escape-pipe $group) | ($group_implemented) | ($group_total) | ($group_percent)% |")
     }
 
     $lines = ($lines | append ["" "## Local Endpoint Constants Missing From Snapshot" ""])
@@ -244,14 +255,14 @@ def render-report [operations: list, local_endpoints: list, snapshot: path] {
     if (($missing_openapi | length) == 0) {
         $lines = ($lines | append "Every OpenAPI operation has a local method/path match.")
     } else {
-        for tag in $tags {
-            let tag_missing = ($missing_openapi | where { |operation| $operation.tags.0 == $tag })
-            if (($tag_missing | length) == 0) {
+        for group in $groups {
+            let group_missing = ($missing_openapi | where { |operation| (path-group $operation.path) == $group })
+            if (($group_missing | length) == 0) {
                 continue
             }
 
-            $lines = ($lines | append [$"### ($tag)" "" "| Method | Path | Summary |" "| --- | --- | --- |"])
-            for operation in $tag_missing {
+            $lines = ($lines | append [$"### ($group)" "" "| Method | Path | Summary |" "| --- | --- | --- |"])
+            for operation in $group_missing {
                 let summary = if $operation.summary == null {
                     if $operation.operation_id == null { "" } else { $operation.operation_id }
                 } else {

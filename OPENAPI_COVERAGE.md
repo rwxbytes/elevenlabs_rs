@@ -1,6 +1,6 @@
 # OpenAPI coverage
 
-Generated: 2026-06-25T23:09:02Z
+Generated: 2026-06-25T23:32:15Z
 Snapshot: `openapi/elevenlabs-openapi.paths.json`
 Source: https://api.elevenlabs.io/openapi.json
 
@@ -9,44 +9,44 @@ Source: https://api.elevenlabs.io/openapi.json
 | Metric | Value |
 | --- | ---: |
 | OpenAPI operations | 320 |
-| Implemented method/path pairs | 116 |
-| Coverage | 36.3% |
-| Local endpoint constants checked | 116 |
+| Implemented method/path pairs | 117 |
+| Coverage | 36.6% |
+| Local endpoint constants checked | 117 |
 | Local constants missing from snapshot | 0 |
 
-## Coverage By Tag
+## Coverage By Path
 
-| Tag | Implemented | Total | Coverage |
+| Path | Implemented | Total | Coverage |
 | --- | ---: | ---: | ---: |
-| Agents Insights | 0 | 1 | 0.0% |
-| Agents Platform | 38 | 133 | 28.6% |
-| Agents Workspace Analytics | 0 | 2 | 0.0% |
-| Conversational AI | 0 | 3 | 0.0% |
-| Pronunciation Dictionary | 4 | 9 | 44.4% |
-| Single Use Token | 1 | 1 | 100.0% |
-| Speech Engine | 5 | 5 | 100.0% |
-| access:all | 0 | 2 | 0.0% |
-| audio-isolation | 4 | 4 | 100.0% |
-| audio-native | 4 | 4 | 100.0% |
-| dubbing | 6 | 20 | 30.0% |
-| forced-alignment | 1 | 1 | 100.0% |
-| models | 1 | 1 | 100.0% |
-| music-generation | 6 | 6 | 100.0% |
-| productions | 0 | 11 | 0.0% |
-| pvc-voices | 0 | 14 | 0.0% |
-| samples | 2 | 2 | 100.0% |
-| sound-generation | 1 | 1 | 100.0% |
-| speech-history | 5 | 5 | 100.0% |
-| speech-to-speech | 2 | 2 | 100.0% |
-| speech-to-text | 3 | 3 | 100.0% |
-| studio | 0 | 23 | 0.0% |
-| text-to-dialogue | 4 | 4 | 100.0% |
-| text-to-speech | 4 | 4 | 100.0% |
-| text-to-voice | 5 | 5 | 100.0% |
-| untagged | 3 | 14 | 21.4% |
-| video-to-music | 0 | 1 | 0.0% |
-| voices | 11 | 12 | 91.7% |
-| workspace | 6 | 27 | 22.2% |
+| /docs | 0 | 1 | 0.0% |
+| /v1/audio-isolation | 4 | 4 | 100.0% |
+| /v1/audio-native | 4 | 4 | 100.0% |
+| /v1/convai | 38 | 149 | 25.5% |
+| /v1/dubbing | 6 | 20 | 30.0% |
+| /v1/forced-alignment | 1 | 1 | 100.0% |
+| /v1/history | 5 | 5 | 100.0% |
+| /v1/models | 1 | 1 | 100.0% |
+| /v1/music | 7 | 7 | 100.0% |
+| /v1/productions | 0 | 11 | 0.0% |
+| /v1/pronunciation-dictionaries | 4 | 9 | 44.4% |
+| /v1/service-accounts | 0 | 5 | 0.0% |
+| /v1/shared-voices | 1 | 1 | 100.0% |
+| /v1/similar-voices | 1 | 1 | 100.0% |
+| /v1/single-use-token | 1 | 1 | 100.0% |
+| /v1/sound-generation | 1 | 1 | 100.0% |
+| /v1/speech-engine | 5 | 5 | 100.0% |
+| /v1/speech-to-speech | 2 | 2 | 100.0% |
+| /v1/speech-to-text | 3 | 3 | 100.0% |
+| /v1/studio | 0 | 23 | 0.0% |
+| /v1/text-to-dialogue | 4 | 4 | 100.0% |
+| /v1/text-to-speech | 4 | 4 | 100.0% |
+| /v1/text-to-voice | 5 | 5 | 100.0% |
+| /v1/usage | 1 | 1 | 100.0% |
+| /v1/user | 2 | 2 | 100.0% |
+| /v1/voices | 10 | 25 | 40.0% |
+| /v1/workspace | 6 | 22 | 27.3% |
+| /v1/workspaces | 0 | 2 | 0.0% |
+| /v2/voices | 1 | 1 | 100.0% |
 
 ## Local Endpoint Constants Missing From Snapshot
 
@@ -54,16 +54,17 @@ All local endpoint method/path constants match the snapshot.
 
 ## OpenAPI Operations Not Yet Implemented
 
-### Agents Insights
+### /docs
+
+| Method | Path | Summary |
+| --- | --- | --- |
+| `GET` | `/docs` | Redirect To Mintlify |
+
+### /v1/convai
 
 | Method | Path | Summary |
 | --- | --- | --- |
 | `GET` | `/v1/convai/agents/{agent_id}/topics` | Get Agent Conversation Topics |
-
-### Agents Platform
-
-| Method | Path | Summary |
-| --- | --- | --- |
 | `POST` | `/v1/convai/agent-testing/bulk-move` | Bulk Move Tests To Folder |
 | `POST` | `/v1/convai/agent-testing/folders` | Create Agent Test Folder |
 | `DELETE` | `/v1/convai/agent-testing/folders/{folder_id}` | Delete Agent Test Folder |
@@ -159,40 +160,23 @@ All local endpoint method/path constants match the snapshot.
 | `PATCH` | `/v1/convai/whatsapp-accounts/{phone_number_id}` | Update Whatsapp Account |
 | `POST` | `/v1/convai/whatsapp/outbound-call` | Make An Outbound Call Via Whatsapp |
 | `POST` | `/v1/convai/whatsapp/outbound-message` | Send An Outbound Message Via Whatsapp |
-
-### Agents Workspace Analytics
-
-| Method | Path | Summary |
-| --- | --- | --- |
 | `POST` | `/v1/convai/conversations/{conversation_id}/analysis/evaluations/run` | Run Conversation Evaluation |
 | `POST` | `/v1/convai/conversations/{conversation_id}/analysis/run` | Run Conversation Analysis |
-
-### Conversational AI
-
-| Method | Path | Summary |
-| --- | --- | --- |
 | `POST` | `/v1/convai/knowledge-base/bulk-move` | Bulk Move Entities To Folder |
 | `POST` | `/v1/convai/knowledge-base/folder` | Create Folder |
 | `POST` | `/v1/convai/knowledge-base/{document_id}/move` | Move Entity To Folder |
+| `GET` | `/v1/convai/agent-testing` | List Agent Response Tests |
+| `POST` | `/v1/convai/agent-testing/create` | Create Agent Response Test |
+| `POST` | `/v1/convai/agent-testing/summaries` | Get Agent Response Test Summaries By Ids |
+| `DELETE` | `/v1/convai/agent-testing/{test_id}` | Delete Agent Response Test |
+| `GET` | `/v1/convai/agent-testing/{test_id}` | Get Agent Response Test By Id |
+| `PUT` | `/v1/convai/agent-testing/{test_id}` | Update Agent Response Test |
+| `POST` | `/v1/convai/agents/{agent_id}/run-tests` | Run Tests On The Agent |
+| `GET` | `/v1/convai/test-invocations` | List Test Invocations |
+| `GET` | `/v1/convai/test-invocations/{test_invocation_id}` | Get Test Invocation |
+| `POST` | `/v1/convai/test-invocations/{test_invocation_id}/resubmit` | Resubmit Tests |
 
-### Pronunciation Dictionary
-
-| Method | Path | Summary |
-| --- | --- | --- |
-| `POST` | `/v1/pronunciation-dictionaries/add-from-rules` | Add A Pronunciation Dictionary |
-| `PATCH` | `/v1/pronunciation-dictionaries/{pronunciation_dictionary_id}` | Update Pronunciation Dictionary |
-| `POST` | `/v1/pronunciation-dictionaries/{pronunciation_dictionary_id}/add-rules` | Add Rules To The Pronunciation Dictionary |
-| `POST` | `/v1/pronunciation-dictionaries/{pronunciation_dictionary_id}/remove-rules` | Remove Rules From The Pronunciation Dictionary |
-| `POST` | `/v1/pronunciation-dictionaries/{pronunciation_dictionary_id}/set-rules` | Set Rules On The Pronunciation Dictionary |
-
-### access:all
-
-| Method | Path | Summary |
-| --- | --- | --- |
-| `POST` | `/v1/workspace/analytics/query/usage-by-product-over-time` | Get Workspace Usage |
-| `POST` | `/v1/workspace/analytics/requests` | List Api Requests |
-
-### dubbing
+### /v1/dubbing
 
 | Method | Path | Summary |
 | --- | --- | --- |
@@ -211,7 +195,7 @@ All local endpoint method/path constants match the snapshot.
 | `POST` | `/v1/dubbing/resource/{dubbing_id}/translate` | Translates All Or Some Segments And Languages |
 | `GET` | `/v1/dubbing/{dubbing_id}/transcripts/{language_code}/format/{format_type}` | Retrieve A Transcript |
 
-### productions
+### /v1/productions
 
 | Method | Path | Summary |
 | --- | --- | --- |
@@ -227,26 +211,27 @@ All local endpoint method/path constants match the snapshot.
 | `GET` | `/v1/productions/orders/{order_id}/media/{media_id}` | Get Media Info |
 | `POST` | `/v1/productions/orders/{order_id}/submit` | Submit Order |
 
-### pvc-voices
+### /v1/pronunciation-dictionaries
 
 | Method | Path | Summary |
 | --- | --- | --- |
-| `POST` | `/v1/voices/pvc` | Create Pvc Voice |
-| `POST` | `/v1/voices/pvc/{voice_id}` | Edit Pvc Voice |
-| `GET` | `/v1/voices/pvc/{voice_id}/captcha` | Get Pvc Voice Captcha |
-| `POST` | `/v1/voices/pvc/{voice_id}/captcha` | Verify Pvc Voice Captcha |
-| `POST` | `/v1/voices/pvc/{voice_id}/samples` | Add Samples To Pvc Voice |
-| `DELETE` | `/v1/voices/pvc/{voice_id}/samples/{sample_id}` | Delete Pvc Voice Sample |
-| `POST` | `/v1/voices/pvc/{voice_id}/samples/{sample_id}` | Update Pvc Voice Sample |
-| `GET` | `/v1/voices/pvc/{voice_id}/samples/{sample_id}/audio` | Retrieve Voice Sample Audio |
-| `POST` | `/v1/voices/pvc/{voice_id}/samples/{sample_id}/separate-speakers` | Start Speaker Separation |
-| `GET` | `/v1/voices/pvc/{voice_id}/samples/{sample_id}/speakers` | Retrieve Speaker Separation Status |
-| `GET` | `/v1/voices/pvc/{voice_id}/samples/{sample_id}/speakers/{speaker_id}/audio` | Retrieve Separated Speaker Audio |
-| `GET` | `/v1/voices/pvc/{voice_id}/samples/{sample_id}/waveform` | Retrieve Voice Sample Visual Waveform |
-| `POST` | `/v1/voices/pvc/{voice_id}/train` | Run Pvc Training |
-| `POST` | `/v1/voices/pvc/{voice_id}/verification` | Request Manual Verification |
+| `POST` | `/v1/pronunciation-dictionaries/add-from-rules` | Add A Pronunciation Dictionary |
+| `PATCH` | `/v1/pronunciation-dictionaries/{pronunciation_dictionary_id}` | Update Pronunciation Dictionary |
+| `POST` | `/v1/pronunciation-dictionaries/{pronunciation_dictionary_id}/add-rules` | Add Rules To The Pronunciation Dictionary |
+| `POST` | `/v1/pronunciation-dictionaries/{pronunciation_dictionary_id}/remove-rules` | Remove Rules From The Pronunciation Dictionary |
+| `POST` | `/v1/pronunciation-dictionaries/{pronunciation_dictionary_id}/set-rules` | Set Rules On The Pronunciation Dictionary |
 
-### studio
+### /v1/service-accounts
+
+| Method | Path | Summary |
+| --- | --- | --- |
+| `GET` | `/v1/service-accounts` | Get Workspace Service Accounts |
+| `GET` | `/v1/service-accounts/{service_account_user_id}/api-keys` | Get Service Account Api Keys Route |
+| `POST` | `/v1/service-accounts/{service_account_user_id}/api-keys` | Create Service Account Api Key |
+| `DELETE` | `/v1/service-accounts/{service_account_user_id}/api-keys/{api_key_id}` | Delete Service Account Api Key |
+| `PATCH` | `/v1/service-accounts/{service_account_user_id}/api-keys/{api_key_id}` | Edit Service Account Api Key |
+
+### /v1/studio
 
 | Method | Path | Summary |
 | --- | --- | --- |
@@ -274,43 +259,32 @@ All local endpoint method/path constants match the snapshot.
 | `POST` | `/v1/studio/projects/{project_id}/snapshots/{project_snapshot_id}/archive` | Stream Archive With Studio Project Audio |
 | `POST` | `/v1/studio/projects/{project_id}/snapshots/{project_snapshot_id}/stream` | Stream Studio Project Audio |
 
-### untagged
+### /v1/voices
 
 | Method | Path | Summary |
 | --- | --- | --- |
-| `GET` | `/docs` | Redirect To Mintlify |
-| `GET` | `/v1/convai/agent-testing` | List Agent Response Tests |
-| `POST` | `/v1/convai/agent-testing/create` | Create Agent Response Test |
-| `POST` | `/v1/convai/agent-testing/summaries` | Get Agent Response Test Summaries By Ids |
-| `DELETE` | `/v1/convai/agent-testing/{test_id}` | Delete Agent Response Test |
-| `GET` | `/v1/convai/agent-testing/{test_id}` | Get Agent Response Test By Id |
-| `PUT` | `/v1/convai/agent-testing/{test_id}` | Update Agent Response Test |
-| `POST` | `/v1/convai/agents/{agent_id}/run-tests` | Run Tests On The Agent |
-| `GET` | `/v1/convai/test-invocations` | List Test Invocations |
-| `GET` | `/v1/convai/test-invocations/{test_invocation_id}` | Get Test Invocation |
-| `POST` | `/v1/convai/test-invocations/{test_invocation_id}/resubmit` | Resubmit Tests |
-
-### video-to-music
-
-| Method | Path | Summary |
-| --- | --- | --- |
-| `POST` | `/v1/music/video-to-music` | Video To Music |
-
-### voices
-
-| Method | Path | Summary |
-| --- | --- | --- |
+| `POST` | `/v1/voices/pvc` | Create Pvc Voice |
+| `POST` | `/v1/voices/pvc/{voice_id}` | Edit Pvc Voice |
+| `GET` | `/v1/voices/pvc/{voice_id}/captcha` | Get Pvc Voice Captcha |
+| `POST` | `/v1/voices/pvc/{voice_id}/captcha` | Verify Pvc Voice Captcha |
+| `POST` | `/v1/voices/pvc/{voice_id}/samples` | Add Samples To Pvc Voice |
+| `DELETE` | `/v1/voices/pvc/{voice_id}/samples/{sample_id}` | Delete Pvc Voice Sample |
+| `POST` | `/v1/voices/pvc/{voice_id}/samples/{sample_id}` | Update Pvc Voice Sample |
+| `GET` | `/v1/voices/pvc/{voice_id}/samples/{sample_id}/audio` | Retrieve Voice Sample Audio |
+| `POST` | `/v1/voices/pvc/{voice_id}/samples/{sample_id}/separate-speakers` | Start Speaker Separation |
+| `GET` | `/v1/voices/pvc/{voice_id}/samples/{sample_id}/speakers` | Retrieve Speaker Separation Status |
+| `GET` | `/v1/voices/pvc/{voice_id}/samples/{sample_id}/speakers/{speaker_id}/audio` | Retrieve Separated Speaker Audio |
+| `GET` | `/v1/voices/pvc/{voice_id}/samples/{sample_id}/waveform` | Retrieve Voice Sample Visual Waveform |
+| `POST` | `/v1/voices/pvc/{voice_id}/train` | Run Pvc Training |
+| `POST` | `/v1/voices/pvc/{voice_id}/verification` | Request Manual Verification |
 | `GET` | `/v1/voices` | List Voices |
 
-### workspace
+### /v1/workspace
 
 | Method | Path | Summary |
 | --- | --- | --- |
-| `GET` | `/v1/service-accounts` | Get Workspace Service Accounts |
-| `GET` | `/v1/service-accounts/{service_account_user_id}/api-keys` | Get Service Account Api Keys Route |
-| `POST` | `/v1/service-accounts/{service_account_user_id}/api-keys` | Create Service Account Api Key |
-| `DELETE` | `/v1/service-accounts/{service_account_user_id}/api-keys/{api_key_id}` | Delete Service Account Api Key |
-| `PATCH` | `/v1/service-accounts/{service_account_user_id}/api-keys/{api_key_id}` | Edit Service Account Api Key |
+| `POST` | `/v1/workspace/analytics/query/usage-by-product-over-time` | Get Workspace Usage |
+| `POST` | `/v1/workspace/analytics/requests` | List Api Requests |
 | `GET` | `/v1/workspace/audit-logs` | Get Workspace Audit Logs |
 | `GET` | `/v1/workspace/auth-connections` | Get Workspace Auth Connections |
 | `POST` | `/v1/workspace/auth-connections` | Create Workspace Auth Connection |
@@ -325,6 +299,11 @@ All local endpoint method/path constants match the snapshot.
 | `POST` | `/v1/workspace/webhooks` | Create Workspace Webhook |
 | `DELETE` | `/v1/workspace/webhooks/{webhook_id}` | Delete Workspace Webhook |
 | `PATCH` | `/v1/workspace/webhooks/{webhook_id}` | Update Workspace Webhook |
+
+### /v1/workspaces
+
+| Method | Path | Summary |
+| --- | --- | --- |
 | `POST` | `/v1/workspaces/api-keys/disable` | Disable Api Key |
 | `POST` | `/v1/workspaces/api-keys/third-party-disabling` | Set Workspace Third-Party Disabling Policy |
 

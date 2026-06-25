@@ -1166,8 +1166,157 @@ impl ElevenLabsEndpoint for UploadMusic {
 }
 
 // =============================================================================
+// POST /v1/music/video-to-music — Video To Music
+// =============================================================================
+
+/// Request body for [`VideoToMusic`].
+#[derive(Clone, Debug)]
+pub struct VideoToMusicBody {
+    videos: Vec<FilePart>,
+    description: Option<String>,
+    tags: Vec<String>,
+    model_id: MusicModel,
+    sign_with_c2pa: bool,
+}
+
+impl VideoToMusicBody {
+    /// Create a body from one or more video files. The videos are combined in
+    /// order; a maximum of 10 is allowed (total size up to 200MB, up to 600s).
+    pub fn new(videos: impl IntoIterator<Item = impl Into<FilePart>>) -> Self {
+        Self {
+            videos: videos.into_iter().map(Into::into).collect(),
+            description: None,
+            tags: Vec::new(),
+            model_id: MusicModel::default(),
+            sign_with_c2pa: false,
+        }
+    }
+
+    /// Add another video file to the end of the list.
+    pub fn add_video(mut self, video: impl Into<FilePart>) -> Self {
+        self.videos.push(video.into());
+        self
+    }
+
+    /// Optional text description of the music you want. Max 1000 characters.
+    pub fn with_description(mut self, description: impl Into<String>) -> Self {
+        self.description = Some(description.into());
+        self
+    }
+
+    /// Optional list of style tags (e.g. `["upbeat", "cinematic"]`). Max 10.
+    pub fn with_tags<I, S>(mut self, tags: I) -> Self
+    where
+        I: IntoIterator<Item = S>,
+        S: Into<String>,
+    {
+        self.tags = tags.into_iter().map(Into::into).collect();
+        self
+    }
+
+    pub fn with_model(mut self, model_id: MusicModel) -> Self {
+        self.model_id = model_id;
+        self
+    }
+
+    /// Whether to sign the generated song with C2PA. Applicable only for mp3 files.
+    pub fn with_sign_with_c2pa(mut self, sign: bool) -> Self {
+        self.sign_with_c2pa = sign;
+        self
+    }
+}
+
+impl TryFrom<&VideoToMusicBody> for RequestBody {
+    type Error = crate::error::Error;
+
+    fn try_from(body: &VideoToMusicBody) -> Result<Self> {
+        let mut form = Form::new();
+        for video in &body.videos {
+            let inferred_mime = inferred_video_mime(video)?;
+            form = form.part("videos", video.clone().into_part(inferred_mime)?);
+        }
+        if let Some(description) = &body.description {
+            form = form.text("description", description.clone());
+        }
+        for tag in &body.tags {
+            form = form.text("tags", tag.clone());
+        }
+        form = form
+            .text("model_id", model_id_str(body.model_id))
+            .text("sign_with_c2pa", body.sign_with_c2pa.to_string());
+        Ok(RequestBody::Multipart(form))
+    }
+}
+
+/// Generate background music from one or more video files.
+///
+/// # Example
+/// ```no_run
+/// use elevenlabs_rs::{ElevenLabsClient, Result};
+/// use elevenlabs_rs::utils::save;
+/// use elevenlabs_rs::endpoints::genai::music::*;
+///
+/// #[tokio::main]
+/// async fn main() -> Result<()> {
+///     let c = ElevenLabsClient::from_env()?;
+///     let body = VideoToMusicBody::new(["clip.mp4"])
+///         .with_description("A tense cinematic score")
+///         .with_tags(["cinematic", "suspense"]);
+///     let audio = c.hit(VideoToMusic::new(body)).await?;
+///     save("score.mp3", audio)?;
+///     Ok(())
+/// }
+/// ```
+/// See [Video To Music API reference](https://elevenlabs.io/docs/api-reference/music/video-to-music).
+#[derive(Clone, Debug)]
+pub struct VideoToMusic {
+    body: VideoToMusicBody,
+    query: Option<MusicQuery>,
+}
+
+impl VideoToMusic {
+    pub fn new(body: VideoToMusicBody) -> Self {
+        Self { body, query: None }
+    }
+
+    pub fn with_query(mut self, query: MusicQuery) -> Self {
+        self.query = Some(query);
+        self
+    }
+}
+
+impl crate::endpoints::sealed::Sealed for VideoToMusic {}
+
+impl ElevenLabsEndpoint for VideoToMusic {
+    const PATH: &'static str = "/v1/music/video-to-music";
+
+    const METHOD: Method = Method::POST;
+
+    type ResponseBody = Bytes;
+
+    fn query_params(&self) -> Option<QueryValues> {
+        self.query.as_ref().map(|q| q.params.clone())
+    }
+
+    async fn request_body(&self) -> Result<RequestBody> {
+        TryFrom::try_from(&self.body)
+    }
+
+    async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
+        Ok(resp.bytes().await?)
+    }
+}
+
+// =============================================================================
 // Helpers
 // =============================================================================
+
+fn model_id_str(model: MusicModel) -> &'static str {
+    match model {
+        MusicModel::MusicV1 => "music_v1",
+        MusicModel::MusicV2 => "music_v2",
+    }
+}
 
 fn inferred_audio_mime(file: &FilePart) -> Result<Option<String>> {
     if file.mime().is_some() {
@@ -1175,6 +1324,21 @@ fn inferred_audio_mime(file: &FilePart) -> Result<Option<String>> {
     }
     let extension = file.extension()?;
     Ok(Some(audio_mime_from_extension(&extension)?.to_owned()))
+}
+
+fn inferred_video_mime(file: &FilePart) -> Result<Option<String>> {
+    if file.mime().is_some() {
+        return Ok(None);
+    }
+    let mime = match file.extension()?.to_lowercase().as_str() {
+        "mp4" | "m4v" => "video/mp4",
+        "webm" => "video/webm",
+        "mov" => "video/quicktime",
+        "mkv" => "video/x-matroska",
+        "avi" => "video/x-msvideo",
+        _ => return Err(crate::error::Error::FileExtensionNotSupported),
+    };
+    Ok(Some(mime.to_owned()))
 }
 
 /// A single parsed part of a `multipart/mixed` response.

@@ -39,7 +39,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - in-memory upload constructors for speech-to-text, forced alignment, audio isolation, voice changer, dubbing, knowledge base, voice, similar voice, and widget avatar bodies
 - Speech Engine REST endpoints: `ListSpeechEngines`, `CreateSpeechEngine`, `GetSpeechEngine`, `UpdateSpeechEngine`, and `DeleteSpeechEngine`
 - Speech Engine upstream WebSocket protocol types, JWT verification, and framework-neutral session wrapper
-- Music generation endpoints in a new `genai::music` module: `ComposeMusic`, `StreamMusic`, `ComposeMusicDetailed`, `GenerateCompositionPlan`, `SeparateStems`, and `UploadMusic`
+- Music generation endpoints in a new `genai::music` module: `ComposeMusic`, `StreamMusic`, `ComposeMusicDetailed`, `GenerateCompositionPlan`, `SeparateStems`, `UploadMusic`, and `VideoToMusic`
 - Music composition-plan types: `MusicCompositionPlan`, `MusicPrompt`, `SongSection`, `SectionSource`, `TimeRange`, `CompositionPlan`, `CompositionChunk`, `GenerationChunk`, and `AudioRefChunk`
 - Audio isolation history endpoints: `GetAudioIsolationHistory` and `DeleteAudioIsolationHistoryItem`
 - Audio-native content endpoints: `UpdateAudioNativeContentFromUrl`, `UpdateAudioNativeProjectContent`, and `GetAudioNativeProjectSettings`
