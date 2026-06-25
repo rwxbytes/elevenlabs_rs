@@ -41,6 +41,8 @@ pub(crate) enum PathParam {
     SampleID,
     #[strum(serialize = ":secret_id")]
     SecretID,
+    #[strum(serialize = ":speech_engine_id")]
+    SpeechEngineID,
     #[strum(serialize = ":generated_voice_id")]
     GeneratedVoiceID,
     #[strum(serialize = ":token_type")]

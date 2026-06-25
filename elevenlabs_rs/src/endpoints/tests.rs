@@ -25,6 +25,12 @@ use crate::endpoints::convai::widget::{CreateWidgetAvatar, CreateWidgetAvatarBod
 use crate::endpoints::genai::audio_isolation::{AudioIsolation, AudioIsolationBody};
 use crate::endpoints::genai::dubbing::{DubAVideoOrAnAudioFile, DubbingBody};
 use crate::endpoints::genai::forced_alignment::{CreateForcedAlignment, CreateForcedAlignmentBody};
+use crate::endpoints::genai::speech_engine::{
+    CreateSpeechEngine, CreateSpeechEngineBody, DeleteSpeechEngine, GetSpeechEngine,
+    ListSpeechEngines, ListSpeechEnginesQuery, SpeechEngineAsrConfig, SpeechEngineConfig,
+    SpeechEngineRequestHeaderValue, SpeechEngineTtsConfig, UpdateSpeechEngine,
+    UpdateSpeechEngineBody,
+};
 use crate::endpoints::genai::speech_to_text::{
     AdditionalFormat, CreateTranscript, CreateTranscriptBody, CreateTranscriptQuery,
     DeleteTranscript, GetTranscript, Granularity, SpeechToTextModel,
@@ -267,6 +273,95 @@ async fn speech_core_gap_endpoints_match_openapi_shape() {
         "hello world",
     ));
     assert_multipart_body(&forced).await;
+}
+
+#[tokio::test]
+async fn speech_engine_endpoints_match_openapi_shape() {
+    let speech_engine_config = SpeechEngineConfig::new("wss://example.com/ws")
+        .with_request_header("X-Trace-Id", "static-trace")
+        .with_request_header(
+            "X-Secret",
+            SpeechEngineRequestHeaderValue::secret("secret/id"),
+        );
+    let create_body = CreateSpeechEngineBody::new("wss://ignored.example/ws")
+        .with_speech_engine(speech_engine_config)
+        .with_name("Support Engine")
+        .with_language("en")
+        .with_tags(["production", "support"])
+        .with_asr(
+            SpeechEngineAsrConfig::default()
+                .with_provider("scribe_realtime")
+                .with_user_input_audio_format("pcm_16000")
+                .with_keywords(["ElevenLabs", "Rust"]),
+        )
+        .with_tts(
+            SpeechEngineTtsConfig::default()
+                .with_model_id("eleven_flash_v2")
+                .with_voice_id("voice/id")
+                .with_agent_output_audio_format("pcm_16000"),
+        );
+    let create = CreateSpeechEngine::new(create_body);
+    assert_endpoint(
+        &create,
+        Method::POST,
+        "https://api.elevenlabs.io/v1/speech-engine",
+    );
+    let body = json_body(&create).await;
+    assert_eq!(body["name"], "Support Engine");
+    assert_eq!(body["speech_engine"]["ws_url"], "wss://example.com/ws");
+    assert_eq!(
+        body["speech_engine"]["request_headers"]["X-Trace-Id"],
+        "static-trace"
+    );
+    assert_eq!(
+        body["speech_engine"]["request_headers"]["X-Secret"]["secret_id"],
+        "secret/id"
+    );
+    assert_eq!(body["asr"]["provider"], "scribe_realtime");
+    assert_eq!(body["tts"]["voice_id"], "voice/id");
+
+    let list = ListSpeechEngines::with_query(
+        ListSpeechEnginesQuery::default()
+            .with_page_size(10)
+            .with_search("support")
+            .with_sort_direction("desc")
+            .with_sort_by("created_at")
+            .with_cursor("cursor/id"),
+    );
+    assert_endpoint(
+        &list,
+        Method::GET,
+        "https://api.elevenlabs.io/v1/speech-engine?page_size=10&search=support&sort_direction=desc&sort_by=created_at&cursor=cursor%2Fid",
+    );
+
+    let get = GetSpeechEngine::new("seng/id");
+    assert_endpoint(
+        &get,
+        Method::GET,
+        "https://api.elevenlabs.io/v1/speech-engine/seng%2Fid",
+    );
+
+    let update = UpdateSpeechEngine::new(
+        "seng/id",
+        UpdateSpeechEngineBody::new()
+            .with_name("Renamed")
+            .with_ws_url("wss://example.com/renamed"),
+    );
+    assert_endpoint(
+        &update,
+        Method::PATCH,
+        "https://api.elevenlabs.io/v1/speech-engine/seng%2Fid",
+    );
+    let body = json_body(&update).await;
+    assert_eq!(body["name"], "Renamed");
+    assert_eq!(body["speech_engine"]["ws_url"], "wss://example.com/renamed");
+
+    let delete = DeleteSpeechEngine::new("seng/id");
+    assert_endpoint(
+        &delete,
+        Method::DELETE,
+        "https://api.elevenlabs.io/v1/speech-engine/seng%2Fid",
+    );
 }
 
 #[tokio::test]

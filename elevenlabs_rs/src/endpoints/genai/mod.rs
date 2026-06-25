@@ -4,6 +4,7 @@ pub mod dubbing;
 pub mod forced_alignment;
 
 pub mod sound_effects;
+pub mod speech_engine;
 pub mod speech_to_text;
 pub mod text_to_dialogue;
 pub mod text_to_voice;

@@ -1,6 +1,6 @@
 # OpenAPI coverage
 
-Generated: 2026-06-23T00:27:17Z
+Generated: 2026-06-25T12:42:57Z
 Snapshot: `openapi/elevenlabs-openapi.paths.json`
 Source: https://api.elevenlabs.io/openapi.json
 
@@ -9,9 +9,9 @@ Source: https://api.elevenlabs.io/openapi.json
 | Metric | Value |
 | --- | ---: |
 | OpenAPI operations | 317 |
-| Implemented method/path pairs | 100 |
-| Coverage | 31.5% |
-| Local endpoint constants checked | 100 |
+| Implemented method/path pairs | 105 |
+| Coverage | 33.1% |
+| Local endpoint constants checked | 105 |
 | Local constants missing from snapshot | 0 |
 
 ## Coverage By Tag
@@ -24,7 +24,7 @@ Source: https://api.elevenlabs.io/openapi.json
 | Conversational AI | 0 | 3 | 0.0% |
 | Pronunciation Dictionary | 4 | 9 | 44.4% |
 | Single Use Token | 1 | 1 | 100.0% |
-| Speech Engine | 0 | 5 | 0.0% |
+| Speech Engine | 5 | 5 | 100.0% |
 | access:all | 0 | 2 | 0.0% |
 | audio-isolation | 2 | 4 | 50.0% |
 | audio-native | 1 | 4 | 25.0% |
@@ -182,16 +182,6 @@ All local endpoint method/path constants match the snapshot.
 | `POST` | `/v1/pronunciation-dictionaries/{pronunciation_dictionary_id}/add-rules` | Add Rules To The Pronunciation Dictionary |
 | `POST` | `/v1/pronunciation-dictionaries/{pronunciation_dictionary_id}/remove-rules` | Remove Rules From The Pronunciation Dictionary |
 | `POST` | `/v1/pronunciation-dictionaries/{pronunciation_dictionary_id}/set-rules` | Set Rules On The Pronunciation Dictionary |
-
-### Speech Engine
-
-| Method | Path | Summary |
-| --- | --- | --- |
-| `GET` | `/v1/speech-engine` | List Speech Engines |
-| `POST` | `/v1/speech-engine` | Create Speech Engine |
-| `DELETE` | `/v1/speech-engine/{speech_engine_id}` | Delete Speech Engine |
-| `GET` | `/v1/speech-engine/{speech_engine_id}` | Get Speech Engine |
-| `PATCH` | `/v1/speech-engine/{speech_engine_id}` | Update Speech Engine |
 
 ### access:all
 
