@@ -6,7 +6,9 @@ use crate::endpoints::admin::audio_native::{
 };
 use crate::endpoints::admin::history::{GetGeneratedItems, GetHistoryItem, HistoryQuery};
 use crate::endpoints::admin::pronunciation::{
-    AddRules, AddRulesBody, GetDictionaries, GetDictionariesQuery, Rule,
+    AddDictionaryFromRules, AddDictionaryFromRulesBody, AddRules, AddRulesBody, GetDictionaries,
+    GetDictionariesQuery, Rule, SetRules, SetRulesBody, UpdateDictionary, UpdateDictionaryBody,
+    WorkspaceAccess,
 };
 use crate::endpoints::admin::voice::{
     AddVoice, GetVoice, GetVoices, GetVoicesQuery, ListSimilarVoices, ListSimilarVoicesBody,
@@ -653,6 +655,45 @@ async fn admin_endpoint_shapes_cover_voices_history_and_dictionaries() {
             "alias": "text to speech",
         })
     );
+
+    let add_from_rules = AddDictionaryFromRules::new(
+        AddDictionaryFromRulesBody::new("acronyms", vec![Rule::new_alias("TTS", "text to speech")])
+            .with_description("acronyms")
+            .with_workspace_access(WorkspaceAccess::Editor),
+    );
+    assert_endpoint(
+        &add_from_rules,
+        Method::POST,
+        "https://api.elevenlabs.io/v1/pronunciation-dictionaries/add-from-rules",
+    );
+    let body = json_body(&add_from_rules).await;
+    assert_eq!(body["name"], "acronyms");
+    assert_eq!(body["workspace_access"], "editor");
+
+    let set_rules = SetRules::new(
+        "dictionary/id",
+        SetRulesBody::new(vec![Rule::new_phoneme("Apple", "ˈæpəl", "ipa")]),
+    );
+    assert_endpoint(
+        &set_rules,
+        Method::POST,
+        "https://api.elevenlabs.io/v1/pronunciation-dictionaries/dictionary%2Fid/set-rules",
+    );
+
+    let update = UpdateDictionary::new(
+        "dictionary/id",
+        UpdateDictionaryBody::default()
+            .with_name("Renamed")
+            .with_archived(true),
+    );
+    assert_endpoint(
+        &update,
+        Method::PATCH,
+        "https://api.elevenlabs.io/v1/pronunciation-dictionaries/dictionary%2Fid",
+    );
+    let body = json_body(&update).await;
+    assert_eq!(body["name"], "Renamed");
+    assert_eq!(body["archived"], true);
 }
 
 #[tokio::test]

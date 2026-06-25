@@ -1,6 +1,6 @@
 # OpenAPI coverage
 
-Generated: 2026-06-25T23:32:15Z
+Generated: 2026-06-25T23:55:38Z
 Snapshot: `openapi/elevenlabs-openapi.paths.json`
 Source: https://api.elevenlabs.io/openapi.json
 
@@ -9,9 +9,9 @@ Source: https://api.elevenlabs.io/openapi.json
 | Metric | Value |
 | --- | ---: |
 | OpenAPI operations | 320 |
-| Implemented method/path pairs | 117 |
-| Coverage | 36.6% |
-| Local endpoint constants checked | 117 |
+| Implemented method/path pairs | 122 |
+| Coverage | 38.1% |
+| Local endpoint constants checked | 122 |
 | Local constants missing from snapshot | 0 |
 
 ## Coverage By Path
@@ -28,7 +28,7 @@ Source: https://api.elevenlabs.io/openapi.json
 | /v1/models | 1 | 1 | 100.0% |
 | /v1/music | 7 | 7 | 100.0% |
 | /v1/productions | 0 | 11 | 0.0% |
-| /v1/pronunciation-dictionaries | 4 | 9 | 44.4% |
+| /v1/pronunciation-dictionaries | 9 | 9 | 100.0% |
 | /v1/service-accounts | 0 | 5 | 0.0% |
 | /v1/shared-voices | 1 | 1 | 100.0% |
 | /v1/similar-voices | 1 | 1 | 100.0% |
@@ -210,16 +210,6 @@ All local endpoint method/path constants match the snapshot.
 | `POST` | `/v1/productions/orders/{order_id}/media` | Register Media |
 | `GET` | `/v1/productions/orders/{order_id}/media/{media_id}` | Get Media Info |
 | `POST` | `/v1/productions/orders/{order_id}/submit` | Submit Order |
-
-### /v1/pronunciation-dictionaries
-
-| Method | Path | Summary |
-| --- | --- | --- |
-| `POST` | `/v1/pronunciation-dictionaries/add-from-rules` | Add A Pronunciation Dictionary |
-| `PATCH` | `/v1/pronunciation-dictionaries/{pronunciation_dictionary_id}` | Update Pronunciation Dictionary |
-| `POST` | `/v1/pronunciation-dictionaries/{pronunciation_dictionary_id}/add-rules` | Add Rules To The Pronunciation Dictionary |
-| `POST` | `/v1/pronunciation-dictionaries/{pronunciation_dictionary_id}/remove-rules` | Remove Rules From The Pronunciation Dictionary |
-| `POST` | `/v1/pronunciation-dictionaries/{pronunciation_dictionary_id}/set-rules` | Set Rules On The Pronunciation Dictionary |
 
 ### /v1/service-accounts
 

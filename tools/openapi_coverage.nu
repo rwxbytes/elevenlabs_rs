@@ -117,6 +117,7 @@ def scan-local-endpoints [] {
             if not ($impl_match | is-empty) {
                 $current = {
                     active: true
+                    awaiting_path: false
                     name: $impl_match.0.name
                     path: ""
                     method: ""
@@ -129,7 +130,16 @@ def scan-local-endpoints [] {
             if $current.active {
                 let path_match = ($line | parse --regex "const\\s+PATH\\s*:\\s*&\\x27static\\s+str\\s*=\\s*\\x22(?P<path>[^\\x22]+)\\x22")
                 if not ($path_match | is-empty) {
-                    $current = ($current | upsert path (normalize-path $path_match.0.path))
+                    # PATH and its value on the same line.
+                    $current = ($current | upsert path (normalize-path $path_match.0.path) | upsert awaiting_path false)
+                } else if ($current.path == "" and ($line | str replace --regex --all "\\s" "" | str ends-with "&'staticstr=")) {
+                    # `const PATH: &'static str =` with the value wrapped onto the next line.
+                    $current = ($current | upsert awaiting_path true)
+                } else if ($current.awaiting_path and $current.path == "") {
+                    let lone = ($line | parse --regex "\\x22(?P<path>[^\\x22]+)\\x22")
+                    if not ($lone | is-empty) {
+                        $current = ($current | upsert path (normalize-path $lone.0.path) | upsert awaiting_path false)
+                    }
                 }
 
                 let method_match = ($line | parse --regex "const\\s+METHOD\\s*:\\s*Method\\s*=\\s*Method::(?P<method>[A-Z]+)")
@@ -138,7 +148,7 @@ def scan-local-endpoints [] {
                 }
 
                 if ($current.path != "" and $current.method != "") {
-                    $endpoints = ($endpoints | append ($current | reject active))
+                    $endpoints = ($endpoints | append ($current | reject active awaiting_path))
                     $current = empty-endpoint
                 }
             }
@@ -151,6 +161,7 @@ def scan-local-endpoints [] {
 def empty-endpoint [] {
     {
         active: false
+        awaiting_path: false
         name: ""
         path: ""
         method: ""
