@@ -1,6 +1,6 @@
 # OpenAPI coverage
 
-Generated: 2026-06-26T10:36:49Z
+Generated: 2026-06-26T10:49:25Z
 Snapshot: `openapi/elevenlabs-openapi.paths.json`
 Source: https://api.elevenlabs.io/openapi.json
 
@@ -9,9 +9,9 @@ Source: https://api.elevenlabs.io/openapi.json
 | Metric | Value |
 | --- | ---: |
 | OpenAPI operations | 320 |
-| Implemented method/path pairs | 123 |
-| Coverage | 38.4% |
-| Local endpoint constants checked | 123 |
+| Implemented method/path pairs | 137 |
+| Coverage | 42.8% |
+| Local endpoint constants checked | 137 |
 | Local constants missing from snapshot | 0 |
 
 ## Coverage By Path
@@ -43,7 +43,7 @@ Source: https://api.elevenlabs.io/openapi.json
 | /v1/text-to-voice | 5 | 5 | 100.0% |
 | /v1/usage | 1 | 1 | 100.0% |
 | /v1/user | 2 | 2 | 100.0% |
-| /v1/voices | 11 | 25 | 44.0% |
+| /v1/voices | 25 | 25 | 100.0% |
 | /v1/workspace | 6 | 22 | 27.3% |
 | /v1/workspaces | 0 | 2 | 0.0% |
 | /v2/voices | 1 | 1 | 100.0% |
@@ -248,25 +248,6 @@ All local endpoint method/path constants match the snapshot.
 | `GET` | `/v1/studio/projects/{project_id}/snapshots/{project_snapshot_id}` | Get Project Snapshot |
 | `POST` | `/v1/studio/projects/{project_id}/snapshots/{project_snapshot_id}/archive` | Stream Archive With Studio Project Audio |
 | `POST` | `/v1/studio/projects/{project_id}/snapshots/{project_snapshot_id}/stream` | Stream Studio Project Audio |
-
-### /v1/voices
-
-| Method | Path | Summary |
-| --- | --- | --- |
-| `POST` | `/v1/voices/pvc` | Create Pvc Voice |
-| `POST` | `/v1/voices/pvc/{voice_id}` | Edit Pvc Voice |
-| `GET` | `/v1/voices/pvc/{voice_id}/captcha` | Get Pvc Voice Captcha |
-| `POST` | `/v1/voices/pvc/{voice_id}/captcha` | Verify Pvc Voice Captcha |
-| `POST` | `/v1/voices/pvc/{voice_id}/samples` | Add Samples To Pvc Voice |
-| `DELETE` | `/v1/voices/pvc/{voice_id}/samples/{sample_id}` | Delete Pvc Voice Sample |
-| `POST` | `/v1/voices/pvc/{voice_id}/samples/{sample_id}` | Update Pvc Voice Sample |
-| `GET` | `/v1/voices/pvc/{voice_id}/samples/{sample_id}/audio` | Retrieve Voice Sample Audio |
-| `POST` | `/v1/voices/pvc/{voice_id}/samples/{sample_id}/separate-speakers` | Start Speaker Separation |
-| `GET` | `/v1/voices/pvc/{voice_id}/samples/{sample_id}/speakers` | Retrieve Speaker Separation Status |
-| `GET` | `/v1/voices/pvc/{voice_id}/samples/{sample_id}/speakers/{speaker_id}/audio` | Retrieve Separated Speaker Audio |
-| `GET` | `/v1/voices/pvc/{voice_id}/samples/{sample_id}/waveform` | Retrieve Voice Sample Visual Waveform |
-| `POST` | `/v1/voices/pvc/{voice_id}/train` | Run Pvc Training |
-| `POST` | `/v1/voices/pvc/{voice_id}/verification` | Request Manual Verification |
 
 ### /v1/workspace
 

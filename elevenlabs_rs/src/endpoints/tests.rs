@@ -10,6 +10,14 @@ use crate::endpoints::admin::pronunciation::{
     GetDictionariesQuery, Rule, SetRules, SetRulesBody, UpdateDictionary, UpdateDictionaryBody,
     WorkspaceAccess,
 };
+use crate::endpoints::admin::pvc_voices::{
+    AddPvcVoiceSamples, AddPvcVoiceSamplesBody, CreatePvcVoice, CreatePvcVoiceBody,
+    DeletePvcVoiceSample, EditPvcVoice, EditPvcVoiceBody, GetPvcSampleAudio,
+    GetPvcSampleAudioQuery, GetPvcSampleWaveform, GetPvcVoiceCaptcha, GetSeparatedSpeakerAudio,
+    GetSpeakerSeparationStatus, RequestPvcManualVerification, RequestPvcManualVerificationBody,
+    RunPvcTraining, RunPvcTrainingBody, StartSpeakerSeparation, UpdatePvcVoiceSample,
+    UpdatePvcVoiceSampleBody, VerifyPvcVoiceCaptcha,
+};
 use crate::endpoints::admin::voice::{
     AddVoice, GetVoice, GetVoices, GetVoicesQuery, ListSimilarVoices, ListSimilarVoicesBody,
     ListVoices, ListVoicesQuery, VoiceBody, VoiceType,
@@ -701,6 +709,148 @@ async fn admin_endpoint_shapes_cover_voices_history_and_dictionaries() {
     let body = json_body(&update).await;
     assert_eq!(body["name"], "Renamed");
     assert_eq!(body["archived"], true);
+}
+
+#[tokio::test]
+async fn pvc_voice_endpoints_encode_paths_and_bodies() {
+    let create = CreatePvcVoice::new(
+        CreatePvcVoiceBody::new("My Voice", "en").with_description("A warm narration voice"),
+    );
+    assert_endpoint(
+        &create,
+        Method::POST,
+        "https://api.elevenlabs.io/v1/voices/pvc",
+    );
+    let body = json_body(&create).await;
+    assert_eq!(body["name"], "My Voice");
+    assert_eq!(body["language"], "en");
+
+    let edit = EditPvcVoice::new("voice/id", EditPvcVoiceBody::default().with_name("Renamed"));
+    assert_endpoint(
+        &edit,
+        Method::POST,
+        "https://api.elevenlabs.io/v1/voices/pvc/voice%2Fid",
+    );
+
+    let get_captcha = GetPvcVoiceCaptcha::new("voice/id");
+    assert_endpoint(
+        &get_captcha,
+        Method::GET,
+        "https://api.elevenlabs.io/v1/voices/pvc/voice%2Fid/captcha",
+    );
+
+    let verify_captcha = VerifyPvcVoiceCaptcha::new(
+        "voice/id",
+        FilePart::bytes("rec.mp3", "audio/mpeg", b"fake audio".to_vec()),
+    );
+    assert_endpoint(
+        &verify_captcha,
+        Method::POST,
+        "https://api.elevenlabs.io/v1/voices/pvc/voice%2Fid/captcha",
+    );
+    assert_multipart_body(&verify_captcha).await;
+
+    let add_samples = AddPvcVoiceSamples::new(
+        "voice/id",
+        AddPvcVoiceSamplesBody::new([FilePart::bytes(
+            "sample.mp3",
+            "audio/mpeg",
+            b"fake audio".to_vec(),
+        )])
+        .with_remove_background_noise(true),
+    );
+    assert_endpoint(
+        &add_samples,
+        Method::POST,
+        "https://api.elevenlabs.io/v1/voices/pvc/voice%2Fid/samples",
+    );
+    assert_multipart_body(&add_samples).await;
+
+    let update_sample = UpdatePvcVoiceSample::new(
+        "voice/id",
+        "sample/id",
+        UpdatePvcVoiceSampleBody::default()
+            .with_selected_speaker_ids(["speaker_0"])
+            .with_trim_start_time(0)
+            .with_trim_end_time(10),
+    );
+    assert_endpoint(
+        &update_sample,
+        Method::POST,
+        "https://api.elevenlabs.io/v1/voices/pvc/voice%2Fid/samples/sample%2Fid",
+    );
+    assert_eq!(
+        json_body(&update_sample).await["selected_speaker_ids"][0],
+        "speaker_0"
+    );
+
+    let delete_sample = DeletePvcVoiceSample::new("voice/id", "sample/id");
+    assert_endpoint(
+        &delete_sample,
+        Method::DELETE,
+        "https://api.elevenlabs.io/v1/voices/pvc/voice%2Fid/samples/sample%2Fid",
+    );
+
+    let sample_audio = GetPvcSampleAudio::new("voice/id", "sample/id")
+        .with_query(GetPvcSampleAudioQuery::default().with_remove_background_noise(true));
+    assert_endpoint(
+        &sample_audio,
+        Method::GET,
+        "https://api.elevenlabs.io/v1/voices/pvc/voice%2Fid/samples/sample%2Fid/audio?remove_background_noise=true",
+    );
+
+    let start_separation = StartSpeakerSeparation::new("voice/id", "sample/id");
+    assert_endpoint(
+        &start_separation,
+        Method::POST,
+        "https://api.elevenlabs.io/v1/voices/pvc/voice%2Fid/samples/sample%2Fid/separate-speakers",
+    );
+
+    let separation_status = GetSpeakerSeparationStatus::new("voice/id", "sample/id");
+    assert_endpoint(
+        &separation_status,
+        Method::GET,
+        "https://api.elevenlabs.io/v1/voices/pvc/voice%2Fid/samples/sample%2Fid/speakers",
+    );
+
+    let speaker_audio = GetSeparatedSpeakerAudio::new("voice/id", "sample/id", "speaker/id");
+    assert_endpoint(
+        &speaker_audio,
+        Method::GET,
+        "https://api.elevenlabs.io/v1/voices/pvc/voice%2Fid/samples/sample%2Fid/speakers/speaker%2Fid/audio",
+    );
+
+    let waveform = GetPvcSampleWaveform::new("voice/id", "sample/id");
+    assert_endpoint(
+        &waveform,
+        Method::GET,
+        "https://api.elevenlabs.io/v1/voices/pvc/voice%2Fid/samples/sample%2Fid/waveform",
+    );
+
+    let train = RunPvcTraining::new("voice/id")
+        .with_body(RunPvcTrainingBody::default().with_model_id("eleven_turbo_v2"));
+    assert_endpoint(
+        &train,
+        Method::POST,
+        "https://api.elevenlabs.io/v1/voices/pvc/voice%2Fid/train",
+    );
+    assert_eq!(json_body(&train).await["model_id"], "eleven_turbo_v2");
+
+    let verification = RequestPvcManualVerification::new(
+        "voice/id",
+        RequestPvcManualVerificationBody::new([FilePart::bytes(
+            "id.pdf",
+            "application/pdf",
+            b"fake doc".to_vec(),
+        )])
+        .with_extra_text("please verify"),
+    );
+    assert_endpoint(
+        &verification,
+        Method::POST,
+        "https://api.elevenlabs.io/v1/voices/pvc/voice%2Fid/verification",
+    );
+    assert_multipart_body(&verification).await;
 }
 
 #[tokio::test]

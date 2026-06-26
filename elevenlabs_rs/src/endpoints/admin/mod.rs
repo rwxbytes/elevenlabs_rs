@@ -3,6 +3,7 @@ pub mod audio_native;
 pub mod history;
 pub mod models;
 pub mod pronunciation;
+pub mod pvc_voices;
 pub mod samples;
 pub mod usage;
 pub mod user;
