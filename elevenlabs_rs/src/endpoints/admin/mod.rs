@@ -1,5 +1,6 @@
 pub use super::*;
 pub mod audio_native;
+pub mod auth_connections;
 pub mod history;
 pub mod models;
 pub mod pronunciation;

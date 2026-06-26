@@ -9,6 +9,7 @@ use strum::Display;
 ///
 /// # Example
 /// ``` no_run
+/// # #![allow(deprecated)]
 /// use elevenlabs_rs::{ElevenLabsClient, Result};
 /// use elevenlabs_rs::endpoints::admin::usage::{BreakdownType, GetUsage, GetUsageQuery};
 ///
@@ -29,11 +30,16 @@ use strum::Display;
 /// }
 /// ```
 /// See [Get Usage API reference](https://elevenlabs.io/docs/api-reference/usage/get-characters-usage-metrics)
+#[deprecated(
+    since = "0.7.0",
+    note = "GetUsage is deprecated and will be removed in a future release"
+)]
 #[derive(Debug, Clone)]
 pub struct GetUsage {
     query: GetUsageQuery,
 }
 
+#[allow(deprecated)]
 impl GetUsage {
     pub fn new(query: GetUsageQuery) -> Self {
         Self { query }
@@ -67,8 +73,10 @@ impl GetUsageQuery {
     }
 }
 
+#[allow(deprecated)]
 impl crate::endpoints::sealed::Sealed for GetUsage {}
 
+#[allow(deprecated)]
 impl ElevenLabsEndpoint for GetUsage {
     const PATH: &'static str = "/v1/usage/character-stats";
 

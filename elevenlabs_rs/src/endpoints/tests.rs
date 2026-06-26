@@ -4,6 +4,10 @@ use crate::endpoints::admin::audio_native::{
     UpdateAudioNativeContentFromUrlBody, UpdateAudioNativeProjectContent,
     UpdateAudioNativeProjectContentBody,
 };
+use crate::endpoints::admin::auth_connections::{
+    CreateAuthConnection, CreateBearerAuth, DeleteAuthConnection, JwtAlgorithm,
+    ListAuthConnections, UpdateAuthConnection, UpdateOAuth2Jwt,
+};
 use crate::endpoints::admin::history::{GetGeneratedItems, GetHistoryItem, HistoryQuery};
 use crate::endpoints::admin::pronunciation::{
     AddDictionaryFromRules, AddDictionaryFromRulesBody, AddRules, AddRulesBody, GetDictionaries,
@@ -946,6 +950,47 @@ async fn workspace_endpoints_encode_paths_and_bodies() {
         &delete_webhook,
         Method::DELETE,
         "https://api.elevenlabs.io/v1/workspace/webhooks/webhook%2Fid",
+    );
+}
+
+#[tokio::test]
+async fn auth_connection_endpoints_encode_paths_and_bodies() {
+    let create = CreateAuthConnection::new(CreateBearerAuth::new("My API", "acme", "token"));
+    assert_endpoint(
+        &create,
+        Method::POST,
+        "https://api.elevenlabs.io/v1/workspace/auth-connections",
+    );
+    let body = json_body(&create).await;
+    assert_eq!(body["auth_type"], "bearer_auth");
+    assert_eq!(body["provider"], "acme");
+
+    assert_endpoint(
+        &ListAuthConnections,
+        Method::GET,
+        "https://api.elevenlabs.io/v1/workspace/auth-connections",
+    );
+
+    let update = UpdateAuthConnection::new(
+        "auth/id",
+        UpdateOAuth2Jwt::default()
+            .with_issuer("issuer")
+            .with_algorithm(JwtAlgorithm::Rs256),
+    );
+    assert_endpoint(
+        &update,
+        Method::PATCH,
+        "https://api.elevenlabs.io/v1/workspace/auth-connections/auth%2Fid",
+    );
+    let body = json_body(&update).await;
+    assert_eq!(body["auth_type"], "oauth2_jwt");
+    assert_eq!(body["algorithm"], "RS256");
+
+    let delete = DeleteAuthConnection::new("auth/id");
+    assert_endpoint(
+        &delete,
+        Method::DELETE,
+        "https://api.elevenlabs.io/v1/workspace/auth-connections/auth%2Fid",
     );
 }
 
