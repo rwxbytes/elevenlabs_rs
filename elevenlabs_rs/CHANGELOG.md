@@ -43,6 +43,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Music composition-plan types: `MusicCompositionPlan`, `MusicPrompt`, `SongSection`, `SectionSource`, `TimeRange`, `CompositionPlan`, `CompositionChunk`, `GenerationChunk`, and `AudioRefChunk`
 - Audio isolation history endpoints: `GetAudioIsolationHistory` and `DeleteAudioIsolationHistoryItem`
 - Audio-native content endpoints: `UpdateAudioNativeContentFromUrl`, `UpdateAudioNativeProjectContent`, and `GetAudioNativeProjectSettings`
+- Workspace endpoints: `GetWorkspaceAuditLogs`, `GetWorkspaceGroups`, `SearchWorkspaceGroups`, `AddMemberToGroup`, `RemoveMemberFromGroup`, `InviteUsers` (bulk), `GetWorkspaceWebhooks`, `CreateWorkspaceWebhook`, `UpdateWorkspaceWebhook`, and `DeleteWorkspaceWebhook`
 - Professional Voice Cloning (PVC) endpoints in a new `admin::pvc_voices` module: `CreatePvcVoice`, `EditPvcVoice`, `GetPvcVoiceCaptcha`, `VerifyPvcVoiceCaptcha`, `AddPvcVoiceSamples`, `UpdatePvcVoiceSample`, `DeletePvcVoiceSample`, `GetPvcSampleAudio`, `StartSpeakerSeparation`, `GetSpeakerSeparationStatus`, `GetSeparatedSpeakerAudio`, `GetPvcSampleWaveform`, `RunPvcTraining`, and `RequestPvcManualVerification`
 - Pronunciation dictionary endpoints: `AddDictionaryFromRules`, `SetRules`, and `UpdateDictionary`
 - `WorkspaceAccess` enum for pronunciation dictionary access levels

@@ -516,3 +516,646 @@ impl ElevenLabsEndpoint for UnshareWorkspaceResource {
         Ok(resp.json().await?)
     }
 }
+
+// =============================================================================
+// GET /v1/workspace/audit-logs — Get Workspace Audit Logs
+// =============================================================================
+
+/// Retrieves a paginated list of workspace audit-log entries.
+///
+/// # Example
+/// ```no_run
+/// use elevenlabs_rs::{ElevenLabsClient, Result};
+/// use elevenlabs_rs::endpoints::admin::workspace::{GetWorkspaceAuditLogs, AuditLogsQuery};
+///
+/// #[tokio::main]
+/// async fn main() -> Result<()> {
+///     let c = ElevenLabsClient::from_env()?;
+///     let endpoint = GetWorkspaceAuditLogs::default().with_query(AuditLogsQuery::default().with_limit(50));
+///     let page = c.hit(endpoint).await?;
+///     for entry in &page.entries {
+///         println!("{}: {}", entry.activity_name, entry.message);
+///     }
+///     Ok(())
+/// }
+/// ```
+/// See [Get Workspace Audit Logs API reference](https://elevenlabs.io/docs/api-reference/workspace/get-audit-logs).
+#[derive(Clone, Debug, Default)]
+pub struct GetWorkspaceAuditLogs {
+    query: Option<AuditLogsQuery>,
+}
+
+impl GetWorkspaceAuditLogs {
+    pub fn with_query(mut self, query: AuditLogsQuery) -> Self {
+        self.query = Some(query);
+        self
+    }
+}
+
+/// Query parameters for [`GetWorkspaceAuditLogs`].
+#[derive(Clone, Debug, Default)]
+pub struct AuditLogsQuery {
+    params: QueryValues,
+}
+
+impl AuditLogsQuery {
+    pub fn with_limit(mut self, limit: u32) -> Self {
+        self.params.push(("limit", limit.to_string()));
+        self
+    }
+
+    pub fn with_cursor(mut self, cursor: impl Into<String>) -> Self {
+        self.params.push(("cursor", cursor.into()));
+        self
+    }
+
+    pub fn with_time_from_unix_ms(mut self, time_from_unix_ms: i64) -> Self {
+        self.params
+            .push(("time_from_unix_ms", time_from_unix_ms.to_string()));
+        self
+    }
+
+    pub fn with_time_to_unix_ms(mut self, time_to_unix_ms: i64) -> Self {
+        self.params
+            .push(("time_to_unix_ms", time_to_unix_ms.to_string()));
+        self
+    }
+
+    pub fn with_actor_uid(mut self, actor_uid: impl Into<String>) -> Self {
+        self.params.push(("actor_uid", actor_uid.into()));
+        self
+    }
+
+    pub fn with_class_name(mut self, class_name: impl Into<String>) -> Self {
+        self.params.push(("class_name", class_name.into()));
+        self
+    }
+
+    pub fn with_activity_name(mut self, activity_name: impl Into<String>) -> Self {
+        self.params.push(("activity_name", activity_name.into()));
+        self
+    }
+}
+
+impl crate::endpoints::sealed::Sealed for GetWorkspaceAuditLogs {}
+
+impl ElevenLabsEndpoint for GetWorkspaceAuditLogs {
+    const PATH: &'static str = "/v1/workspace/audit-logs";
+
+    const METHOD: Method = Method::GET;
+
+    type ResponseBody = WorkspaceAuditLogsPage;
+
+    fn query_params(&self) -> Option<QueryValues> {
+        self.query.as_ref().map(|q| q.params.clone())
+    }
+
+    async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
+        Ok(resp.json().await?)
+    }
+}
+
+/// A page of workspace audit-log entries.
+#[derive(Clone, Debug, Deserialize)]
+pub struct WorkspaceAuditLogsPage {
+    pub entries: Vec<AuditLogEntry>,
+    pub has_more: bool,
+    pub next_cursor: Option<String>,
+}
+
+/// A single audit-log entry. The entry follows the OCSF schema; the commonly
+/// used fields are typed and the full payload is preserved in `extra`.
+#[derive(Clone, Debug, Deserialize)]
+pub struct AuditLogEntry {
+    pub id: String,
+    pub time: Option<i64>,
+    pub activity_name: String,
+    pub category_name: Option<String>,
+    pub class_name: Option<String>,
+    pub message: String,
+    #[serde(default)]
+    pub metadata: HashMap<String, Value>,
+    #[serde(flatten)]
+    pub extra: HashMap<String, Value>,
+}
+
+// =============================================================================
+// GET /v1/workspace/groups — Get All Groups
+// =============================================================================
+
+/// Retrieves all workspace groups, keyed by group ID.
+///
+/// See [Get Workspace Groups API reference](https://elevenlabs.io/docs/api-reference/workspace/get-groups).
+#[derive(Clone, Debug, Default)]
+pub struct GetWorkspaceGroups;
+
+impl crate::endpoints::sealed::Sealed for GetWorkspaceGroups {}
+
+impl ElevenLabsEndpoint for GetWorkspaceGroups {
+    const PATH: &'static str = "/v1/workspace/groups";
+
+    const METHOD: Method = Method::GET;
+
+    type ResponseBody = HashMap<String, WorkspaceGroup>;
+
+    async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
+        Ok(resp.json().await?)
+    }
+}
+
+/// A workspace group.
+#[derive(Clone, Debug, Deserialize)]
+pub struct WorkspaceGroup {
+    pub name: String,
+    pub id: String,
+    pub members: Vec<String>,
+    pub permissions: Option<Vec<String>>,
+    #[serde(flatten)]
+    pub extra: HashMap<String, Value>,
+}
+
+// =============================================================================
+// GET /v1/workspace/groups/search — Search User Groups
+// =============================================================================
+
+/// Searches workspace groups by name.
+///
+/// See [Search Workspace Groups API reference](https://elevenlabs.io/docs/api-reference/workspace/search-groups).
+#[derive(Clone, Debug)]
+pub struct SearchWorkspaceGroups {
+    name: String,
+}
+
+impl SearchWorkspaceGroups {
+    pub fn new(name: impl Into<String>) -> Self {
+        Self { name: name.into() }
+    }
+}
+
+impl crate::endpoints::sealed::Sealed for SearchWorkspaceGroups {}
+
+impl ElevenLabsEndpoint for SearchWorkspaceGroups {
+    const PATH: &'static str = "/v1/workspace/groups/search";
+
+    const METHOD: Method = Method::GET;
+
+    type ResponseBody = Vec<WorkspaceGroupByName>;
+
+    fn query_params(&self) -> Option<QueryValues> {
+        Some(vec![("name", self.name.clone())])
+    }
+
+    async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
+        Ok(resp.json().await?)
+    }
+}
+
+/// A workspace group returned by a name search.
+#[derive(Clone, Debug, Deserialize)]
+pub struct WorkspaceGroupByName {
+    pub name: String,
+    pub id: String,
+    pub members_emails: Vec<String>,
+}
+
+// =============================================================================
+// POST /v1/workspace/groups/{group_id}/members — Add Member To Group
+// =============================================================================
+
+/// Adds a workspace member to a group.
+///
+/// See [Add Member To Group API reference](https://elevenlabs.io/docs/api-reference/workspace/add-group-member).
+#[derive(Clone, Debug)]
+pub struct AddMemberToGroup {
+    group_id: String,
+    email: String,
+}
+
+impl AddMemberToGroup {
+    pub fn new(group_id: impl Into<String>, email: impl Into<String>) -> Self {
+        Self {
+            group_id: group_id.into(),
+            email: email.into(),
+        }
+    }
+}
+
+impl crate::endpoints::sealed::Sealed for AddMemberToGroup {}
+
+impl ElevenLabsEndpoint for AddMemberToGroup {
+    const PATH: &'static str = "/v1/workspace/groups/:group_id/members";
+
+    const METHOD: Method = Method::POST;
+
+    type ResponseBody = StatusResponseBody;
+
+    fn path_params(&self) -> Vec<(&'static str, &str)> {
+        vec![self.group_id.and_param(PathParam::GroupID)]
+    }
+
+    async fn request_body(&self) -> Result<RequestBody> {
+        Ok(RequestBody::Json(
+            serde_json::json!({ "email": self.email }),
+        ))
+    }
+
+    async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
+        Ok(resp.json().await?)
+    }
+}
+
+// =============================================================================
+// POST /v1/workspace/groups/{group_id}/members/remove — Remove Member From Group
+// =============================================================================
+
+/// Removes a workspace member from a group.
+///
+/// See [Remove Member From Group API reference](https://elevenlabs.io/docs/api-reference/workspace/remove-group-member).
+#[derive(Clone, Debug)]
+pub struct RemoveMemberFromGroup {
+    group_id: String,
+    email: String,
+}
+
+impl RemoveMemberFromGroup {
+    pub fn new(group_id: impl Into<String>, email: impl Into<String>) -> Self {
+        Self {
+            group_id: group_id.into(),
+            email: email.into(),
+        }
+    }
+}
+
+impl crate::endpoints::sealed::Sealed for RemoveMemberFromGroup {}
+
+impl ElevenLabsEndpoint for RemoveMemberFromGroup {
+    const PATH: &'static str = "/v1/workspace/groups/:group_id/members/remove";
+
+    const METHOD: Method = Method::POST;
+
+    type ResponseBody = StatusResponseBody;
+
+    fn path_params(&self) -> Vec<(&'static str, &str)> {
+        vec![self.group_id.and_param(PathParam::GroupID)]
+    }
+
+    async fn request_body(&self) -> Result<RequestBody> {
+        Ok(RequestBody::Json(
+            serde_json::json!({ "email": self.email }),
+        ))
+    }
+
+    async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
+        Ok(resp.json().await?)
+    }
+}
+
+// =============================================================================
+// POST /v1/workspace/invites/add-bulk — Invite Multiple Users
+// =============================================================================
+
+/// Seat type assigned to invited workspace members.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum SeatType {
+    WorkspaceAdmin,
+    WorkspaceMember,
+    WorkspaceLiteMember,
+}
+
+/// Invites multiple users to the workspace in a single request.
+///
+/// See [Invite Multiple Users API reference](https://elevenlabs.io/docs/api-reference/workspace/invite-users).
+#[derive(Clone, Debug)]
+pub struct InviteUsers {
+    body: InviteUsersBody,
+}
+
+impl InviteUsers {
+    pub fn new(body: InviteUsersBody) -> Self {
+        Self { body }
+    }
+}
+
+/// Bulk-invite body.
+#[derive(Clone, Debug, Serialize)]
+pub struct InviteUsersBody {
+    emails: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    seat_type: Option<SeatType>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    group_ids: Option<Vec<String>>,
+}
+
+impl InviteUsersBody {
+    pub fn new<I, S>(emails: I) -> Self
+    where
+        I: IntoIterator<Item = S>,
+        S: Into<String>,
+    {
+        Self {
+            emails: emails.into_iter().map(Into::into).collect(),
+            seat_type: None,
+            group_ids: None,
+        }
+    }
+
+    pub fn with_seat_type(mut self, seat_type: SeatType) -> Self {
+        self.seat_type = Some(seat_type);
+        self
+    }
+
+    pub fn with_group_ids<I, S>(mut self, group_ids: I) -> Self
+    where
+        I: IntoIterator<Item = S>,
+        S: Into<String>,
+    {
+        self.group_ids = Some(group_ids.into_iter().map(Into::into).collect());
+        self
+    }
+}
+
+impl crate::endpoints::sealed::Sealed for InviteUsers {}
+
+impl ElevenLabsEndpoint for InviteUsers {
+    const PATH: &'static str = "/v1/workspace/invites/add-bulk";
+
+    const METHOD: Method = Method::POST;
+
+    type ResponseBody = StatusResponseBody;
+
+    async fn request_body(&self) -> Result<RequestBody> {
+        Ok(RequestBody::Json(serde_json::to_value(&self.body)?))
+    }
+
+    async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
+        Ok(resp.json().await?)
+    }
+}
+
+// =============================================================================
+// GET /v1/workspace/webhooks — List Workspace Webhooks
+// =============================================================================
+
+/// Lists the webhooks configured for the workspace.
+///
+/// See [List Workspace Webhooks API reference](https://elevenlabs.io/docs/api-reference/workspace/get-webhooks).
+#[derive(Clone, Debug, Default)]
+pub struct GetWorkspaceWebhooks {
+    include_usages: Option<bool>,
+}
+
+impl GetWorkspaceWebhooks {
+    /// Include, for each webhook, the list of products configured to trigger it.
+    pub fn with_include_usages(mut self, include_usages: bool) -> Self {
+        self.include_usages = Some(include_usages);
+        self
+    }
+}
+
+impl crate::endpoints::sealed::Sealed for GetWorkspaceWebhooks {}
+
+impl ElevenLabsEndpoint for GetWorkspaceWebhooks {
+    const PATH: &'static str = "/v1/workspace/webhooks";
+
+    const METHOD: Method = Method::GET;
+
+    type ResponseBody = WorkspaceWebhookList;
+
+    fn query_params(&self) -> Option<QueryValues> {
+        self.include_usages
+            .map(|include| vec![("include_usages", include.to_string())])
+    }
+
+    async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
+        Ok(resp.json().await?)
+    }
+}
+
+/// A list of workspace webhooks.
+#[derive(Clone, Debug, Deserialize)]
+pub struct WorkspaceWebhookList {
+    pub webhooks: Vec<WorkspaceWebhook>,
+}
+
+/// A configured workspace webhook.
+#[derive(Clone, Debug, Deserialize)]
+pub struct WorkspaceWebhook {
+    pub name: String,
+    pub webhook_id: String,
+    pub webhook_url: String,
+    pub is_disabled: bool,
+    pub is_auto_disabled: bool,
+    pub created_at_unix: i64,
+    pub auth_type: String,
+    pub usage: Option<Vec<WorkspaceWebhookUsage>>,
+    pub most_recent_failure_error_code: Option<i64>,
+    pub most_recent_failure_timestamp: Option<i64>,
+}
+
+/// A product configured to trigger a workspace webhook.
+#[derive(Clone, Debug, Deserialize)]
+pub struct WorkspaceWebhookUsage {
+    pub usage_type: String,
+}
+
+// =============================================================================
+// POST /v1/workspace/webhooks — Create Workspace Webhook
+// =============================================================================
+
+/// Creates an HMAC-authenticated workspace webhook.
+///
+/// # Example
+/// ```no_run
+/// use elevenlabs_rs::{ElevenLabsClient, Result};
+/// use elevenlabs_rs::endpoints::admin::workspace::{CreateWorkspaceWebhook, WebhookHmacSettings};
+///
+/// #[tokio::main]
+/// async fn main() -> Result<()> {
+///     let c = ElevenLabsClient::from_env()?;
+///     let settings = WebhookHmacSettings::new("My Webhook", "https://example.com/callback");
+///     let resp = c.hit(CreateWorkspaceWebhook::new(settings)).await?;
+///     println!("{}", resp.webhook_id);
+///     Ok(())
+/// }
+/// ```
+/// See [Create Workspace Webhook API reference](https://elevenlabs.io/docs/api-reference/workspace/create-webhook).
+#[derive(Clone, Debug)]
+pub struct CreateWorkspaceWebhook {
+    settings: WebhookHmacSettings,
+}
+
+impl CreateWorkspaceWebhook {
+    pub fn new(settings: WebhookHmacSettings) -> Self {
+        Self { settings }
+    }
+}
+
+/// Settings for creating an HMAC-authenticated webhook.
+#[derive(Clone, Debug, Serialize)]
+pub struct WebhookHmacSettings {
+    auth_type: &'static str,
+    name: String,
+    webhook_url: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    request_headers: Option<HashMap<String, String>>,
+}
+
+impl WebhookHmacSettings {
+    pub fn new(name: impl Into<String>, webhook_url: impl Into<String>) -> Self {
+        Self {
+            auth_type: "hmac",
+            name: name.into(),
+            webhook_url: webhook_url.into(),
+            request_headers: None,
+        }
+    }
+
+    /// Custom request headers to include with each webhook delivery.
+    pub fn with_request_headers(mut self, request_headers: HashMap<String, String>) -> Self {
+        self.request_headers = Some(request_headers);
+        self
+    }
+}
+
+impl crate::endpoints::sealed::Sealed for CreateWorkspaceWebhook {}
+
+impl ElevenLabsEndpoint for CreateWorkspaceWebhook {
+    const PATH: &'static str = "/v1/workspace/webhooks";
+
+    const METHOD: Method = Method::POST;
+
+    type ResponseBody = CreateWorkspaceWebhookResponse;
+
+    async fn request_body(&self) -> Result<RequestBody> {
+        Ok(RequestBody::Json(
+            serde_json::json!({ "settings": self.settings }),
+        ))
+    }
+
+    async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
+        Ok(resp.json().await?)
+    }
+}
+
+/// The response of [`CreateWorkspaceWebhook`].
+#[derive(Clone, Debug, Deserialize)]
+pub struct CreateWorkspaceWebhookResponse {
+    pub webhook_id: String,
+    pub webhook_secret: Option<String>,
+}
+
+// =============================================================================
+// PATCH /v1/workspace/webhooks/{webhook_id} — Update Workspace Webhook
+// =============================================================================
+
+/// Updates a workspace webhook, e.g. to disable it or rename it.
+///
+/// See [Update Workspace Webhook API reference](https://elevenlabs.io/docs/api-reference/workspace/update-webhook).
+#[derive(Clone, Debug)]
+pub struct UpdateWorkspaceWebhook {
+    webhook_id: String,
+    body: UpdateWorkspaceWebhookBody,
+}
+
+impl UpdateWorkspaceWebhook {
+    pub fn new(webhook_id: impl Into<String>, body: UpdateWorkspaceWebhookBody) -> Self {
+        Self {
+            webhook_id: webhook_id.into(),
+            body,
+        }
+    }
+}
+
+/// Update-webhook body. `is_disabled` and `name` are required by the API.
+#[derive(Clone, Debug, Serialize)]
+pub struct UpdateWorkspaceWebhookBody {
+    is_disabled: bool,
+    name: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    retry_enabled: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    request_headers: Option<HashMap<String, String>>,
+}
+
+impl UpdateWorkspaceWebhookBody {
+    pub fn new(name: impl Into<String>, is_disabled: bool) -> Self {
+        Self {
+            is_disabled,
+            name: name.into(),
+            retry_enabled: None,
+            request_headers: None,
+        }
+    }
+
+    /// Enable automatic retries for transient failures (5xx, 429, timeout).
+    pub fn with_retry_enabled(mut self, retry_enabled: bool) -> Self {
+        self.retry_enabled = Some(retry_enabled);
+        self
+    }
+
+    pub fn with_request_headers(mut self, request_headers: HashMap<String, String>) -> Self {
+        self.request_headers = Some(request_headers);
+        self
+    }
+}
+
+impl crate::endpoints::sealed::Sealed for UpdateWorkspaceWebhook {}
+
+impl ElevenLabsEndpoint for UpdateWorkspaceWebhook {
+    const PATH: &'static str = "/v1/workspace/webhooks/:webhook_id";
+
+    const METHOD: Method = Method::PATCH;
+
+    type ResponseBody = StatusResponseBody;
+
+    fn path_params(&self) -> Vec<(&'static str, &str)> {
+        vec![self.webhook_id.and_param(PathParam::WebhookID)]
+    }
+
+    async fn request_body(&self) -> Result<RequestBody> {
+        Ok(RequestBody::Json(serde_json::to_value(&self.body)?))
+    }
+
+    async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
+        Ok(resp.json().await?)
+    }
+}
+
+// =============================================================================
+// DELETE /v1/workspace/webhooks/{webhook_id} — Delete Workspace Webhook
+// =============================================================================
+
+/// Deletes a workspace webhook.
+///
+/// See [Delete Workspace Webhook API reference](https://elevenlabs.io/docs/api-reference/workspace/delete-webhook).
+#[derive(Clone, Debug)]
+pub struct DeleteWorkspaceWebhook {
+    webhook_id: String,
+}
+
+impl DeleteWorkspaceWebhook {
+    pub fn new(webhook_id: impl Into<String>) -> Self {
+        Self {
+            webhook_id: webhook_id.into(),
+        }
+    }
+}
+
+impl crate::endpoints::sealed::Sealed for DeleteWorkspaceWebhook {}
+
+impl ElevenLabsEndpoint for DeleteWorkspaceWebhook {
+    const PATH: &'static str = "/v1/workspace/webhooks/:webhook_id";
+
+    const METHOD: Method = Method::DELETE;
+
+    type ResponseBody = StatusResponseBody;
+
+    fn path_params(&self) -> Vec<(&'static str, &str)> {
+        vec![self.webhook_id.and_param(PathParam::WebhookID)]
+    }
+
+    async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
+        Ok(resp.json().await?)
+    }
+}

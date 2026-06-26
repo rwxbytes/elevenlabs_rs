@@ -49,6 +49,10 @@ pub(crate) enum PathParam {
     SpeechEngineID,
     #[strum(serialize = ":generated_voice_id")]
     GeneratedVoiceID,
+    #[strum(serialize = ":group_id")]
+    GroupID,
+    #[strum(serialize = ":webhook_id")]
+    WebhookID,
     #[strum(serialize = ":token_type")]
     TokenType,
     #[strum(serialize = ":tool_id")]

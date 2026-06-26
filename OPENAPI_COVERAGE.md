@@ -1,6 +1,6 @@
 # OpenAPI coverage
 
-Generated: 2026-06-26T11:02:09Z
+Generated: 2026-06-26T11:06:49Z
 Snapshot: `openapi/elevenlabs-openapi.paths.json`
 Source: https://api.elevenlabs.io/openapi.json
 
@@ -9,9 +9,9 @@ Source: https://api.elevenlabs.io/openapi.json
 | Metric | Value |
 | --- | ---: |
 | OpenAPI operations | 320 |
-| Implemented method/path pairs | 136 |
-| Coverage | 42.5% |
-| Local endpoint constants checked | 136 |
+| Implemented method/path pairs | 146 |
+| Coverage | 45.6% |
+| Local endpoint constants checked | 146 |
 | Local constants missing from snapshot | 0 |
 
 ## Coverage By Path
@@ -44,7 +44,7 @@ Source: https://api.elevenlabs.io/openapi.json
 | /v1/usage | 1 | 1 | 100.0% |
 | /v1/user | 2 | 2 | 100.0% |
 | /v1/voices | 24 | 25 | 96.0% |
-| /v1/workspace | 6 | 22 | 27.3% |
+| /v1/workspace | 16 | 22 | 72.7% |
 | /v1/workspaces | 0 | 2 | 0.0% |
 | /v2/voices | 1 | 1 | 100.0% |
 
@@ -261,20 +261,10 @@ All local endpoint method/path constants match the snapshot.
 | --- | --- | --- |
 | `POST` | `/v1/workspace/analytics/query/usage-by-product-over-time` | Get Workspace Usage |
 | `POST` | `/v1/workspace/analytics/requests` | List Api Requests |
-| `GET` | `/v1/workspace/audit-logs` | Get Workspace Audit Logs |
 | `GET` | `/v1/workspace/auth-connections` | Get Workspace Auth Connections |
 | `POST` | `/v1/workspace/auth-connections` | Create Workspace Auth Connection |
 | `DELETE` | `/v1/workspace/auth-connections/{auth_connection_id}` | Delete Workspace Auth Connection |
 | `PATCH` | `/v1/workspace/auth-connections/{auth_connection_id}` | Update Workspace Auth Connection |
-| `GET` | `/v1/workspace/groups` | Get All Groups |
-| `GET` | `/v1/workspace/groups/search` | Search User Groups |
-| `POST` | `/v1/workspace/groups/{group_id}/members` | Add Member To User Group |
-| `POST` | `/v1/workspace/groups/{group_id}/members/remove` | Delete Member From User Group |
-| `POST` | `/v1/workspace/invites/add-bulk` | Invite Multiple Users |
-| `GET` | `/v1/workspace/webhooks` | List Workspace Webhooks |
-| `POST` | `/v1/workspace/webhooks` | Create Workspace Webhook |
-| `DELETE` | `/v1/workspace/webhooks/{webhook_id}` | Delete Workspace Webhook |
-| `PATCH` | `/v1/workspace/webhooks/{webhook_id}` | Update Workspace Webhook |
 
 ### /v1/workspaces
 

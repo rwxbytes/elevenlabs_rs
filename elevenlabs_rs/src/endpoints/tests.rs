@@ -22,6 +22,12 @@ use crate::endpoints::admin::voice::{
     AddVoice, GetVoice, GetVoices, GetVoicesQuery, ListSimilarVoices, ListSimilarVoicesBody,
     VoiceBody, VoiceType,
 };
+use crate::endpoints::admin::workspace::{
+    AddMemberToGroup, AuditLogsQuery, CreateWorkspaceWebhook, DeleteWorkspaceWebhook,
+    GetWorkspaceAuditLogs, GetWorkspaceGroups, GetWorkspaceWebhooks, InviteUsers, InviteUsersBody,
+    RemoveMemberFromGroup, SearchWorkspaceGroups, SeatType, UpdateWorkspaceWebhook,
+    UpdateWorkspaceWebhookBody, WebhookHmacSettings,
+};
 use crate::endpoints::convai::agents::{
     AgentQuery, ApiSchema, ConvAIModel, ConversationConfig, CreateAgent, CreateAgentBody,
     TTSConfig, WebHook, LLM,
@@ -844,6 +850,103 @@ async fn pvc_voice_endpoints_encode_paths_and_bodies() {
         "https://api.elevenlabs.io/v1/voices/pvc/voice%2Fid/verification",
     );
     assert_multipart_body(&verification).await;
+}
+
+#[tokio::test]
+async fn workspace_endpoints_encode_paths_and_bodies() {
+    let audit_logs = GetWorkspaceAuditLogs::default().with_query(
+        AuditLogsQuery::default()
+            .with_limit(50)
+            .with_actor_uid("user/1"),
+    );
+    assert_endpoint(
+        &audit_logs,
+        Method::GET,
+        "https://api.elevenlabs.io/v1/workspace/audit-logs?limit=50&actor_uid=user%2F1",
+    );
+
+    assert_endpoint(
+        &GetWorkspaceGroups,
+        Method::GET,
+        "https://api.elevenlabs.io/v1/workspace/groups",
+    );
+
+    let search = SearchWorkspaceGroups::new("My Group");
+    assert_endpoint(
+        &search,
+        Method::GET,
+        "https://api.elevenlabs.io/v1/workspace/groups/search?name=My+Group",
+    );
+
+    let add_member = AddMemberToGroup::new("group/id", "john@example.com");
+    assert_endpoint(
+        &add_member,
+        Method::POST,
+        "https://api.elevenlabs.io/v1/workspace/groups/group%2Fid/members",
+    );
+    assert_eq!(json_body(&add_member).await["email"], "john@example.com");
+
+    let remove_member = RemoveMemberFromGroup::new("group/id", "john@example.com");
+    assert_endpoint(
+        &remove_member,
+        Method::POST,
+        "https://api.elevenlabs.io/v1/workspace/groups/group%2Fid/members/remove",
+    );
+
+    let invite = InviteUsers::new(
+        InviteUsersBody::new(["a@example.com", "b@example.com"])
+            .with_seat_type(SeatType::WorkspaceMember)
+            .with_group_ids(["group_1"]),
+    );
+    assert_endpoint(
+        &invite,
+        Method::POST,
+        "https://api.elevenlabs.io/v1/workspace/invites/add-bulk",
+    );
+    let body = json_body(&invite).await;
+    assert_eq!(body["emails"][0], "a@example.com");
+    assert_eq!(body["seat_type"], "workspace_member");
+
+    let webhooks = GetWorkspaceWebhooks::default().with_include_usages(true);
+    assert_endpoint(
+        &webhooks,
+        Method::GET,
+        "https://api.elevenlabs.io/v1/workspace/webhooks?include_usages=true",
+    );
+
+    let create_webhook = CreateWorkspaceWebhook::new(WebhookHmacSettings::new(
+        "My Webhook",
+        "https://example.com/callback",
+    ));
+    assert_endpoint(
+        &create_webhook,
+        Method::POST,
+        "https://api.elevenlabs.io/v1/workspace/webhooks",
+    );
+    let body = json_body(&create_webhook).await;
+    assert_eq!(body["settings"]["auth_type"], "hmac");
+    assert_eq!(
+        body["settings"]["webhook_url"],
+        "https://example.com/callback"
+    );
+
+    let update_webhook = UpdateWorkspaceWebhook::new(
+        "webhook/id",
+        UpdateWorkspaceWebhookBody::new("My Webhook", true).with_retry_enabled(true),
+    );
+    assert_endpoint(
+        &update_webhook,
+        Method::PATCH,
+        "https://api.elevenlabs.io/v1/workspace/webhooks/webhook%2Fid",
+    );
+    assert_eq!(json_body(&update_webhook).await["is_disabled"], true);
+
+    let delete_webhook = DeleteWorkspaceWebhook::new("webhook/id");
+    assert_endpoint(
+        &delete_webhook,
+        Method::DELETE,
+        "https://api.elevenlabs.io/v1/workspace/webhooks/webhook%2Fid",
+    );
 }
 
 #[tokio::test]
