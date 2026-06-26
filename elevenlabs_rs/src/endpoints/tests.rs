@@ -20,7 +20,7 @@ use crate::endpoints::admin::pvc_voices::{
 };
 use crate::endpoints::admin::voice::{
     AddVoice, GetVoice, GetVoices, GetVoicesQuery, ListSimilarVoices, ListSimilarVoicesBody,
-    ListVoices, ListVoicesQuery, VoiceBody, VoiceType,
+    VoiceBody, VoiceType,
 };
 use crate::endpoints::convai::agents::{
     AgentQuery, ApiSchema, ConvAIModel, ConversationConfig, CreateAgent, CreateAgentBody,
@@ -579,13 +579,6 @@ async fn admin_endpoint_shapes_cover_voices_history_and_dictionaries() {
         &voices,
         Method::GET,
         "https://api.elevenlabs.io/v2/voices?voice_type=default&page_size=2&include_total_count=true",
-    );
-
-    let list_voices = ListVoices::with_query(ListVoicesQuery::default().with_show_legacy(true));
-    assert_endpoint(
-        &list_voices,
-        Method::GET,
-        "https://api.elevenlabs.io/v1/voices?show_legacy=true",
     );
 
     let voice = GetVoice::new("voice/id");

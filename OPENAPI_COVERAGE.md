@@ -1,6 +1,6 @@
 # OpenAPI coverage
 
-Generated: 2026-06-26T10:49:25Z
+Generated: 2026-06-26T11:02:09Z
 Snapshot: `openapi/elevenlabs-openapi.paths.json`
 Source: https://api.elevenlabs.io/openapi.json
 
@@ -9,9 +9,9 @@ Source: https://api.elevenlabs.io/openapi.json
 | Metric | Value |
 | --- | ---: |
 | OpenAPI operations | 320 |
-| Implemented method/path pairs | 137 |
-| Coverage | 42.8% |
-| Local endpoint constants checked | 137 |
+| Implemented method/path pairs | 136 |
+| Coverage | 42.5% |
+| Local endpoint constants checked | 136 |
 | Local constants missing from snapshot | 0 |
 
 ## Coverage By Path
@@ -43,7 +43,7 @@ Source: https://api.elevenlabs.io/openapi.json
 | /v1/text-to-voice | 5 | 5 | 100.0% |
 | /v1/usage | 1 | 1 | 100.0% |
 | /v1/user | 2 | 2 | 100.0% |
-| /v1/voices | 25 | 25 | 100.0% |
+| /v1/voices | 24 | 25 | 96.0% |
 | /v1/workspace | 6 | 22 | 27.3% |
 | /v1/workspaces | 0 | 2 | 0.0% |
 | /v2/voices | 1 | 1 | 100.0% |
@@ -248,6 +248,12 @@ All local endpoint method/path constants match the snapshot.
 | `GET` | `/v1/studio/projects/{project_id}/snapshots/{project_snapshot_id}` | Get Project Snapshot |
 | `POST` | `/v1/studio/projects/{project_id}/snapshots/{project_snapshot_id}/archive` | Stream Archive With Studio Project Audio |
 | `POST` | `/v1/studio/projects/{project_id}/snapshots/{project_snapshot_id}/stream` | Stream Studio Project Audio |
+
+### /v1/voices
+
+| Method | Path | Summary |
+| --- | --- | --- |
+| `GET` | `/v1/voices` | List Voices |
 
 ### /v1/workspace
 
