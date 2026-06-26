@@ -1,6 +1,6 @@
 # OpenAPI coverage
 
-Generated: 2026-06-25T23:55:38Z
+Generated: 2026-06-26T10:36:49Z
 Snapshot: `openapi/elevenlabs-openapi.paths.json`
 Source: https://api.elevenlabs.io/openapi.json
 
@@ -9,9 +9,9 @@ Source: https://api.elevenlabs.io/openapi.json
 | Metric | Value |
 | --- | ---: |
 | OpenAPI operations | 320 |
-| Implemented method/path pairs | 122 |
-| Coverage | 38.1% |
-| Local endpoint constants checked | 122 |
+| Implemented method/path pairs | 123 |
+| Coverage | 38.4% |
+| Local endpoint constants checked | 123 |
 | Local constants missing from snapshot | 0 |
 
 ## Coverage By Path
@@ -43,7 +43,7 @@ Source: https://api.elevenlabs.io/openapi.json
 | /v1/text-to-voice | 5 | 5 | 100.0% |
 | /v1/usage | 1 | 1 | 100.0% |
 | /v1/user | 2 | 2 | 100.0% |
-| /v1/voices | 10 | 25 | 40.0% |
+| /v1/voices | 11 | 25 | 44.0% |
 | /v1/workspace | 6 | 22 | 27.3% |
 | /v1/workspaces | 0 | 2 | 0.0% |
 | /v2/voices | 1 | 1 | 100.0% |
@@ -267,7 +267,6 @@ All local endpoint method/path constants match the snapshot.
 | `GET` | `/v1/voices/pvc/{voice_id}/samples/{sample_id}/waveform` | Retrieve Voice Sample Visual Waveform |
 | `POST` | `/v1/voices/pvc/{voice_id}/train` | Run Pvc Training |
 | `POST` | `/v1/voices/pvc/{voice_id}/verification` | Request Manual Verification |
-| `GET` | `/v1/voices` | List Voices |
 
 ### /v1/workspace
 

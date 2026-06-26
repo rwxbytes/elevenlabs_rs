@@ -43,6 +43,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Music composition-plan types: `MusicCompositionPlan`, `MusicPrompt`, `SongSection`, `SectionSource`, `TimeRange`, `CompositionPlan`, `CompositionChunk`, `GenerationChunk`, and `AudioRefChunk`
 - Audio isolation history endpoints: `GetAudioIsolationHistory` and `DeleteAudioIsolationHistoryItem`
 - Audio-native content endpoints: `UpdateAudioNativeContentFromUrl`, `UpdateAudioNativeProjectContent`, and `GetAudioNativeProjectSettings`
+- `ListVoices` endpoint (v1 `GET /v1/voices`) with a `with_show_legacy` query, returning `ListVoicesResponse`
 - Pronunciation dictionary endpoints: `AddDictionaryFromRules`, `SetRules`, and `UpdateDictionary`
 - `WorkspaceAccess` enum for pronunciation dictionary access levels
 - `permission_on_resource` field to `CreateDictionaryResponse` and `DictionaryMetadataResponse`
