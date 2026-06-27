@@ -1,6 +1,6 @@
 # OpenAPI coverage
 
-Generated: 2026-06-27T12:09:43Z
+Generated: 2026-06-27T12:18:15Z
 Snapshot: `openapi/elevenlabs-openapi.paths.json`
 Source: https://api.elevenlabs.io/openapi.json
 
@@ -9,9 +9,9 @@ Source: https://api.elevenlabs.io/openapi.json
 | Metric | Value |
 | --- | ---: |
 | OpenAPI operations | 320 |
-| Implemented method/path pairs | 164 |
-| Coverage | 51.2% |
-| Local endpoint constants checked | 164 |
+| Implemented method/path pairs | 173 |
+| Coverage | 54.1% |
+| Local endpoint constants checked | 173 |
 | Local constants missing from snapshot | 0 |
 
 ## Coverage By Path
@@ -21,7 +21,7 @@ Source: https://api.elevenlabs.io/openapi.json
 | /docs | 0 | 1 | 0.0% |
 | /v1/audio-isolation | 4 | 4 | 100.0% |
 | /v1/audio-native | 4 | 4 | 100.0% |
-| /v1/convai | 52 | 149 | 34.9% |
+| /v1/convai | 61 | 149 | 40.9% |
 | /v1/dubbing | 6 | 20 | 30.0% |
 | /v1/forced-alignment | 1 | 1 | 100.0% |
 | /v1/history | 5 | 5 | 100.0% |
@@ -97,10 +97,6 @@ All local endpoint method/path constants match the snapshot.
 | `GET` | `/v1/convai/conversations/{conversation_id}/sip-messages` | Get Sip Messages For A Conversation |
 | `POST` | `/v1/convai/conversations/{conversation_id}/tags` | Assign Conversation Tags |
 | `DELETE` | `/v1/convai/conversations/{conversation_id}/tags/{tag_id}` | Unassign Conversation Tag |
-| `GET` | `/v1/convai/environment-variables` | List Environment Variables |
-| `POST` | `/v1/convai/environment-variables` | Create Environment Variable |
-| `GET` | `/v1/convai/environment-variables/{env_var_id}` | Get Environment Variable |
-| `PATCH` | `/v1/convai/environment-variables/{env_var_id}` | Update Environment Variable |
 | `POST` | `/v1/convai/exotel/outbound-call` | Handle An Outbound Call Via Exotel |
 | `POST` | `/v1/convai/knowledge-base/file` | Create File Document |
 | `GET` | `/v1/convai/knowledge-base/rag-index` | Get Rag Index Overview. |
@@ -134,11 +130,6 @@ All local endpoint method/path constants match the snapshot.
 | `GET` | `/v1/convai/secrets/{secret_id}` | Get Convai Workspace Secret |
 | `PATCH` | `/v1/convai/secrets/{secret_id}` | Update Convai Workspace Secret |
 | `POST` | `/v1/convai/sip-trunk/outbound-call` | Handle An Outbound Call Via Sip Trunk |
-| `GET` | `/v1/convai/tags` | List Conversation Tags |
-| `POST` | `/v1/convai/tags` | Create Conversation Tag |
-| `DELETE` | `/v1/convai/tags/{tag_id}` | Delete Conversation Tag |
-| `GET` | `/v1/convai/tags/{tag_id}` | Get Conversation Tag |
-| `PATCH` | `/v1/convai/tags/{tag_id}` | Update Conversation Tag |
 | `GET` | `/v1/convai/users` | Get Conversation Users |
 | `GET` | `/v1/convai/whatsapp-accounts` | List Whatsapp Accounts |
 | `DELETE` | `/v1/convai/whatsapp-accounts/{phone_number_id}` | Delete Whatsapp Account |

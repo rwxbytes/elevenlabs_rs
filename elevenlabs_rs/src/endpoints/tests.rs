@@ -46,6 +46,11 @@ use crate::endpoints::convai::conversations::{
     OutboundCallViaTwilio, OutboundCallViaTwilioBody, RegisterTwilioCall, RegisterTwilioCallBody,
     TelephonyDirection,
 };
+use crate::endpoints::convai::environment_variables::{
+    CreateEnvironmentVariable, CreateEnvironmentVariableRequest, EnvironmentVariableType,
+    EnvironmentVariablesQuery, GetEnvironmentVariable, ListEnvironmentVariables,
+    UpdateEnvironmentVariable, UpdateEnvironmentVariableBody,
+};
 use crate::endpoints::convai::knowledge_base::{
     CreateKnowledgeBaseDoc, EmbeddingModel, KnowledgeBaseDoc,
 };
@@ -53,6 +58,10 @@ use crate::endpoints::convai::phone_numbers::{
     CreatePhoneNumber, CreatePhoneNumberBody, GetPhoneNumber, ListPhoneNumbers,
 };
 use crate::endpoints::convai::phone_numbers::{GetSipMessages, SipMessagesQuery};
+use crate::endpoints::convai::tags::{
+    ConversationTagsQuery, CreateConversationTag, CreateConversationTagBody, DeleteConversationTag,
+    GetConversationTag, ListConversationTags, UpdateConversationTag, UpdateConversationTagBody,
+};
 use crate::endpoints::convai::tools::{CreateTool, GetTool};
 use crate::endpoints::convai::tools::{
     GetToolDependentAgents, GetToolExecutions, ToolExecutionsQuery,
@@ -965,6 +974,104 @@ async fn workspace_endpoints_encode_paths_and_bodies() {
         &delete_webhook,
         Method::DELETE,
         "https://api.elevenlabs.io/v1/workspace/webhooks/webhook%2Fid",
+    );
+}
+
+#[tokio::test]
+async fn convai_tags_and_environment_variable_endpoints_encode_paths_and_bodies() {
+    let list_tags = ListConversationTags::default()
+        .with_query(ConversationTagsQuery::default().with_page_size(20));
+    assert_endpoint(
+        &list_tags,
+        Method::GET,
+        "https://api.elevenlabs.io/v1/convai/tags?page_size=20",
+    );
+
+    let create_tag = CreateConversationTag::new(
+        CreateConversationTagBody::new("VIP").with_description("Important callers"),
+    );
+    assert_endpoint(
+        &create_tag,
+        Method::POST,
+        "https://api.elevenlabs.io/v1/convai/tags",
+    );
+    assert_eq!(json_body(&create_tag).await["title"], "VIP");
+
+    let get_tag = GetConversationTag::new("tag/id");
+    assert_endpoint(
+        &get_tag,
+        Method::GET,
+        "https://api.elevenlabs.io/v1/convai/tags/tag%2Fid",
+    );
+
+    let update_tag = UpdateConversationTag::new(
+        "tag/id",
+        UpdateConversationTagBody::default().with_title("VIPs"),
+    );
+    assert_endpoint(
+        &update_tag,
+        Method::PATCH,
+        "https://api.elevenlabs.io/v1/convai/tags/tag%2Fid",
+    );
+    assert_eq!(json_body(&update_tag).await["title"], "VIPs");
+
+    let delete_tag = DeleteConversationTag::new("tag/id");
+    assert_endpoint(
+        &delete_tag,
+        Method::DELETE,
+        "https://api.elevenlabs.io/v1/convai/tags/tag%2Fid",
+    );
+
+    let list_env = ListEnvironmentVariables::default().with_query(
+        EnvironmentVariablesQuery::default()
+            .with_page_size(10)
+            .with_type(EnvironmentVariableType::Secret),
+    );
+    assert_endpoint(
+        &list_env,
+        Method::GET,
+        "https://api.elevenlabs.io/v1/convai/environment-variables?page_size=10&type=secret",
+    );
+
+    let create_env = CreateEnvironmentVariable::new(CreateEnvironmentVariableRequest::string(
+        "API_BASE_URL",
+        std::collections::HashMap::from([(
+            "production".to_string(),
+            "https://api.example.com".to_string(),
+        )]),
+    ));
+    assert_endpoint(
+        &create_env,
+        Method::POST,
+        "https://api.elevenlabs.io/v1/convai/environment-variables",
+    );
+    let body = json_body(&create_env).await;
+    assert_eq!(body["type"], "string");
+    assert_eq!(body["label"], "API_BASE_URL");
+    assert_eq!(body["values"]["production"], "https://api.example.com");
+
+    let get_env = GetEnvironmentVariable::new("env/id");
+    assert_endpoint(
+        &get_env,
+        Method::GET,
+        "https://api.elevenlabs.io/v1/convai/environment-variables/env%2Fid",
+    );
+
+    let update_env = UpdateEnvironmentVariable::new(
+        "env/id",
+        UpdateEnvironmentVariableBody::new(std::collections::HashMap::from([(
+            "production".to_string(),
+            json!("https://new.example.com"),
+        )])),
+    );
+    assert_endpoint(
+        &update_env,
+        Method::PATCH,
+        "https://api.elevenlabs.io/v1/convai/environment-variables/env%2Fid",
+    );
+    assert_eq!(
+        json_body(&update_env).await["values"]["production"],
+        "https://new.example.com"
     );
 }
 
