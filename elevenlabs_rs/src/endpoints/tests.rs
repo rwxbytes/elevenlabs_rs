@@ -36,6 +36,11 @@ use crate::endpoints::convai::agents::{
     AgentQuery, ApiSchema, ConvAIModel, ConversationConfig, CreateAgent, CreateAgentBody,
     TTSConfig, WebHook, LLM,
 };
+use crate::endpoints::convai::batch_calling::{
+    CancelBatchCall, DeleteBatchCall, GetBatchCall, ListWorkspaceBatchCalls,
+    ListWorkspaceBatchCallsQuery, OutboundCallRecipient, RetryBatchCall, SubmitBatchCall,
+    SubmitBatchCallBody,
+};
 use crate::endpoints::convai::conversations::{
     GetConversations, GetConversationsQuery, OutboundCallViaTwilio, OutboundCallViaTwilioBody,
 };
@@ -950,6 +955,68 @@ async fn workspace_endpoints_encode_paths_and_bodies() {
         &delete_webhook,
         Method::DELETE,
         "https://api.elevenlabs.io/v1/workspace/webhooks/webhook%2Fid",
+    );
+}
+
+#[tokio::test]
+async fn batch_calling_endpoints_encode_paths_and_bodies() {
+    let submit = SubmitBatchCall::new(
+        SubmitBatchCallBody::new(
+            "Spring campaign",
+            "agent/id",
+            [OutboundCallRecipient::phone_number("+15551234567")],
+        )
+        .with_agent_phone_number_id("phone/id")
+        .with_target_concurrency_limit(5),
+    );
+    assert_endpoint(
+        &submit,
+        Method::POST,
+        "https://api.elevenlabs.io/v1/convai/batch-calling/submit",
+    );
+    let body = json_body(&submit).await;
+    assert_eq!(body["call_name"], "Spring campaign");
+    assert_eq!(body["agent_id"], "agent/id");
+    assert_eq!(body["recipients"][0]["phone_number"], "+15551234567");
+    assert_eq!(body["target_concurrency_limit"], 5);
+
+    let list = ListWorkspaceBatchCalls::default().with_query(
+        ListWorkspaceBatchCallsQuery::default()
+            .with_limit(10)
+            .with_agent_id("agent/id"),
+    );
+    assert_endpoint(
+        &list,
+        Method::GET,
+        "https://api.elevenlabs.io/v1/convai/batch-calling/workspace?limit=10&agent_id=agent%2Fid",
+    );
+
+    let get = GetBatchCall::new("batch/id");
+    assert_endpoint(
+        &get,
+        Method::GET,
+        "https://api.elevenlabs.io/v1/convai/batch-calling/batch%2Fid",
+    );
+
+    let cancel = CancelBatchCall::new("batch/id");
+    assert_endpoint(
+        &cancel,
+        Method::POST,
+        "https://api.elevenlabs.io/v1/convai/batch-calling/batch%2Fid/cancel",
+    );
+
+    let retry = RetryBatchCall::new("batch/id");
+    assert_endpoint(
+        &retry,
+        Method::POST,
+        "https://api.elevenlabs.io/v1/convai/batch-calling/batch%2Fid/retry",
+    );
+
+    let delete = DeleteBatchCall::new("batch/id");
+    assert_endpoint(
+        &delete,
+        Method::DELETE,
+        "https://api.elevenlabs.io/v1/convai/batch-calling/batch%2Fid",
     );
 }
 

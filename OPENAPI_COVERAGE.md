@@ -1,6 +1,6 @@
 # OpenAPI coverage
 
-Generated: 2026-06-26T11:37:32Z
+Generated: 2026-06-27T11:59:12Z
 Snapshot: `openapi/elevenlabs-openapi.paths.json`
 Source: https://api.elevenlabs.io/openapi.json
 
@@ -9,9 +9,9 @@ Source: https://api.elevenlabs.io/openapi.json
 | Metric | Value |
 | --- | ---: |
 | OpenAPI operations | 320 |
-| Implemented method/path pairs | 150 |
-| Coverage | 46.9% |
-| Local endpoint constants checked | 150 |
+| Implemented method/path pairs | 156 |
+| Coverage | 48.8% |
+| Local endpoint constants checked | 156 |
 | Local constants missing from snapshot | 0 |
 
 ## Coverage By Path
@@ -21,7 +21,7 @@ Source: https://api.elevenlabs.io/openapi.json
 | /docs | 0 | 1 | 0.0% |
 | /v1/audio-isolation | 4 | 4 | 100.0% |
 | /v1/audio-native | 4 | 4 | 100.0% |
-| /v1/convai | 38 | 149 | 25.5% |
+| /v1/convai | 44 | 149 | 29.5% |
 | /v1/dubbing | 6 | 20 | 30.0% |
 | /v1/forced-alignment | 1 | 1 | 100.0% |
 | /v1/history | 5 | 5 | 100.0% |
@@ -89,12 +89,6 @@ All local endpoint method/path constants match the snapshot.
 | `POST` | `/v1/convai/agents/{agent_id}/simulate-conversation/stream` | Simulates A Conversation (Stream) |
 | `GET` | `/v1/convai/agents/{agent_id}/versions/{version_id}` | Get Agent Version Metadata |
 | `GET` | `/v1/convai/analytics/live-count` | Get Live Count |
-| `POST` | `/v1/convai/batch-calling/submit` | Submit A Batch Call Request. |
-| `GET` | `/v1/convai/batch-calling/workspace` | Get All Batch Calls For A Workspace. |
-| `DELETE` | `/v1/convai/batch-calling/{batch_id}` | Delete A Batch Call. |
-| `GET` | `/v1/convai/batch-calling/{batch_id}` | Get A Batch Call By Id. |
-| `POST` | `/v1/convai/batch-calling/{batch_id}/cancel` | Cancel A Batch Call. |
-| `POST` | `/v1/convai/batch-calling/{batch_id}/retry` | Retry A Batch Call. |
 | `GET` | `/v1/convai/conversation/get-signed-url` | Get Signed Url |
 | `GET` | `/v1/convai/conversation/token` | Get Webrtc Token |
 | `GET` | `/v1/convai/conversations/messages/smart-search` | Smart Search Conversation Messages |

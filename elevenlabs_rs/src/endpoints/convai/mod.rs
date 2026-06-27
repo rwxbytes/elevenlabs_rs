@@ -1,5 +1,6 @@
 pub use super::*;
 pub mod agents;
+pub mod batch_calling;
 pub mod conversations;
 pub mod knowledge_base;
 pub mod phone_numbers;
