@@ -19,6 +19,8 @@ pub(crate) enum PathParam {
     AuthConnectionID,
     #[strum(serialize = ":batch_id")]
     BatchID,
+    #[strum(serialize = ":branch_id")]
+    BranchID,
     #[strum(serialize = ":chunk_id")]
     ChunkID,
     #[strum(serialize = ":conversation_id")]
@@ -59,6 +61,8 @@ pub(crate) enum PathParam {
     SampleID,
     #[strum(serialize = ":secret_id")]
     SecretID,
+    #[strum(serialize = ":source_branch_id")]
+    SourceBranchID,
     #[strum(serialize = ":speaker_id")]
     SpeakerID,
     #[strum(serialize = ":speech_engine_id")]

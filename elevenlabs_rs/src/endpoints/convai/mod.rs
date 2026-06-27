@@ -1,4 +1,5 @@
 pub use super::*;
+pub mod agent_management;
 pub mod agent_testing;
 pub mod agents;
 pub mod batch_calling;

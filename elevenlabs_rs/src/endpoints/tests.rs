@@ -32,6 +32,13 @@ use crate::endpoints::admin::workspace::{
     RemoveMemberFromGroup, SearchWorkspaceGroups, SeatType, UpdateWorkspaceWebhook,
     UpdateWorkspaceWebhookBody, WebhookHmacSettings,
 };
+use crate::endpoints::convai::agent_management::{
+    CreateAgentBranch, CreateAgentBranchBody, CreateAgentDeployments, CreateAgentDraft,
+    DeleteAgentDraft, DuplicateAgent, GetAgentBranch, GetAgentSummaries, GetAgentTopics,
+    GetAgentVersion, GetMergePreview, GetRebasePreview, ListAgentBranches, ListAgentBranchesQuery,
+    MergeAgentBranch, MergeAgentBranchBody, RebaseAgentBranch, RunAgentTests, SimulateConversation,
+    SimulateConversationStream, UpdateAgentBranch, UpdateAgentBranchBody,
+};
 use crate::endpoints::convai::agent_testing::{
     AgentTestsQuery, BulkMoveTests, BulkMoveTestsBody, CreateAgentTest, CreateAgentTestFolder,
     CreateAgentTestFolderBody, DeleteAgentTest, DeleteAgentTestFolder, GetAgentTest,
@@ -1012,6 +1019,154 @@ async fn workspace_endpoints_encode_paths_and_bodies() {
         &delete_webhook,
         Method::DELETE,
         "https://api.elevenlabs.io/v1/workspace/webhooks/webhook%2Fid",
+    );
+}
+
+#[tokio::test]
+async fn convai_agent_management_endpoints_encode_paths_and_bodies() {
+    assert_endpoint(
+        &GetAgentSummaries::new(["a_1", "a_2"]),
+        Method::GET,
+        "https://api.elevenlabs.io/v1/convai/agents/summaries?agent_ids=a_1&agent_ids=a_2",
+    );
+
+    let create_branch = CreateAgentBranch::new(
+        "agent/id",
+        CreateAgentBranchBody::new("ver_1", "feature", "a feature branch"),
+    );
+    assert_endpoint(
+        &create_branch,
+        Method::POST,
+        "https://api.elevenlabs.io/v1/convai/agents/agent%2Fid/branches",
+    );
+    assert_eq!(
+        json_body(&create_branch).await["parent_version_id"],
+        "ver_1"
+    );
+
+    let list_branches = ListAgentBranches::new("agent/id").with_query(
+        ListAgentBranchesQuery::default()
+            .with_include_archived(true)
+            .with_limit(10),
+    );
+    assert_endpoint(
+        &list_branches,
+        Method::GET,
+        "https://api.elevenlabs.io/v1/convai/agents/agent%2Fid/branches?include_archived=true&limit=10",
+    );
+
+    assert_endpoint(
+        &GetAgentBranch::new("agent/id", "branch/id"),
+        Method::GET,
+        "https://api.elevenlabs.io/v1/convai/agents/agent%2Fid/branches/branch%2Fid",
+    );
+
+    let update_branch = UpdateAgentBranch::new(
+        "agent/id",
+        "branch/id",
+        UpdateAgentBranchBody::default().with_name("renamed"),
+    );
+    assert_endpoint(
+        &update_branch,
+        Method::PATCH,
+        "https://api.elevenlabs.io/v1/convai/agents/agent%2Fid/branches/branch%2Fid",
+    );
+    assert_eq!(json_body(&update_branch).await["name"], "renamed");
+
+    assert_endpoint(
+        &RebaseAgentBranch::new("agent/id", "branch/id"),
+        Method::POST,
+        "https://api.elevenlabs.io/v1/convai/agents/agent%2Fid/branches/branch%2Fid/rebase",
+    );
+
+    assert_endpoint(
+        &GetRebasePreview::new("agent/id", "branch/id"),
+        Method::GET,
+        "https://api.elevenlabs.io/v1/convai/agents/agent%2Fid/branches/branch%2Fid/rebase-preview",
+    );
+
+    let merge = MergeAgentBranch::new(
+        "agent/id",
+        "src/branch",
+        "main",
+        MergeAgentBranchBody::default().with_force(true),
+    );
+    assert_endpoint(
+        &merge,
+        Method::POST,
+        "https://api.elevenlabs.io/v1/convai/agents/agent%2Fid/branches/src%2Fbranch/merge?target_branch_id=main",
+    );
+    assert_eq!(json_body(&merge).await["force"], true);
+
+    assert_endpoint(
+        &GetMergePreview::new("agent/id", "src/branch", "main").with_force(true),
+        Method::GET,
+        "https://api.elevenlabs.io/v1/convai/agents/agent%2Fid/branches/src%2Fbranch/merge-preview?target_branch_id=main&force=true",
+    );
+
+    let deployments = CreateAgentDeployments::new(
+        "agent/id",
+        std::collections::HashMap::from([("branch_1".to_string(), json!(100))]),
+    );
+    assert_endpoint(
+        &deployments,
+        Method::POST,
+        "https://api.elevenlabs.io/v1/convai/agents/agent%2Fid/deployments",
+    );
+    assert_eq!(
+        json_body(&deployments).await["traffic_percentage_branch_id_map"]["branch_1"],
+        100
+    );
+
+    let draft = CreateAgentDraft::new("agent/id", "branch/id", json!({ "name": "draft" }));
+    assert_endpoint(
+        &draft,
+        Method::POST,
+        "https://api.elevenlabs.io/v1/convai/agents/agent%2Fid/drafts?branch_id=branch%2Fid",
+    );
+
+    assert_endpoint(
+        &DeleteAgentDraft::new("agent/id", "branch/id"),
+        Method::DELETE,
+        "https://api.elevenlabs.io/v1/convai/agents/agent%2Fid/drafts?branch_id=branch%2Fid",
+    );
+
+    let duplicate = DuplicateAgent::new("agent/id").with_name("copy");
+    assert_endpoint(
+        &duplicate,
+        Method::POST,
+        "https://api.elevenlabs.io/v1/convai/agents/agent%2Fid/duplicate",
+    );
+    assert_eq!(json_body(&duplicate).await["name"], "copy");
+
+    assert_endpoint(
+        &RunAgentTests::new("agent/id", json!({ "tests": [] })),
+        Method::POST,
+        "https://api.elevenlabs.io/v1/convai/agents/agent%2Fid/run-tests",
+    );
+
+    assert_endpoint(
+        &SimulateConversation::new("agent/id", json!({ "simulation_specification": {} })),
+        Method::POST,
+        "https://api.elevenlabs.io/v1/convai/agents/agent%2Fid/simulate-conversation",
+    );
+
+    assert_endpoint(
+        &SimulateConversationStream::new("agent/id", json!({})),
+        Method::POST,
+        "https://api.elevenlabs.io/v1/convai/agents/agent%2Fid/simulate-conversation/stream",
+    );
+
+    assert_endpoint(
+        &GetAgentTopics::new("agent/id"),
+        Method::GET,
+        "https://api.elevenlabs.io/v1/convai/agents/agent%2Fid/topics",
+    );
+
+    assert_endpoint(
+        &GetAgentVersion::new("agent/id", "ver/id"),
+        Method::GET,
+        "https://api.elevenlabs.io/v1/convai/agents/agent%2Fid/versions/ver%2Fid",
     );
 }
 

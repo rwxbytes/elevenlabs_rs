@@ -1,6 +1,6 @@
 # OpenAPI coverage
 
-Generated: 2026-06-27T21:58:43Z
+Generated: 2026-06-27T22:12:48Z
 Snapshot: `openapi/elevenlabs-openapi.paths.json`
 Source: https://api.elevenlabs.io/openapi.json
 
@@ -9,9 +9,9 @@ Source: https://api.elevenlabs.io/openapi.json
 | Metric | Value |
 | --- | ---: |
 | OpenAPI operations | 320 |
-| Implemented method/path pairs | 229 |
-| Coverage | 71.6% |
-| Local endpoint constants checked | 229 |
+| Implemented method/path pairs | 247 |
+| Coverage | 77.2% |
+| Local endpoint constants checked | 247 |
 | Local constants missing from snapshot | 0 |
 
 ## Coverage By Path
@@ -21,7 +21,7 @@ Source: https://api.elevenlabs.io/openapi.json
 | /docs | 0 | 1 | 0.0% |
 | /v1/audio-isolation | 4 | 4 | 100.0% |
 | /v1/audio-native | 4 | 4 | 100.0% |
-| /v1/convai | 117 | 149 | 78.5% |
+| /v1/convai | 135 | 149 | 90.6% |
 | /v1/dubbing | 6 | 20 | 30.0% |
 | /v1/forced-alignment | 1 | 1 | 100.0% |
 | /v1/history | 5 | 5 | 100.0% |
@@ -64,23 +64,6 @@ All local endpoint method/path constants match the snapshot.
 
 | Method | Path | Summary |
 | --- | --- | --- |
-| `GET` | `/v1/convai/agents/{agent_id}/topics` | Get Agent Conversation Topics |
-| `GET` | `/v1/convai/agents/summaries` | Get Agent Summaries |
-| `GET` | `/v1/convai/agents/{agent_id}/branches` | List Agent Branches |
-| `POST` | `/v1/convai/agents/{agent_id}/branches` | Create A New Branch |
-| `GET` | `/v1/convai/agents/{agent_id}/branches/{branch_id}` | Get Agent Branch |
-| `PATCH` | `/v1/convai/agents/{agent_id}/branches/{branch_id}` | Update Agent Branch |
-| `POST` | `/v1/convai/agents/{agent_id}/branches/{branch_id}/rebase` | Rebase A Branch Onto Main |
-| `GET` | `/v1/convai/agents/{agent_id}/branches/{branch_id}/rebase-preview` | Preview Rebased Configuration |
-| `POST` | `/v1/convai/agents/{agent_id}/branches/{source_branch_id}/merge` | Merge A Branch Into A Target Branch |
-| `GET` | `/v1/convai/agents/{agent_id}/branches/{source_branch_id}/merge-preview` | Preview Merged Configuration |
-| `POST` | `/v1/convai/agents/{agent_id}/deployments` | Create Or Update Deployments |
-| `DELETE` | `/v1/convai/agents/{agent_id}/drafts` | Delete Agent Draft |
-| `POST` | `/v1/convai/agents/{agent_id}/drafts` | Create Agent Draft |
-| `POST` | `/v1/convai/agents/{agent_id}/duplicate` | Duplicate Agent |
-| `POST` | `/v1/convai/agents/{agent_id}/simulate-conversation` | Simulates A Conversation |
-| `POST` | `/v1/convai/agents/{agent_id}/simulate-conversation/stream` | Simulates A Conversation (Stream) |
-| `GET` | `/v1/convai/agents/{agent_id}/versions/{version_id}` | Get Agent Version Metadata |
 | `GET` | `/v1/convai/conversation/get_signed_url` | Get Signed Url |
 | `GET` | `/v1/convai/conversations/messages/smart-search` | Smart Search Conversation Messages |
 | `GET` | `/v1/convai/conversations/messages/text-search` | Text Search Conversation Messages |
@@ -95,7 +78,6 @@ All local endpoint method/path constants match the snapshot.
 | `PATCH` | `/v1/convai/secrets/{secret_id}` | Update Convai Workspace Secret |
 | `POST` | `/v1/convai/conversations/{conversation_id}/analysis/evaluations/run` | Run Conversation Evaluation |
 | `POST` | `/v1/convai/conversations/{conversation_id}/analysis/run` | Run Conversation Analysis |
-| `POST` | `/v1/convai/agents/{agent_id}/run-tests` | Run Tests On The Agent |
 
 ### /v1/dubbing
 
