@@ -31,6 +31,8 @@ pub(crate) enum PathParam {
     EnvVarID,
     #[strum(serialize = ":history_item_id")]
     HistoryItemID,
+    #[strum(serialize = ":mcp_server_id")]
+    McpServerID,
     #[strum(serialize = ":model_id")]
     ModelID,
     #[strum(serialize = ":language_code")]
@@ -69,6 +71,8 @@ pub(crate) enum PathParam {
     TokenType,
     #[strum(serialize = ":tool_id")]
     ToolID,
+    #[strum(serialize = ":tool_name")]
+    ToolName,
     #[strum(serialize = ":transcription_id")]
     TranscriptionID,
     #[strum(serialize = ":version_id")]

@@ -61,6 +61,13 @@ use crate::endpoints::convai::knowledge_base::{
 use crate::endpoints::convai::llm::{
     AgentLlmUsageBody, CalculateAgentLlmUsage, CalculateLlmUsage, ListLlms, LlmUsageBody,
 };
+use crate::endpoints::convai::mcp_servers::{
+    AddMcpToolApproval, AddMcpToolApprovalBody, CreateMcpServer, CreateMcpToolConfig,
+    DeleteMcpServer, DeleteMcpToolApproval, DeleteMcpToolConfig, GetMcpServer, GetMcpToolConfig,
+    ListMcpServers, ListMcpTools, McpApprovalPolicy, McpServerConfig, McpServerConfigUpdate,
+    McpToolApprovalPolicy, McpToolConfigCreate, McpToolConfigOverrides, UpdateMcpApprovalPolicy,
+    UpdateMcpServerConfig, UpdateMcpToolConfig,
+};
 use crate::endpoints::convai::phone_numbers::{
     CreatePhoneNumber, CreatePhoneNumberBody, GetPhoneNumber, ListPhoneNumbers,
 };
@@ -992,6 +999,126 @@ async fn workspace_endpoints_encode_paths_and_bodies() {
         &delete_webhook,
         Method::DELETE,
         "https://api.elevenlabs.io/v1/workspace/webhooks/webhook%2Fid",
+    );
+}
+
+#[tokio::test]
+async fn convai_mcp_server_endpoints_encode_paths_and_bodies() {
+    let create = CreateMcpServer::new(
+        McpServerConfig::new("My MCP", "https://mcp.example.com/sse")
+            .with_description("Internal tools")
+            .with_approval_policy(McpApprovalPolicy::RequireApprovalAll),
+    );
+    assert_endpoint(
+        &create,
+        Method::POST,
+        "https://api.elevenlabs.io/v1/convai/mcp-servers",
+    );
+    let body = json_body(&create).await;
+    assert_eq!(body["config"]["name"], "My MCP");
+    assert_eq!(body["config"]["approval_policy"], "require_approval_all");
+
+    assert_endpoint(
+        &ListMcpServers,
+        Method::GET,
+        "https://api.elevenlabs.io/v1/convai/mcp-servers",
+    );
+
+    assert_endpoint(
+        &GetMcpServer::new("mcp/id"),
+        Method::GET,
+        "https://api.elevenlabs.io/v1/convai/mcp-servers/mcp%2Fid",
+    );
+
+    assert_endpoint(
+        &DeleteMcpServer::new("mcp/id"),
+        Method::DELETE,
+        "https://api.elevenlabs.io/v1/convai/mcp-servers/mcp%2Fid",
+    );
+
+    let update = UpdateMcpServerConfig::new(
+        "mcp/id",
+        McpServerConfigUpdate::default().with_response_timeout_secs(45),
+    );
+    assert_endpoint(
+        &update,
+        Method::PATCH,
+        "https://api.elevenlabs.io/v1/convai/mcp-servers/mcp%2Fid",
+    );
+    assert_eq!(json_body(&update).await["response_timeout_secs"], 45);
+
+    let policy = UpdateMcpApprovalPolicy::new("mcp/id", McpApprovalPolicy::AutoApproveAll);
+    assert_endpoint(
+        &policy,
+        Method::PATCH,
+        "https://api.elevenlabs.io/v1/convai/mcp-servers/mcp%2Fid/approval-policy",
+    );
+    assert_eq!(
+        json_body(&policy).await["approval_policy"],
+        "auto_approve_all"
+    );
+
+    let add_approval = AddMcpToolApproval::new(
+        "mcp/id",
+        AddMcpToolApprovalBody::new(
+            "search",
+            "Search the web",
+            McpToolApprovalPolicy::RequiresApproval,
+        ),
+    );
+    assert_endpoint(
+        &add_approval,
+        Method::POST,
+        "https://api.elevenlabs.io/v1/convai/mcp-servers/mcp%2Fid/tool-approvals",
+    );
+    assert_eq!(json_body(&add_approval).await["tool_name"], "search");
+
+    assert_endpoint(
+        &DeleteMcpToolApproval::new("mcp/id", "search tool"),
+        Method::DELETE,
+        "https://api.elevenlabs.io/v1/convai/mcp-servers/mcp%2Fid/tool-approvals/search%20tool",
+    );
+
+    let create_cfg = CreateMcpToolConfig::new(
+        "mcp/id",
+        McpToolConfigCreate::new("search")
+            .with_overrides(McpToolConfigOverrides::default().with_response_timeout_secs(30)),
+    );
+    assert_endpoint(
+        &create_cfg,
+        Method::POST,
+        "https://api.elevenlabs.io/v1/convai/mcp-servers/mcp%2Fid/tool-configs",
+    );
+    let body = json_body(&create_cfg).await;
+    assert_eq!(body["tool_name"], "search");
+    assert_eq!(body["response_timeout_secs"], 30);
+
+    assert_endpoint(
+        &GetMcpToolConfig::new("mcp/id", "search"),
+        Method::GET,
+        "https://api.elevenlabs.io/v1/convai/mcp-servers/mcp%2Fid/tool-configs/search",
+    );
+
+    assert_endpoint(
+        &UpdateMcpToolConfig::new(
+            "mcp/id",
+            "search",
+            McpToolConfigOverrides::default().with_disable_interruptions(true),
+        ),
+        Method::PATCH,
+        "https://api.elevenlabs.io/v1/convai/mcp-servers/mcp%2Fid/tool-configs/search",
+    );
+
+    assert_endpoint(
+        &DeleteMcpToolConfig::new("mcp/id", "search"),
+        Method::DELETE,
+        "https://api.elevenlabs.io/v1/convai/mcp-servers/mcp%2Fid/tool-configs/search",
+    );
+
+    assert_endpoint(
+        &ListMcpTools::new("mcp/id"),
+        Method::GET,
+        "https://api.elevenlabs.io/v1/convai/mcp-servers/mcp%2Fid/tools",
     );
 }
 

@@ -1,6 +1,6 @@
 # OpenAPI coverage
 
-Generated: 2026-06-27T17:04:59Z
+Generated: 2026-06-27T17:10:54Z
 Snapshot: `openapi/elevenlabs-openapi.paths.json`
 Source: https://api.elevenlabs.io/openapi.json
 
@@ -9,9 +9,9 @@ Source: https://api.elevenlabs.io/openapi.json
 | Metric | Value |
 | --- | ---: |
 | OpenAPI operations | 320 |
-| Implemented method/path pairs | 190 |
-| Coverage | 59.4% |
-| Local endpoint constants checked | 190 |
+| Implemented method/path pairs | 203 |
+| Coverage | 63.4% |
+| Local endpoint constants checked | 203 |
 | Local constants missing from snapshot | 0 |
 
 ## Coverage By Path
@@ -21,7 +21,7 @@ Source: https://api.elevenlabs.io/openapi.json
 | /docs | 0 | 1 | 0.0% |
 | /v1/audio-isolation | 4 | 4 | 100.0% |
 | /v1/audio-native | 4 | 4 | 100.0% |
-| /v1/convai | 78 | 149 | 52.3% |
+| /v1/convai | 91 | 149 | 61.1% |
 | /v1/dubbing | 6 | 20 | 30.0% |
 | /v1/forced-alignment | 1 | 1 | 100.0% |
 | /v1/history | 5 | 5 | 100.0% |
@@ -108,19 +108,6 @@ All local endpoint method/path constants match the snapshot.
 | `POST` | `/v1/convai/knowledge-base/{documentation_id}/refresh` | Refresh Url Document Content |
 | `GET` | `/v1/convai/knowledge-base/{documentation_id}/source-file-url` | Get Document Source File Url |
 | `PATCH` | `/v1/convai/knowledge-base/{documentation_id}/update-file` | Update File Document |
-| `GET` | `/v1/convai/mcp-servers` | List Mcp Servers |
-| `POST` | `/v1/convai/mcp-servers` | Create Mcp Server |
-| `DELETE` | `/v1/convai/mcp-servers/{mcp_server_id}` | Delete Mcp Server |
-| `GET` | `/v1/convai/mcp-servers/{mcp_server_id}` | Get Mcp Server |
-| `PATCH` | `/v1/convai/mcp-servers/{mcp_server_id}` | Update Mcp Server Configuration |
-| `PATCH` | `/v1/convai/mcp-servers/{mcp_server_id}/approval-policy` | Update Mcp Server Approval Policy |
-| `POST` | `/v1/convai/mcp-servers/{mcp_server_id}/tool-approvals` | Create Mcp Server Tool Approval |
-| `DELETE` | `/v1/convai/mcp-servers/{mcp_server_id}/tool-approvals/{tool_name}` | Delete Mcp Server Tool Approval |
-| `POST` | `/v1/convai/mcp-servers/{mcp_server_id}/tool-configs` | Create Mcp Tool Configuration Override |
-| `DELETE` | `/v1/convai/mcp-servers/{mcp_server_id}/tool-configs/{tool_name}` | Delete Mcp Tool Configuration Override |
-| `GET` | `/v1/convai/mcp-servers/{mcp_server_id}/tool-configs/{tool_name}` | Get Mcp Tool Configuration Override |
-| `PATCH` | `/v1/convai/mcp-servers/{mcp_server_id}/tool-configs/{tool_name}` | Update Mcp Tool Configuration Override |
-| `GET` | `/v1/convai/mcp-servers/{mcp_server_id}/tools` | List Mcp Server Tools |
 | `GET` | `/v1/convai/secrets/{secret_id}` | Get Convai Workspace Secret |
 | `PATCH` | `/v1/convai/secrets/{secret_id}` | Update Convai Workspace Secret |
 | `POST` | `/v1/convai/conversations/{conversation_id}/analysis/evaluations/run` | Run Conversation Evaluation |

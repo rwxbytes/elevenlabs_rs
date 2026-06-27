@@ -5,6 +5,7 @@ pub mod conversations;
 pub mod environment_variables;
 pub mod knowledge_base;
 pub mod llm;
+pub mod mcp_servers;
 pub mod phone_numbers;
 pub mod tags;
 pub mod telephony;
