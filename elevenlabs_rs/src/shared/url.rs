@@ -63,6 +63,8 @@ pub(crate) enum PathParam {
     WebhookID,
     #[strum(serialize = ":tag_id")]
     TagID,
+    #[strum(serialize = ":test_invocation_id")]
+    TestInvocationID,
     #[strum(serialize = ":token_type")]
     TokenType,
     #[strum(serialize = ":tool_id")]

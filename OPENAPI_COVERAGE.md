@@ -1,6 +1,6 @@
 # OpenAPI coverage
 
-Generated: 2026-06-27T16:55:07Z
+Generated: 2026-06-27T17:04:59Z
 Snapshot: `openapi/elevenlabs-openapi.paths.json`
 Source: https://api.elevenlabs.io/openapi.json
 
@@ -9,9 +9,9 @@ Source: https://api.elevenlabs.io/openapi.json
 | Metric | Value |
 | --- | ---: |
 | OpenAPI operations | 320 |
-| Implemented method/path pairs | 183 |
-| Coverage | 57.2% |
-| Local endpoint constants checked | 183 |
+| Implemented method/path pairs | 190 |
+| Coverage | 59.4% |
+| Local endpoint constants checked | 190 |
 | Local constants missing from snapshot | 0 |
 
 ## Coverage By Path
@@ -21,7 +21,7 @@ Source: https://api.elevenlabs.io/openapi.json
 | /docs | 0 | 1 | 0.0% |
 | /v1/audio-isolation | 4 | 4 | 100.0% |
 | /v1/audio-native | 4 | 4 | 100.0% |
-| /v1/convai | 71 | 149 | 47.7% |
+| /v1/convai | 78 | 149 | 52.3% |
 | /v1/dubbing | 6 | 20 | 30.0% |
 | /v1/forced-alignment | 1 | 1 | 100.0% |
 | /v1/history | 5 | 5 | 100.0% |
@@ -123,10 +123,6 @@ All local endpoint method/path constants match the snapshot.
 | `GET` | `/v1/convai/mcp-servers/{mcp_server_id}/tools` | List Mcp Server Tools |
 | `GET` | `/v1/convai/secrets/{secret_id}` | Get Convai Workspace Secret |
 | `PATCH` | `/v1/convai/secrets/{secret_id}` | Update Convai Workspace Secret |
-| `GET` | `/v1/convai/whatsapp-accounts` | List Whatsapp Accounts |
-| `DELETE` | `/v1/convai/whatsapp-accounts/{phone_number_id}` | Delete Whatsapp Account |
-| `GET` | `/v1/convai/whatsapp-accounts/{phone_number_id}` | Get Whatsapp Account |
-| `PATCH` | `/v1/convai/whatsapp-accounts/{phone_number_id}` | Update Whatsapp Account |
 | `POST` | `/v1/convai/conversations/{conversation_id}/analysis/evaluations/run` | Run Conversation Evaluation |
 | `POST` | `/v1/convai/conversations/{conversation_id}/analysis/run` | Run Conversation Analysis |
 | `POST` | `/v1/convai/knowledge-base/bulk-move` | Bulk Move Entities To Folder |
@@ -139,9 +135,6 @@ All local endpoint method/path constants match the snapshot.
 | `GET` | `/v1/convai/agent-testing/{test_id}` | Get Agent Response Test By Id |
 | `PUT` | `/v1/convai/agent-testing/{test_id}` | Update Agent Response Test |
 | `POST` | `/v1/convai/agents/{agent_id}/run-tests` | Run Tests On The Agent |
-| `GET` | `/v1/convai/test-invocations` | List Test Invocations |
-| `GET` | `/v1/convai/test-invocations/{test_invocation_id}` | Get Test Invocation |
-| `POST` | `/v1/convai/test-invocations/{test_invocation_id}/resubmit` | Resubmit Tests |
 
 ### /v1/dubbing
 

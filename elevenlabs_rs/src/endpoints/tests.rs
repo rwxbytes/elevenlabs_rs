@@ -73,9 +73,16 @@ use crate::endpoints::convai::telephony::{
     ExotelOutboundCall, OutboundCallBody, SipTrunkOutboundCall, WhatsAppOutboundCall,
     WhatsAppOutboundCallBody, WhatsAppOutboundMessage, WhatsAppOutboundMessageBody,
 };
+use crate::endpoints::convai::test_invocations::{
+    GetTestInvocation, ListTestInvocations, ResubmitTests, ResubmitTestsBody, TestInvocationsQuery,
+};
 use crate::endpoints::convai::tools::{CreateTool, GetTool};
 use crate::endpoints::convai::tools::{
     GetToolDependentAgents, GetToolExecutions, ToolExecutionsQuery,
+};
+use crate::endpoints::convai::whatsapp_accounts::{
+    DeleteWhatsAppAccount, GetWhatsAppAccount, ListWhatsAppAccounts, UpdateWhatsAppAccount,
+    UpdateWhatsAppAccountBody,
 };
 use crate::endpoints::convai::widget::{CreateWidgetAvatar, CreateWidgetAvatarBody};
 use crate::endpoints::convai::workspace::{
@@ -986,6 +993,77 @@ async fn workspace_endpoints_encode_paths_and_bodies() {
         Method::DELETE,
         "https://api.elevenlabs.io/v1/workspace/webhooks/webhook%2Fid",
     );
+}
+
+#[tokio::test]
+async fn convai_whatsapp_accounts_and_test_invocation_endpoints_encode_paths_and_bodies() {
+    let list_accounts = ListWhatsAppAccounts::default().with_agent_id("agent/id");
+    assert_endpoint(
+        &list_accounts,
+        Method::GET,
+        "https://api.elevenlabs.io/v1/convai/whatsapp-accounts?agent_id=agent%2Fid",
+    );
+
+    let get_account = GetWhatsAppAccount::new("phone/id");
+    assert_endpoint(
+        &get_account,
+        Method::GET,
+        "https://api.elevenlabs.io/v1/convai/whatsapp-accounts/phone%2Fid",
+    );
+
+    let update_account = UpdateWhatsAppAccount::new(
+        "phone/id",
+        UpdateWhatsAppAccountBody::default()
+            .with_assigned_agent_id("agent/id")
+            .with_enable_messaging(true),
+    );
+    assert_endpoint(
+        &update_account,
+        Method::PATCH,
+        "https://api.elevenlabs.io/v1/convai/whatsapp-accounts/phone%2Fid",
+    );
+    let body = json_body(&update_account).await;
+    assert_eq!(body["assigned_agent_id"], "agent/id");
+    assert_eq!(body["enable_messaging"], true);
+
+    let delete_account = DeleteWhatsAppAccount::new("phone/id");
+    assert_endpoint(
+        &delete_account,
+        Method::DELETE,
+        "https://api.elevenlabs.io/v1/convai/whatsapp-accounts/phone%2Fid",
+    );
+
+    let list_inv = ListTestInvocations::default().with_query(
+        TestInvocationsQuery::default()
+            .with_agent_id("agent/id")
+            .with_page_size(10),
+    );
+    assert_endpoint(
+        &list_inv,
+        Method::GET,
+        "https://api.elevenlabs.io/v1/convai/test-invocations?agent_id=agent%2Fid&page_size=10",
+    );
+
+    let get_inv = GetTestInvocation::new("inv/id");
+    assert_endpoint(
+        &get_inv,
+        Method::GET,
+        "https://api.elevenlabs.io/v1/convai/test-invocations/inv%2Fid",
+    );
+
+    let resubmit = ResubmitTests::new(
+        "inv/id",
+        ResubmitTestsBody::new("agent/id", ["run_1", "run_2"]).with_branch_id("branch/id"),
+    );
+    assert_endpoint(
+        &resubmit,
+        Method::POST,
+        "https://api.elevenlabs.io/v1/convai/test-invocations/inv%2Fid/resubmit",
+    );
+    let body = json_body(&resubmit).await;
+    assert_eq!(body["agent_id"], "agent/id");
+    assert_eq!(body["test_run_ids"][0], "run_1");
+    assert_eq!(body["branch_id"], "branch/id");
 }
 
 #[tokio::test]

@@ -51,6 +51,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Conversational AI outbound telephony endpoints in a new `convai::telephony` module: `ExotelOutboundCall`, `SipTrunkOutboundCall`, `WhatsAppOutboundCall`, and `WhatsAppOutboundMessage`
 - Conversational AI LLM endpoints in a new `convai::llm` module: `ListLlms`, `CalculateLlmUsage`, and `CalculateAgentLlmUsage`
 - Conversational AI singleton endpoints: `GetAgentKnowledgeBaseSize` (agents), `GetLiveCount` (analytics), and `GetConversationUsers` (users)
+- Conversational AI WhatsApp-account endpoints in a new `convai::whatsapp_accounts` module: `ListWhatsAppAccounts`, `GetWhatsAppAccount`, `UpdateWhatsAppAccount`, and `DeleteWhatsAppAccount`
+- Conversational AI test-invocation endpoints in a new `convai::test_invocations` module: `ListTestInvocations`, `GetTestInvocation`, and `ResubmitTests`
 - `with_query`, `with_include_conversation_id`, `with_branch_id`, and `with_environment` builder methods to `GetSignedUrl`/`GetSignedUrlQuery`
 - Workspace auth-connection endpoints in a new `admin::auth_connections` module: `CreateAuthConnection`, `ListAuthConnections`, `UpdateAuthConnection`, and `DeleteAuthConnection`, with typed per-auth-type request builders and a discriminated `AuthConnection`/`AuthConnectionConfig` response model
 - Professional Voice Cloning (PVC) endpoints in a new `admin::pvc_voices` module: `CreatePvcVoice`, `EditPvcVoice`, `GetPvcVoiceCaptcha`, `VerifyPvcVoiceCaptcha`, `AddPvcVoiceSamples`, `UpdatePvcVoiceSample`, `DeletePvcVoiceSample`, `GetPvcSampleAudio`, `StartSpeakerSeparation`, `GetSpeakerSeparationStatus`, `GetSeparatedSpeakerAudio`, `GetPvcSampleWaveform`, `RunPvcTraining`, and `RequestPvcManualVerification`

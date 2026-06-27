@@ -8,6 +8,8 @@ pub mod llm;
 pub mod phone_numbers;
 pub mod tags;
 pub mod telephony;
+pub mod test_invocations;
 pub mod tools;
+pub mod whatsapp_accounts;
 pub mod widget;
 pub mod workspace;
