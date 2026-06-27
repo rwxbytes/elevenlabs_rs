@@ -105,6 +105,7 @@ pub enum KnowledgeBaseDocType {
 /// # Example
 ///
 /// ```no_run
+/// # #![allow(deprecated)]
 /// use elevenlabs_rs::{ElevenLabsClient, Result};
 /// use elevenlabs_rs::endpoints::convai::agents::*;
 /// use elevenlabs_rs::endpoints::convai::knowledge_base::{CreateKnowledgeBaseDoc, KnowledgeBaseDoc};
@@ -137,18 +138,25 @@ pub enum KnowledgeBaseDocType {
 /// }
 /// ```
 /// See [Create Knowledge Base Document API reference](https://elevenlabs.io/docs/api-reference/knowledge-base/add-to-knowledge-base).
+#[deprecated(
+    since = "0.7.0",
+    note = "POST /v1/convai/knowledge-base is deprecated; use CreateFileDocument, CreateUrlDocument, or CreateTextDocument"
+)]
 #[derive(Debug, Clone)]
 pub struct CreateKnowledgeBaseDoc {
     body: CreateKnowledgeBaseDocBody,
 }
 
+#[allow(deprecated)]
 impl CreateKnowledgeBaseDoc {
     pub fn new(body: impl Into<CreateKnowledgeBaseDocBody>) -> Self {
         Self { body: body.into() }
     }
 }
+#[allow(deprecated)]
 impl crate::endpoints::sealed::Sealed for CreateKnowledgeBaseDoc {}
 
+#[allow(deprecated)]
 impl ElevenLabsEndpoint for CreateKnowledgeBaseDoc {
     const PATH: &'static str = "v1/convai/knowledge-base";
 
@@ -753,4 +761,834 @@ pub struct GetDocumentChunkResponse {
     pub id: String,
     pub name: String,
     pub content: String,
+}
+
+/// The response of the typed document-creation endpoints
+/// ([`CreateTextDocument`], [`CreateUrlDocument`], [`CreateFileDocument`]) and
+/// [`CreateKnowledgeBaseFolder`].
+#[derive(Clone, Debug, Deserialize)]
+pub struct AddKnowledgeBaseResponse {
+    pub id: String,
+    pub name: String,
+    /// The folder breadcrumb of the created entity, preserved as raw JSON.
+    #[serde(default)]
+    pub folder_path: Vec<Value>,
+}
+
+/// Create a text document in the knowledge base.
+///
+/// See [Create Text Document API reference](https://elevenlabs.io/docs/conversational-ai/api-reference/knowledge-base/create-from-text)
+#[derive(Clone, Debug)]
+pub struct CreateTextDocument {
+    body: CreateTextDocumentBody,
+}
+
+impl CreateTextDocument {
+    pub fn new(body: CreateTextDocumentBody) -> Self {
+        Self { body }
+    }
+}
+
+/// Body for [`CreateTextDocument`].
+#[derive(Clone, Debug, Serialize)]
+pub struct CreateTextDocumentBody {
+    text: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    name: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    parent_folder_id: Option<String>,
+}
+
+impl CreateTextDocumentBody {
+    pub fn new(text: impl Into<String>) -> Self {
+        Self {
+            text: text.into(),
+            name: None,
+            parent_folder_id: None,
+        }
+    }
+
+    pub fn with_name(mut self, name: impl Into<String>) -> Self {
+        self.name = Some(name.into());
+        self
+    }
+
+    pub fn with_parent_folder_id(mut self, parent_folder_id: impl Into<String>) -> Self {
+        self.parent_folder_id = Some(parent_folder_id.into());
+        self
+    }
+}
+
+impl crate::endpoints::sealed::Sealed for CreateTextDocument {}
+
+impl ElevenLabsEndpoint for CreateTextDocument {
+    const PATH: &'static str = "/v1/convai/knowledge-base/text";
+
+    const METHOD: Method = Method::POST;
+
+    type ResponseBody = AddKnowledgeBaseResponse;
+
+    async fn request_body(&self) -> Result<RequestBody> {
+        Ok(RequestBody::Json(serde_json::to_value(&self.body)?))
+    }
+
+    async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
+        Ok(resp.json().await?)
+    }
+}
+
+/// Create a document in the knowledge base from a URL.
+///
+/// See [Create URL Document API reference](https://elevenlabs.io/docs/conversational-ai/api-reference/knowledge-base/create-from-url)
+#[derive(Clone, Debug)]
+pub struct CreateUrlDocument {
+    body: CreateUrlDocumentBody,
+}
+
+impl CreateUrlDocument {
+    pub fn new(body: CreateUrlDocumentBody) -> Self {
+        Self { body }
+    }
+}
+
+/// Body for [`CreateUrlDocument`].
+#[derive(Clone, Debug, Serialize)]
+pub struct CreateUrlDocumentBody {
+    url: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    name: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    parent_folder_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    enable_auto_sync: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    auto_remove: Option<bool>,
+}
+
+impl CreateUrlDocumentBody {
+    pub fn new(url: impl Into<String>) -> Self {
+        Self {
+            url: url.into(),
+            name: None,
+            parent_folder_id: None,
+            enable_auto_sync: None,
+            auto_remove: None,
+        }
+    }
+
+    pub fn with_name(mut self, name: impl Into<String>) -> Self {
+        self.name = Some(name.into());
+        self
+    }
+
+    pub fn with_parent_folder_id(mut self, parent_folder_id: impl Into<String>) -> Self {
+        self.parent_folder_id = Some(parent_folder_id.into());
+        self
+    }
+
+    pub fn with_enable_auto_sync(mut self, enable_auto_sync: bool) -> Self {
+        self.enable_auto_sync = Some(enable_auto_sync);
+        self
+    }
+
+    pub fn with_auto_remove(mut self, auto_remove: bool) -> Self {
+        self.auto_remove = Some(auto_remove);
+        self
+    }
+}
+
+impl crate::endpoints::sealed::Sealed for CreateUrlDocument {}
+
+impl ElevenLabsEndpoint for CreateUrlDocument {
+    const PATH: &'static str = "/v1/convai/knowledge-base/url";
+
+    const METHOD: Method = Method::POST;
+
+    type ResponseBody = AddKnowledgeBaseResponse;
+
+    async fn request_body(&self) -> Result<RequestBody> {
+        Ok(RequestBody::Json(serde_json::to_value(&self.body)?))
+    }
+
+    async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
+        Ok(resp.json().await?)
+    }
+}
+
+/// Create a document in the knowledge base from an uploaded file.
+///
+/// See [Create File Document API reference](https://elevenlabs.io/docs/conversational-ai/api-reference/knowledge-base/create-from-file)
+#[derive(Clone, Debug)]
+pub struct CreateFileDocument {
+    file: FilePart,
+    name: Option<String>,
+    parent_folder_id: Option<String>,
+}
+
+impl CreateFileDocument {
+    pub fn new(file: impl Into<FilePart>) -> Self {
+        Self {
+            file: file.into(),
+            name: None,
+            parent_folder_id: None,
+        }
+    }
+
+    pub fn from_bytes(
+        file_name: impl Into<String>,
+        mime: impl Into<String>,
+        bytes: impl Into<Bytes>,
+    ) -> Self {
+        Self::new(FilePart::bytes(file_name, mime, bytes))
+    }
+
+    pub fn with_name(mut self, name: impl Into<String>) -> Self {
+        self.name = Some(name.into());
+        self
+    }
+
+    pub fn with_parent_folder_id(mut self, parent_folder_id: impl Into<String>) -> Self {
+        self.parent_folder_id = Some(parent_folder_id.into());
+        self
+    }
+}
+
+impl crate::endpoints::sealed::Sealed for CreateFileDocument {}
+
+impl ElevenLabsEndpoint for CreateFileDocument {
+    const PATH: &'static str = "/v1/convai/knowledge-base/file";
+
+    const METHOD: Method = Method::POST;
+
+    type ResponseBody = AddKnowledgeBaseResponse;
+
+    async fn request_body(&self) -> Result<RequestBody> {
+        let mut form = Form::new().part("file", kb_file_part(&self.file)?);
+        if let Some(name) = &self.name {
+            form = form.text("name", name.clone());
+        }
+        if let Some(parent_folder_id) = &self.parent_folder_id {
+            form = form.text("parent_folder_id", parent_folder_id.clone());
+        }
+        Ok(RequestBody::Multipart(form))
+    }
+
+    async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
+        Ok(resp.json().await?)
+    }
+}
+
+/// Create a folder in the knowledge base.
+///
+/// See [Create Folder API reference](https://elevenlabs.io/docs/conversational-ai/api-reference/knowledge-base/create-folder)
+#[derive(Clone, Debug)]
+pub struct CreateKnowledgeBaseFolder {
+    body: CreateKnowledgeBaseFolderBody,
+}
+
+impl CreateKnowledgeBaseFolder {
+    pub fn new(body: CreateKnowledgeBaseFolderBody) -> Self {
+        Self { body }
+    }
+}
+
+/// Body for [`CreateKnowledgeBaseFolder`].
+#[derive(Clone, Debug, Serialize)]
+pub struct CreateKnowledgeBaseFolderBody {
+    name: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    parent_folder_id: Option<String>,
+}
+
+impl CreateKnowledgeBaseFolderBody {
+    pub fn new(name: impl Into<String>) -> Self {
+        Self {
+            name: name.into(),
+            parent_folder_id: None,
+        }
+    }
+
+    pub fn with_parent_folder_id(mut self, parent_folder_id: impl Into<String>) -> Self {
+        self.parent_folder_id = Some(parent_folder_id.into());
+        self
+    }
+}
+
+impl crate::endpoints::sealed::Sealed for CreateKnowledgeBaseFolder {}
+
+impl ElevenLabsEndpoint for CreateKnowledgeBaseFolder {
+    const PATH: &'static str = "/v1/convai/knowledge-base/folder";
+
+    const METHOD: Method = Method::POST;
+
+    type ResponseBody = AddKnowledgeBaseResponse;
+
+    async fn request_body(&self) -> Result<RequestBody> {
+        Ok(RequestBody::Json(serde_json::to_value(&self.body)?))
+    }
+
+    async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
+        Ok(resp.json().await?)
+    }
+}
+
+/// Move several knowledge-base entities into a folder.
+///
+/// See [Bulk Move API reference](https://elevenlabs.io/docs/conversational-ai/api-reference/knowledge-base/bulk-move)
+#[derive(Clone, Debug)]
+pub struct BulkMoveKnowledgeBase {
+    body: BulkMoveKnowledgeBaseBody,
+}
+
+impl BulkMoveKnowledgeBase {
+    pub fn new(body: BulkMoveKnowledgeBaseBody) -> Self {
+        Self { body }
+    }
+}
+
+/// Body for [`BulkMoveKnowledgeBase`].
+#[derive(Clone, Debug, Serialize)]
+pub struct BulkMoveKnowledgeBaseBody {
+    document_ids: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    move_to: Option<String>,
+}
+
+impl BulkMoveKnowledgeBaseBody {
+    pub fn new<I, S>(document_ids: I) -> Self
+    where
+        I: IntoIterator<Item = S>,
+        S: Into<String>,
+    {
+        Self {
+            document_ids: document_ids.into_iter().map(Into::into).collect(),
+            move_to: None,
+        }
+    }
+
+    /// The destination folder ID. Omit to move to the root.
+    pub fn with_move_to(mut self, move_to: impl Into<String>) -> Self {
+        self.move_to = Some(move_to.into());
+        self
+    }
+}
+
+impl crate::endpoints::sealed::Sealed for BulkMoveKnowledgeBase {}
+
+impl ElevenLabsEndpoint for BulkMoveKnowledgeBase {
+    const PATH: &'static str = "/v1/convai/knowledge-base/bulk-move";
+
+    const METHOD: Method = Method::POST;
+
+    type ResponseBody = ();
+
+    async fn request_body(&self) -> Result<RequestBody> {
+        Ok(RequestBody::Json(serde_json::to_value(&self.body)?))
+    }
+
+    async fn response_body(self, _resp: Response) -> Result<Self::ResponseBody> {
+        Ok(())
+    }
+}
+
+/// Move a single knowledge-base entity into a folder.
+///
+/// See [Move Entity API reference](https://elevenlabs.io/docs/conversational-ai/api-reference/knowledge-base/move)
+#[derive(Clone, Debug)]
+pub struct MoveKnowledgeBaseEntity {
+    document_id: String,
+    move_to: Option<String>,
+}
+
+impl MoveKnowledgeBaseEntity {
+    pub fn new(document_id: impl Into<String>) -> Self {
+        Self {
+            document_id: document_id.into(),
+            move_to: None,
+        }
+    }
+
+    /// The destination folder ID. Omit to move to the root.
+    pub fn with_move_to(mut self, move_to: impl Into<String>) -> Self {
+        self.move_to = Some(move_to.into());
+        self
+    }
+}
+
+impl crate::endpoints::sealed::Sealed for MoveKnowledgeBaseEntity {}
+
+impl ElevenLabsEndpoint for MoveKnowledgeBaseEntity {
+    const PATH: &'static str = "/v1/convai/knowledge-base/:document_id/move";
+
+    const METHOD: Method = Method::POST;
+
+    type ResponseBody = ();
+
+    fn path_params(&self) -> Vec<(&'static str, &str)> {
+        vec![self.document_id.and_param(PathParam::DocumentID)]
+    }
+
+    async fn request_body(&self) -> Result<RequestBody> {
+        Ok(RequestBody::Json(
+            serde_json::json!({ "move_to": self.move_to }),
+        ))
+    }
+
+    async fn response_body(self, _resp: Response) -> Result<Self::ResponseBody> {
+        Ok(())
+    }
+}
+
+/// Get an overview of the workspace's RAG indexes (usage and per-model totals).
+///
+/// See [Get RAG Index Overview API reference](https://elevenlabs.io/docs/conversational-ai/api-reference/knowledge-base/rag-index-overview)
+#[derive(Clone, Debug, Default)]
+pub struct GetRagIndexOverview;
+
+impl crate::endpoints::sealed::Sealed for GetRagIndexOverview {}
+
+impl ElevenLabsEndpoint for GetRagIndexOverview {
+    const PATH: &'static str = "/v1/convai/knowledge-base/rag-index";
+
+    const METHOD: Method = Method::GET;
+
+    type ResponseBody = RagIndexOverview;
+
+    async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
+        Ok(resp.json().await?)
+    }
+}
+
+/// The response of [`GetRagIndexOverview`]. Per-model entries are preserved as
+/// raw JSON.
+#[derive(Clone, Debug, Deserialize)]
+pub struct RagIndexOverview {
+    pub total_used_bytes: i64,
+    pub total_max_bytes: i64,
+    pub models: Vec<Value>,
+}
+
+/// Compute (or fetch) RAG indexes for several documents in a batch.
+///
+/// See [Compute RAG Indexes API reference](https://elevenlabs.io/docs/conversational-ai/api-reference/knowledge-base/rag-index-batch)
+#[derive(Clone, Debug)]
+pub struct ComputeRagIndexesBatch {
+    items: Vec<RagIndexItem>,
+}
+
+impl ComputeRagIndexesBatch {
+    pub fn new(items: impl IntoIterator<Item = RagIndexItem>) -> Self {
+        Self {
+            items: items.into_iter().collect(),
+        }
+    }
+}
+
+/// A single document's RAG-index request within [`ComputeRagIndexesBatch`].
+#[derive(Clone, Debug, Serialize)]
+pub struct RagIndexItem {
+    document_id: String,
+    model: String,
+    create_if_missing: bool,
+}
+
+impl RagIndexItem {
+    pub fn new(document_id: impl Into<String>, model: EmbeddingModel) -> Self {
+        Self {
+            document_id: document_id.into(),
+            model: model.to_string(),
+            create_if_missing: true,
+        }
+    }
+
+    pub fn with_create_if_missing(mut self, create_if_missing: bool) -> Self {
+        self.create_if_missing = create_if_missing;
+        self
+    }
+}
+
+impl crate::endpoints::sealed::Sealed for ComputeRagIndexesBatch {}
+
+impl ElevenLabsEndpoint for ComputeRagIndexesBatch {
+    const PATH: &'static str = "/v1/convai/knowledge-base/rag-index";
+
+    const METHOD: Method = Method::POST;
+
+    type ResponseBody = Value;
+
+    async fn request_body(&self) -> Result<RequestBody> {
+        Ok(RequestBody::Json(
+            serde_json::json!({ "items": self.items }),
+        ))
+    }
+
+    async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
+        Ok(resp.json().await?)
+    }
+}
+
+/// Delete a single RAG index of a document.
+///
+/// See [Delete RAG Index API reference](https://elevenlabs.io/docs/conversational-ai/api-reference/knowledge-base/delete-rag-index)
+#[derive(Clone, Debug)]
+pub struct DeleteRagIndex {
+    documentation_id: String,
+    rag_index_id: String,
+}
+
+impl DeleteRagIndex {
+    pub fn new(documentation_id: impl Into<String>, rag_index_id: impl Into<String>) -> Self {
+        Self {
+            documentation_id: documentation_id.into(),
+            rag_index_id: rag_index_id.into(),
+        }
+    }
+}
+
+impl crate::endpoints::sealed::Sealed for DeleteRagIndex {}
+
+impl ElevenLabsEndpoint for DeleteRagIndex {
+    const PATH: &'static str =
+        "/v1/convai/knowledge-base/:documentation_id/rag-index/:rag_index_id";
+
+    const METHOD: Method = Method::DELETE;
+
+    type ResponseBody = Value;
+
+    fn path_params(&self) -> Vec<(&'static str, &str)> {
+        vec![
+            self.documentation_id.and_param(PathParam::DocumentationID),
+            self.rag_index_id.and_param(PathParam::RagIndexID),
+        ]
+    }
+
+    async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
+        Ok(resp.json().await?)
+    }
+}
+
+/// Search the knowledge base by content.
+///
+/// See [Search Knowledge Base API reference](https://elevenlabs.io/docs/conversational-ai/api-reference/knowledge-base/search)
+#[derive(Clone, Debug)]
+pub struct SearchKnowledgeBase {
+    query: SearchKnowledgeBaseQuery,
+}
+
+impl SearchKnowledgeBase {
+    pub fn new(query: impl Into<String>) -> Self {
+        Self {
+            query: SearchKnowledgeBaseQuery::new(query),
+        }
+    }
+
+    pub fn with_query(mut self, query: SearchKnowledgeBaseQuery) -> Self {
+        self.query = query;
+        self
+    }
+}
+
+/// Query parameters for [`SearchKnowledgeBase`].
+#[derive(Clone, Debug)]
+pub struct SearchKnowledgeBaseQuery {
+    params: QueryValues,
+}
+
+impl SearchKnowledgeBaseQuery {
+    pub fn new(query: impl Into<String>) -> Self {
+        Self {
+            params: vec![("query", query.into())],
+        }
+    }
+
+    pub fn with_page_size(mut self, page_size: u32) -> Self {
+        self.params.push(("page_size", page_size.to_string()));
+        self
+    }
+
+    pub fn with_cursor(mut self, cursor: impl Into<String>) -> Self {
+        self.params.push(("cursor", cursor.into()));
+        self
+    }
+
+    /// Filter by document type. May be called multiple times.
+    pub fn with_type(mut self, doc_type: impl Into<String>) -> Self {
+        self.params.push(("types", doc_type.into()));
+        self
+    }
+}
+
+impl crate::endpoints::sealed::Sealed for SearchKnowledgeBase {}
+
+impl ElevenLabsEndpoint for SearchKnowledgeBase {
+    const PATH: &'static str = "/v1/convai/knowledge-base/search";
+
+    const METHOD: Method = Method::GET;
+
+    type ResponseBody = KnowledgeBaseSearchResponse;
+
+    fn query_params(&self) -> Option<QueryValues> {
+        Some(self.query.params.clone())
+    }
+
+    async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
+        Ok(resp.json().await?)
+    }
+}
+
+/// The response of [`SearchKnowledgeBase`]. Each result is preserved as raw JSON.
+#[derive(Clone, Debug, Deserialize)]
+pub struct KnowledgeBaseSearchResponse {
+    pub results: Vec<Value>,
+    pub next_cursor: Option<String>,
+}
+
+/// Get summaries for the given knowledge-base document IDs.
+///
+/// See [Get Summaries API reference](https://elevenlabs.io/docs/conversational-ai/api-reference/knowledge-base/summaries)
+#[derive(Clone, Debug)]
+pub struct GetKnowledgeBaseSummaries {
+    document_ids: Vec<String>,
+}
+
+impl GetKnowledgeBaseSummaries {
+    pub fn new<I, S>(document_ids: I) -> Self
+    where
+        I: IntoIterator<Item = S>,
+        S: Into<String>,
+    {
+        Self {
+            document_ids: document_ids.into_iter().map(Into::into).collect(),
+        }
+    }
+}
+
+impl crate::endpoints::sealed::Sealed for GetKnowledgeBaseSummaries {}
+
+impl ElevenLabsEndpoint for GetKnowledgeBaseSummaries {
+    const PATH: &'static str = "/v1/convai/knowledge-base/summaries";
+
+    const METHOD: Method = Method::GET;
+
+    type ResponseBody = Value;
+
+    fn query_params(&self) -> Option<QueryValues> {
+        Some(
+            self.document_ids
+                .iter()
+                .map(|id| ("document_ids", id.clone()))
+                .collect(),
+        )
+    }
+
+    async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
+        Ok(resp.json().await?)
+    }
+}
+
+/// List the chunks of a knowledge-base document.
+///
+/// See [Get Document Chunks API reference](https://elevenlabs.io/docs/conversational-ai/api-reference/knowledge-base/get-chunks)
+#[derive(Clone, Debug)]
+pub struct GetDocumentChunks {
+    documentation_id: String,
+    query: DocumentChunksQuery,
+}
+
+impl GetDocumentChunks {
+    pub fn new(documentation_id: impl Into<String>, embedding_model: EmbeddingModel) -> Self {
+        Self {
+            documentation_id: documentation_id.into(),
+            query: DocumentChunksQuery::new(embedding_model),
+        }
+    }
+
+    pub fn with_query(mut self, query: DocumentChunksQuery) -> Self {
+        self.query = query;
+        self
+    }
+}
+
+/// Query parameters for [`GetDocumentChunks`].
+#[derive(Clone, Debug)]
+pub struct DocumentChunksQuery {
+    params: QueryValues,
+}
+
+impl DocumentChunksQuery {
+    pub fn new(embedding_model: EmbeddingModel) -> Self {
+        Self {
+            params: vec![("embedding_model", embedding_model.to_string())],
+        }
+    }
+
+    pub fn with_page_size(mut self, page_size: u32) -> Self {
+        self.params.push(("page_size", page_size.to_string()));
+        self
+    }
+
+    pub fn with_cursor(mut self, cursor: impl Into<String>) -> Self {
+        self.params.push(("cursor", cursor.into()));
+        self
+    }
+}
+
+impl crate::endpoints::sealed::Sealed for GetDocumentChunks {}
+
+impl ElevenLabsEndpoint for GetDocumentChunks {
+    const PATH: &'static str = "/v1/convai/knowledge-base/:documentation_id/chunks";
+
+    const METHOD: Method = Method::GET;
+
+    type ResponseBody = DocumentChunksResponse;
+
+    fn query_params(&self) -> Option<QueryValues> {
+        Some(self.query.params.clone())
+    }
+
+    fn path_params(&self) -> Vec<(&'static str, &str)> {
+        vec![self.documentation_id.and_param(PathParam::DocumentationID)]
+    }
+
+    async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
+        Ok(resp.json().await?)
+    }
+}
+
+/// A page of a document's chunks.
+#[derive(Clone, Debug, Deserialize)]
+pub struct DocumentChunksResponse {
+    pub chunks: Vec<GetDocumentChunkResponse>,
+    pub next_cursor: Option<String>,
+}
+
+/// Refresh a knowledge-base document (re-fetch its source).
+///
+/// See [Refresh Document API reference](https://elevenlabs.io/docs/conversational-ai/api-reference/knowledge-base/refresh)
+#[derive(Clone, Debug)]
+pub struct RefreshDocument {
+    documentation_id: String,
+}
+
+impl RefreshDocument {
+    pub fn new(documentation_id: impl Into<String>) -> Self {
+        Self {
+            documentation_id: documentation_id.into(),
+        }
+    }
+}
+
+impl crate::endpoints::sealed::Sealed for RefreshDocument {}
+
+impl ElevenLabsEndpoint for RefreshDocument {
+    const PATH: &'static str = "/v1/convai/knowledge-base/:documentation_id/refresh";
+
+    const METHOD: Method = Method::POST;
+
+    type ResponseBody = Value;
+
+    fn path_params(&self) -> Vec<(&'static str, &str)> {
+        vec![self.documentation_id.and_param(PathParam::DocumentationID)]
+    }
+
+    async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
+        Ok(resp.json().await?)
+    }
+}
+
+/// Get a signed URL to download a document's source file.
+///
+/// See [Get Source File URL API reference](https://elevenlabs.io/docs/conversational-ai/api-reference/knowledge-base/source-file-url)
+#[derive(Clone, Debug)]
+pub struct GetSourceFileUrl {
+    documentation_id: String,
+}
+
+impl GetSourceFileUrl {
+    pub fn new(documentation_id: impl Into<String>) -> Self {
+        Self {
+            documentation_id: documentation_id.into(),
+        }
+    }
+}
+
+impl crate::endpoints::sealed::Sealed for GetSourceFileUrl {}
+
+impl ElevenLabsEndpoint for GetSourceFileUrl {
+    const PATH: &'static str = "/v1/convai/knowledge-base/:documentation_id/source-file-url";
+
+    const METHOD: Method = Method::GET;
+
+    type ResponseBody = SourceFileUrlResponse;
+
+    fn path_params(&self) -> Vec<(&'static str, &str)> {
+        vec![self.documentation_id.and_param(PathParam::DocumentationID)]
+    }
+
+    async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
+        Ok(resp.json().await?)
+    }
+}
+
+/// The response of [`GetSourceFileUrl`].
+#[derive(Clone, Debug, Deserialize)]
+pub struct SourceFileUrlResponse {
+    pub signed_url: String,
+}
+
+/// Replace the file of a file-backed knowledge-base document.
+///
+/// See [Update File Document API reference](https://elevenlabs.io/docs/conversational-ai/api-reference/knowledge-base/update-file)
+#[derive(Clone, Debug)]
+pub struct UpdateFileDocument {
+    documentation_id: String,
+    file: FilePart,
+}
+
+impl UpdateFileDocument {
+    pub fn new(documentation_id: impl Into<String>, file: impl Into<FilePart>) -> Self {
+        Self {
+            documentation_id: documentation_id.into(),
+            file: file.into(),
+        }
+    }
+
+    pub fn from_bytes(
+        documentation_id: impl Into<String>,
+        file_name: impl Into<String>,
+        mime: impl Into<String>,
+        bytes: impl Into<Bytes>,
+    ) -> Self {
+        Self::new(documentation_id, FilePart::bytes(file_name, mime, bytes))
+    }
+}
+
+impl crate::endpoints::sealed::Sealed for UpdateFileDocument {}
+
+impl ElevenLabsEndpoint for UpdateFileDocument {
+    const PATH: &'static str = "/v1/convai/knowledge-base/:documentation_id/update-file";
+
+    const METHOD: Method = Method::PATCH;
+
+    type ResponseBody = Value;
+
+    fn path_params(&self) -> Vec<(&'static str, &str)> {
+        vec![self.documentation_id.and_param(PathParam::DocumentationID)]
+    }
+
+    async fn request_body(&self) -> Result<RequestBody> {
+        let form = Form::new().part("file", kb_file_part(&self.file)?);
+        Ok(RequestBody::Multipart(form))
+    }
+
+    async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
+        Ok(resp.json().await?)
+    }
+}
+
+/// Build a multipart part for a knowledge-base document file. The [`FilePart`]'s
+/// own MIME type is used when present, otherwise `application/octet-stream`.
+fn kb_file_part(file: &FilePart) -> Result<reqwest::multipart::Part> {
+    file.clone()
+        .into_part(Some("application/octet-stream".to_owned()))
 }

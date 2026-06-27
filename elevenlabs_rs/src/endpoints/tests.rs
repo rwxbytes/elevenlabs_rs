@@ -61,8 +61,15 @@ use crate::endpoints::convai::environment_variables::{
     EnvironmentVariablesQuery, GetEnvironmentVariable, ListEnvironmentVariables,
     UpdateEnvironmentVariable, UpdateEnvironmentVariableBody,
 };
+#[allow(deprecated)]
 use crate::endpoints::convai::knowledge_base::{
-    CreateKnowledgeBaseDoc, EmbeddingModel, KnowledgeBaseDoc,
+    BulkMoveKnowledgeBase, BulkMoveKnowledgeBaseBody, ComputeRagIndexesBatch, CreateFileDocument,
+    CreateKnowledgeBaseDoc, CreateKnowledgeBaseFolder, CreateKnowledgeBaseFolderBody,
+    CreateTextDocument, CreateTextDocumentBody, CreateUrlDocument, CreateUrlDocumentBody,
+    DeleteRagIndex, DocumentChunksQuery, EmbeddingModel, GetDocumentChunks,
+    GetKnowledgeBaseSummaries, GetRagIndexOverview, GetSourceFileUrl, KnowledgeBaseDoc,
+    MoveKnowledgeBaseEntity, RagIndexItem, RefreshDocument, SearchKnowledgeBase,
+    UpdateFileDocument,
 };
 use crate::endpoints::convai::llm::{
     AgentLlmUsageBody, CalculateAgentLlmUsage, CalculateLlmUsage, ListLlms, LlmUsageBody,
@@ -1009,6 +1016,128 @@ async fn workspace_endpoints_encode_paths_and_bodies() {
 }
 
 #[tokio::test]
+async fn convai_knowledge_base_endpoints_encode_paths_and_bodies() {
+    let text = CreateTextDocument::new(CreateTextDocumentBody::new("hello").with_name("greeting"));
+    assert_endpoint(
+        &text,
+        Method::POST,
+        "https://api.elevenlabs.io/v1/convai/knowledge-base/text",
+    );
+    assert_eq!(json_body(&text).await["text"], "hello");
+
+    let url = CreateUrlDocument::new(
+        CreateUrlDocumentBody::new("https://example.com").with_enable_auto_sync(true),
+    );
+    assert_endpoint(
+        &url,
+        Method::POST,
+        "https://api.elevenlabs.io/v1/convai/knowledge-base/url",
+    );
+    assert_eq!(json_body(&url).await["enable_auto_sync"], true);
+
+    let file = CreateFileDocument::from_bytes("doc.pdf", "application/pdf", b"data".to_vec())
+        .with_name("My PDF");
+    assert_endpoint(
+        &file,
+        Method::POST,
+        "https://api.elevenlabs.io/v1/convai/knowledge-base/file",
+    );
+    assert_multipart_body(&file).await;
+
+    let folder = CreateKnowledgeBaseFolder::new(CreateKnowledgeBaseFolderBody::new("Docs"));
+    assert_endpoint(
+        &folder,
+        Method::POST,
+        "https://api.elevenlabs.io/v1/convai/knowledge-base/folder",
+    );
+
+    let bulk = BulkMoveKnowledgeBase::new(
+        BulkMoveKnowledgeBaseBody::new(["doc_1", "doc_2"]).with_move_to("folder/id"),
+    );
+    assert_endpoint(
+        &bulk,
+        Method::POST,
+        "https://api.elevenlabs.io/v1/convai/knowledge-base/bulk-move",
+    );
+    assert_eq!(json_body(&bulk).await["document_ids"][0], "doc_1");
+
+    let mv = MoveKnowledgeBaseEntity::new("doc/id").with_move_to("folder/id");
+    assert_endpoint(
+        &mv,
+        Method::POST,
+        "https://api.elevenlabs.io/v1/convai/knowledge-base/doc%2Fid/move",
+    );
+    assert_eq!(json_body(&mv).await["move_to"], "folder/id");
+
+    assert_endpoint(
+        &GetRagIndexOverview,
+        Method::GET,
+        "https://api.elevenlabs.io/v1/convai/knowledge-base/rag-index",
+    );
+
+    let batch = ComputeRagIndexesBatch::new([RagIndexItem::new(
+        "doc/id",
+        EmbeddingModel::E5Mistral7BInstruct,
+    )]);
+    assert_endpoint(
+        &batch,
+        Method::POST,
+        "https://api.elevenlabs.io/v1/convai/knowledge-base/rag-index",
+    );
+    assert_eq!(json_body(&batch).await["items"][0]["document_id"], "doc/id");
+
+    assert_endpoint(
+        &DeleteRagIndex::new("doc/id", "rag/id"),
+        Method::DELETE,
+        "https://api.elevenlabs.io/v1/convai/knowledge-base/doc%2Fid/rag-index/rag%2Fid",
+    );
+
+    let search = SearchKnowledgeBase::new("query text");
+    assert_endpoint(
+        &search,
+        Method::GET,
+        "https://api.elevenlabs.io/v1/convai/knowledge-base/search?query=query+text",
+    );
+
+    let summaries = GetKnowledgeBaseSummaries::new(["doc_1", "doc_2"]);
+    assert_endpoint(
+        &summaries,
+        Method::GET,
+        "https://api.elevenlabs.io/v1/convai/knowledge-base/summaries?document_ids=doc_1&document_ids=doc_2",
+    );
+
+    let chunks = GetDocumentChunks::new("doc/id", EmbeddingModel::E5Mistral7BInstruct).with_query(
+        DocumentChunksQuery::new(EmbeddingModel::E5Mistral7BInstruct).with_page_size(20),
+    );
+    assert_endpoint(
+        &chunks,
+        Method::GET,
+        "https://api.elevenlabs.io/v1/convai/knowledge-base/doc%2Fid/chunks?embedding_model=e5_mistral_7b_instruct&page_size=20",
+    );
+
+    assert_endpoint(
+        &RefreshDocument::new("doc/id"),
+        Method::POST,
+        "https://api.elevenlabs.io/v1/convai/knowledge-base/doc%2Fid/refresh",
+    );
+
+    assert_endpoint(
+        &GetSourceFileUrl::new("doc/id"),
+        Method::GET,
+        "https://api.elevenlabs.io/v1/convai/knowledge-base/doc%2Fid/source-file-url",
+    );
+
+    let update_file =
+        UpdateFileDocument::from_bytes("doc/id", "doc.pdf", "application/pdf", b"x".to_vec());
+    assert_endpoint(
+        &update_file,
+        Method::PATCH,
+        "https://api.elevenlabs.io/v1/convai/knowledge-base/doc%2Fid/update-file",
+    );
+    assert_multipart_body(&update_file).await;
+}
+
+#[tokio::test]
 async fn convai_agent_testing_endpoints_encode_paths_and_bodies() {
     let list = ListAgentTests::default().with_query(
         AgentTestsQuery::default()
@@ -1678,6 +1807,7 @@ async fn auth_connection_endpoints_encode_paths_and_bodies() {
 }
 
 #[tokio::test]
+#[allow(deprecated)]
 async fn convai_endpoint_shapes_cover_agents_conversations_tools_and_calls() {
     let agent = CreateAgent::new(CreateAgentBody::new(ConversationConfig::default()))
         .with_query(AgentQuery::default().use_tool_ids());

@@ -53,6 +53,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Conversational AI singleton endpoints: `GetAgentKnowledgeBaseSize` (agents), `GetLiveCount` (analytics), and `GetConversationUsers` (users)
 - Conversational AI WhatsApp-account endpoints in a new `convai::whatsapp_accounts` module: `ListWhatsAppAccounts`, `GetWhatsAppAccount`, `UpdateWhatsAppAccount`, and `DeleteWhatsAppAccount`
 - Conversational AI test-invocation endpoints in a new `convai::test_invocations` module: `ListTestInvocations`, `GetTestInvocation`, and `ResubmitTests`
+- Conversational AI knowledge-base endpoints: `CreateTextDocument`, `CreateUrlDocument`, `CreateFileDocument`, `CreateKnowledgeBaseFolder`, `BulkMoveKnowledgeBase`, `MoveKnowledgeBaseEntity`, `GetRagIndexOverview`, `ComputeRagIndexesBatch`, `DeleteRagIndex`, `SearchKnowledgeBase`, `GetKnowledgeBaseSummaries`, `GetDocumentChunks`, `RefreshDocument`, `GetSourceFileUrl`, and `UpdateFileDocument`
 - Conversational AI agent-testing endpoints in a new `convai::agent_testing` module: `ListAgentTests`, `CreateAgentTest`, `GetAgentTest`, `UpdateAgentTest`, `DeleteAgentTest`, `GetAgentTestSummaries`, `BulkMoveTests`, `CreateAgentTestFolder`, `GetAgentTestFolder`, `UpdateAgentTestFolder`, and `DeleteAgentTestFolder`
 - Conversational AI MCP-server endpoints in a new `convai::mcp_servers` module: `CreateMcpServer`, `ListMcpServers`, `GetMcpServer`, `DeleteMcpServer`, `UpdateMcpServerConfig`, `UpdateMcpApprovalPolicy`, `AddMcpToolApproval`, `DeleteMcpToolApproval`, `CreateMcpToolConfig`, `GetMcpToolConfig`, `UpdateMcpToolConfig`, `DeleteMcpToolConfig`, and `ListMcpTools`
 - `with_query`, `with_include_conversation_id`, `with_branch_id`, and `with_environment` builder methods to `GetSignedUrl`/`GetSignedUrlQuery`
@@ -81,6 +82,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Deprecated
 - `ElevenLabsClient::hit_ws`; use `connect_text_to_speech`. It will be kept for one release.
 - `GetUsage` (admin usage endpoint). It will be kept for one release.
+- `CreateKnowledgeBaseDoc` (`POST /v1/convai/knowledge-base`); use `CreateFileDocument`, `CreateUrlDocument`, or `CreateTextDocument`. It will be kept for one release.
 
 ### Fixed
 - `GetSignedUrl` now targets the current `/v1/convai/conversation/get-signed-url` path (previously the outdated `get_signed_url`)

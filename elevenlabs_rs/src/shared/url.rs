@@ -23,6 +23,8 @@ pub(crate) enum PathParam {
     ChunkID,
     #[strum(serialize = ":conversation_id")]
     ConversationID,
+    #[strum(serialize = ":document_id")]
+    DocumentID,
     #[strum(serialize = ":documentation_id")]
     DocumentationID,
     #[strum(serialize = ":dubbing_id")]
@@ -51,6 +53,8 @@ pub(crate) enum PathParam {
     ResourceID,
     #[strum(serialize = ":resource_type")]
     ResourceType,
+    #[strum(serialize = ":rag_index_id")]
+    RagIndexID,
     #[strum(serialize = ":sample_id")]
     SampleID,
     #[strum(serialize = ":secret_id")]

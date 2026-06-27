@@ -1,6 +1,6 @@
 # OpenAPI coverage
 
-Generated: 2026-06-27T17:20:07Z
+Generated: 2026-06-27T21:58:43Z
 Snapshot: `openapi/elevenlabs-openapi.paths.json`
 Source: https://api.elevenlabs.io/openapi.json
 
@@ -9,9 +9,9 @@ Source: https://api.elevenlabs.io/openapi.json
 | Metric | Value |
 | --- | ---: |
 | OpenAPI operations | 320 |
-| Implemented method/path pairs | 214 |
-| Coverage | 66.9% |
-| Local endpoint constants checked | 214 |
+| Implemented method/path pairs | 229 |
+| Coverage | 71.6% |
+| Local endpoint constants checked | 229 |
 | Local constants missing from snapshot | 0 |
 
 ## Coverage By Path
@@ -21,7 +21,7 @@ Source: https://api.elevenlabs.io/openapi.json
 | /docs | 0 | 1 | 0.0% |
 | /v1/audio-isolation | 4 | 4 | 100.0% |
 | /v1/audio-native | 4 | 4 | 100.0% |
-| /v1/convai | 102 | 149 | 68.5% |
+| /v1/convai | 117 | 149 | 78.5% |
 | /v1/dubbing | 6 | 20 | 30.0% |
 | /v1/forced-alignment | 1 | 1 | 100.0% |
 | /v1/history | 5 | 5 | 100.0% |
@@ -89,27 +89,12 @@ All local endpoint method/path constants match the snapshot.
 | `GET` | `/v1/convai/conversations/{conversation_id}/sip-messages` | Get Sip Messages For A Conversation |
 | `POST` | `/v1/convai/conversations/{conversation_id}/tags` | Assign Conversation Tags |
 | `DELETE` | `/v1/convai/conversations/{conversation_id}/tags/{tag_id}` | Unassign Conversation Tag |
-| `POST` | `/v1/convai/knowledge-base/file` | Create File Document |
-| `GET` | `/v1/convai/knowledge-base/rag-index` | Get Rag Index Overview. |
-| `POST` | `/v1/convai/knowledge-base/rag-index` | Compute Rag Indexes In Batch |
-| `GET` | `/v1/convai/knowledge-base/search` | Search Knowledge Base Content |
-| `GET` | `/v1/convai/knowledge-base/summaries` | Get Knowledge Base Summaries By Ids |
-| `POST` | `/v1/convai/knowledge-base/text` | Create Text Document |
-| `POST` | `/v1/convai/knowledge-base/url` | Create Url Document |
 | `PATCH` | `/v1/convai/knowledge-base/{documentation_id}` | Update Document |
-| `GET` | `/v1/convai/knowledge-base/{documentation_id}/chunks` | Get All Rag Chunks For A Document |
 | `GET` | `/v1/convai/knowledge-base/{documentation_id}/rag-index` | Get Rag Indexes Of The Specified Knowledgebase Document. |
-| `DELETE` | `/v1/convai/knowledge-base/{documentation_id}/rag-index/{rag_index_id}` | Delete Rag Index. |
-| `POST` | `/v1/convai/knowledge-base/{documentation_id}/refresh` | Refresh Url Document Content |
-| `GET` | `/v1/convai/knowledge-base/{documentation_id}/source-file-url` | Get Document Source File Url |
-| `PATCH` | `/v1/convai/knowledge-base/{documentation_id}/update-file` | Update File Document |
 | `GET` | `/v1/convai/secrets/{secret_id}` | Get Convai Workspace Secret |
 | `PATCH` | `/v1/convai/secrets/{secret_id}` | Update Convai Workspace Secret |
 | `POST` | `/v1/convai/conversations/{conversation_id}/analysis/evaluations/run` | Run Conversation Evaluation |
 | `POST` | `/v1/convai/conversations/{conversation_id}/analysis/run` | Run Conversation Analysis |
-| `POST` | `/v1/convai/knowledge-base/bulk-move` | Bulk Move Entities To Folder |
-| `POST` | `/v1/convai/knowledge-base/folder` | Create Folder |
-| `POST` | `/v1/convai/knowledge-base/{document_id}/move` | Move Entity To Folder |
 | `POST` | `/v1/convai/agents/{agent_id}/run-tests` | Run Tests On The Agent |
 
 ### /v1/dubbing

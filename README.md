@@ -2,9 +2,9 @@ An unofficial workspace for [ElevenLabs](https://elevenlabs.io/)
 
 ## OpenAPI coverage
 
-Current snapshot coverage: **214 / 320 operations (66.9%)**.
+Current snapshot coverage: **229 / 320 operations (71.6%)**.
 
-All 214 local `ElevenLabsEndpoint` method/path constants match the normalized OpenAPI snapshot.
+All 229 local `ElevenLabsEndpoint` method/path constants match the normalized OpenAPI snapshot.
 See [OPENAPI_COVERAGE.md](OPENAPI_COVERAGE.md) for coverage grouped by path.
 
 Maintainer commands:
