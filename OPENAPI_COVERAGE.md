@@ -1,6 +1,6 @@
 # OpenAPI coverage
 
-Generated: 2026-06-27T12:18:15Z
+Generated: 2026-06-27T16:55:07Z
 Snapshot: `openapi/elevenlabs-openapi.paths.json`
 Source: https://api.elevenlabs.io/openapi.json
 
@@ -9,9 +9,9 @@ Source: https://api.elevenlabs.io/openapi.json
 | Metric | Value |
 | --- | ---: |
 | OpenAPI operations | 320 |
-| Implemented method/path pairs | 173 |
-| Coverage | 54.1% |
-| Local endpoint constants checked | 173 |
+| Implemented method/path pairs | 183 |
+| Coverage | 57.2% |
+| Local endpoint constants checked | 183 |
 | Local constants missing from snapshot | 0 |
 
 ## Coverage By Path
@@ -21,7 +21,7 @@ Source: https://api.elevenlabs.io/openapi.json
 | /docs | 0 | 1 | 0.0% |
 | /v1/audio-isolation | 4 | 4 | 100.0% |
 | /v1/audio-native | 4 | 4 | 100.0% |
-| /v1/convai | 61 | 149 | 40.9% |
+| /v1/convai | 71 | 149 | 47.7% |
 | /v1/dubbing | 6 | 20 | 30.0% |
 | /v1/forced-alignment | 1 | 1 | 100.0% |
 | /v1/history | 5 | 5 | 100.0% |
@@ -70,8 +70,6 @@ All local endpoint method/path constants match the snapshot.
 | `DELETE` | `/v1/convai/agent-testing/folders/{folder_id}` | Delete Agent Test Folder |
 | `GET` | `/v1/convai/agent-testing/folders/{folder_id}` | Get Agent Test Folder By Id |
 | `PATCH` | `/v1/convai/agent-testing/folders/{folder_id}` | Update Agent Test Folder |
-| `GET` | `/v1/convai/agent/{agent_id}/knowledge-base/size` | Returns The Size Of The Agent'S Knowledge Base |
-| `POST` | `/v1/convai/agent/{agent_id}/llm-usage/calculate` | Calculate Expected Llm Usage For An Agent |
 | `GET` | `/v1/convai/agents/summaries` | Get Agent Summaries |
 | `GET` | `/v1/convai/agents/{agent_id}/branches` | List Agent Branches |
 | `POST` | `/v1/convai/agents/{agent_id}/branches` | Create A New Branch |
@@ -88,7 +86,6 @@ All local endpoint method/path constants match the snapshot.
 | `POST` | `/v1/convai/agents/{agent_id}/simulate-conversation` | Simulates A Conversation |
 | `POST` | `/v1/convai/agents/{agent_id}/simulate-conversation/stream` | Simulates A Conversation (Stream) |
 | `GET` | `/v1/convai/agents/{agent_id}/versions/{version_id}` | Get Agent Version Metadata |
-| `GET` | `/v1/convai/analytics/live-count` | Get Live Count |
 | `GET` | `/v1/convai/conversation/get_signed_url` | Get Signed Url |
 | `GET` | `/v1/convai/conversations/messages/smart-search` | Smart Search Conversation Messages |
 | `GET` | `/v1/convai/conversations/messages/text-search` | Text Search Conversation Messages |
@@ -97,7 +94,6 @@ All local endpoint method/path constants match the snapshot.
 | `GET` | `/v1/convai/conversations/{conversation_id}/sip-messages` | Get Sip Messages For A Conversation |
 | `POST` | `/v1/convai/conversations/{conversation_id}/tags` | Assign Conversation Tags |
 | `DELETE` | `/v1/convai/conversations/{conversation_id}/tags/{tag_id}` | Unassign Conversation Tag |
-| `POST` | `/v1/convai/exotel/outbound-call` | Handle An Outbound Call Via Exotel |
 | `POST` | `/v1/convai/knowledge-base/file` | Create File Document |
 | `GET` | `/v1/convai/knowledge-base/rag-index` | Get Rag Index Overview. |
 | `POST` | `/v1/convai/knowledge-base/rag-index` | Compute Rag Indexes In Batch |
@@ -112,8 +108,6 @@ All local endpoint method/path constants match the snapshot.
 | `POST` | `/v1/convai/knowledge-base/{documentation_id}/refresh` | Refresh Url Document Content |
 | `GET` | `/v1/convai/knowledge-base/{documentation_id}/source-file-url` | Get Document Source File Url |
 | `PATCH` | `/v1/convai/knowledge-base/{documentation_id}/update-file` | Update File Document |
-| `POST` | `/v1/convai/llm-usage/calculate` | Calculate Expected Llm Usage |
-| `GET` | `/v1/convai/llm/list` | List Available Llms |
 | `GET` | `/v1/convai/mcp-servers` | List Mcp Servers |
 | `POST` | `/v1/convai/mcp-servers` | Create Mcp Server |
 | `DELETE` | `/v1/convai/mcp-servers/{mcp_server_id}` | Delete Mcp Server |
@@ -129,14 +123,10 @@ All local endpoint method/path constants match the snapshot.
 | `GET` | `/v1/convai/mcp-servers/{mcp_server_id}/tools` | List Mcp Server Tools |
 | `GET` | `/v1/convai/secrets/{secret_id}` | Get Convai Workspace Secret |
 | `PATCH` | `/v1/convai/secrets/{secret_id}` | Update Convai Workspace Secret |
-| `POST` | `/v1/convai/sip-trunk/outbound-call` | Handle An Outbound Call Via Sip Trunk |
-| `GET` | `/v1/convai/users` | Get Conversation Users |
 | `GET` | `/v1/convai/whatsapp-accounts` | List Whatsapp Accounts |
 | `DELETE` | `/v1/convai/whatsapp-accounts/{phone_number_id}` | Delete Whatsapp Account |
 | `GET` | `/v1/convai/whatsapp-accounts/{phone_number_id}` | Get Whatsapp Account |
 | `PATCH` | `/v1/convai/whatsapp-accounts/{phone_number_id}` | Update Whatsapp Account |
-| `POST` | `/v1/convai/whatsapp/outbound-call` | Make An Outbound Call Via Whatsapp |
-| `POST` | `/v1/convai/whatsapp/outbound-message` | Send An Outbound Message Via Whatsapp |
 | `POST` | `/v1/convai/conversations/{conversation_id}/analysis/evaluations/run` | Run Conversation Evaluation |
 | `POST` | `/v1/convai/conversations/{conversation_id}/analysis/run` | Run Conversation Analysis |
 | `POST` | `/v1/convai/knowledge-base/bulk-move` | Bulk Move Entities To Folder |

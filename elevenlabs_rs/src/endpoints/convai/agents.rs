@@ -2566,3 +2566,43 @@ impl<'a> IntoIterator for &'a GetAgentsResponse {
         self.agents.iter()
     }
 }
+
+/// Get the size (number of pages) of an agent's knowledge base.
+///
+/// See [Get Agent Knowledge Base Size API reference](https://elevenlabs.io/docs/conversational-ai/api-reference/agents/get-knowledge-base-size)
+#[derive(Clone, Debug)]
+pub struct GetAgentKnowledgeBaseSize {
+    agent_id: String,
+}
+
+impl GetAgentKnowledgeBaseSize {
+    pub fn new(agent_id: impl Into<String>) -> Self {
+        Self {
+            agent_id: agent_id.into(),
+        }
+    }
+}
+
+impl crate::endpoints::sealed::Sealed for GetAgentKnowledgeBaseSize {}
+
+impl ElevenLabsEndpoint for GetAgentKnowledgeBaseSize {
+    const PATH: &'static str = "/v1/convai/agent/:agent_id/knowledge-base/size";
+
+    const METHOD: Method = Method::GET;
+
+    type ResponseBody = GetAgentKnowledgeBaseSizeResponse;
+
+    fn path_params(&self) -> Vec<(&'static str, &str)> {
+        vec![self.agent_id.and_param(PathParam::AgentID)]
+    }
+
+    async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
+        Ok(resp.json().await?)
+    }
+}
+
+/// The response of [`GetAgentKnowledgeBaseSize`].
+#[derive(Clone, Debug, Deserialize)]
+pub struct GetAgentKnowledgeBaseSizeResponse {
+    pub number_of_pages: f64,
+}

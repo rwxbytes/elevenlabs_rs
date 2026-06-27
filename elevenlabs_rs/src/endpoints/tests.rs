@@ -32,6 +32,7 @@ use crate::endpoints::admin::workspace::{
     RemoveMemberFromGroup, SearchWorkspaceGroups, SeatType, UpdateWorkspaceWebhook,
     UpdateWorkspaceWebhookBody, WebhookHmacSettings,
 };
+use crate::endpoints::convai::agents::GetAgentKnowledgeBaseSize;
 use crate::endpoints::convai::agents::{
     AgentQuery, ApiSchema, ConvAIModel, ConversationConfig, CreateAgent, CreateAgentBody,
     TTSConfig, WebHook, LLM,
@@ -40,6 +41,9 @@ use crate::endpoints::convai::batch_calling::{
     CancelBatchCall, DeleteBatchCall, GetBatchCall, ListWorkspaceBatchCalls,
     ListWorkspaceBatchCallsQuery, OutboundCallRecipient, RetryBatchCall, SubmitBatchCall,
     SubmitBatchCallBody,
+};
+use crate::endpoints::convai::conversations::{
+    ConversationUsersQuery, GetConversationUsers, GetLiveCount,
 };
 use crate::endpoints::convai::conversations::{
     GetConversations, GetConversationsQuery, GetSignedUrl, GetSignedUrlQuery, GetWebRtcToken,
@@ -54,6 +58,9 @@ use crate::endpoints::convai::environment_variables::{
 use crate::endpoints::convai::knowledge_base::{
     CreateKnowledgeBaseDoc, EmbeddingModel, KnowledgeBaseDoc,
 };
+use crate::endpoints::convai::llm::{
+    AgentLlmUsageBody, CalculateAgentLlmUsage, CalculateLlmUsage, ListLlms, LlmUsageBody,
+};
 use crate::endpoints::convai::phone_numbers::{
     CreatePhoneNumber, CreatePhoneNumberBody, GetPhoneNumber, ListPhoneNumbers,
 };
@@ -61,6 +68,10 @@ use crate::endpoints::convai::phone_numbers::{GetSipMessages, SipMessagesQuery};
 use crate::endpoints::convai::tags::{
     ConversationTagsQuery, CreateConversationTag, CreateConversationTagBody, DeleteConversationTag,
     GetConversationTag, ListConversationTags, UpdateConversationTag, UpdateConversationTagBody,
+};
+use crate::endpoints::convai::telephony::{
+    ExotelOutboundCall, OutboundCallBody, SipTrunkOutboundCall, WhatsAppOutboundCall,
+    WhatsAppOutboundCallBody, WhatsAppOutboundMessage, WhatsAppOutboundMessageBody,
 };
 use crate::endpoints::convai::tools::{CreateTool, GetTool};
 use crate::endpoints::convai::tools::{
@@ -975,6 +986,113 @@ async fn workspace_endpoints_encode_paths_and_bodies() {
         Method::DELETE,
         "https://api.elevenlabs.io/v1/workspace/webhooks/webhook%2Fid",
     );
+}
+
+#[tokio::test]
+async fn convai_singleton_endpoints_encode_paths_and_bodies() {
+    assert_endpoint(
+        &ListLlms,
+        Method::GET,
+        "https://api.elevenlabs.io/v1/convai/llm/list",
+    );
+
+    let calc = CalculateLlmUsage::new(LlmUsageBody::new(800, 4, true));
+    assert_endpoint(
+        &calc,
+        Method::POST,
+        "https://api.elevenlabs.io/v1/convai/llm-usage/calculate",
+    );
+    let body = json_body(&calc).await;
+    assert_eq!(body["prompt_length"], 800);
+    assert_eq!(body["rag_enabled"], true);
+
+    let agent_calc = CalculateAgentLlmUsage::new(
+        "agent/id",
+        AgentLlmUsageBody::default().with_prompt_length(500),
+    );
+    assert_endpoint(
+        &agent_calc,
+        Method::POST,
+        "https://api.elevenlabs.io/v1/convai/agent/agent%2Fid/llm-usage/calculate",
+    );
+    assert_eq!(json_body(&agent_calc).await["prompt_length"], 500);
+
+    let kb_size = GetAgentKnowledgeBaseSize::new("agent/id");
+    assert_endpoint(
+        &kb_size,
+        Method::GET,
+        "https://api.elevenlabs.io/v1/convai/agent/agent%2Fid/knowledge-base/size",
+    );
+
+    let live = GetLiveCount::new().with_agent_id("agent/id");
+    assert_endpoint(
+        &live,
+        Method::GET,
+        "https://api.elevenlabs.io/v1/convai/analytics/live-count?agent_id=agent%2Fid",
+    );
+
+    let users = GetConversationUsers::default().with_query(
+        ConversationUsersQuery::default()
+            .with_search("acme")
+            .with_page_size(20),
+    );
+    assert_endpoint(
+        &users,
+        Method::GET,
+        "https://api.elevenlabs.io/v1/convai/users?search=acme&page_size=20",
+    );
+
+    let exotel = ExotelOutboundCall::new(OutboundCallBody::new(
+        "agent/id",
+        "phone/id",
+        "+15550000000",
+    ));
+    assert_endpoint(
+        &exotel,
+        Method::POST,
+        "https://api.elevenlabs.io/v1/convai/exotel/outbound-call",
+    );
+    assert_eq!(json_body(&exotel).await["to_number"], "+15550000000");
+
+    let sip = SipTrunkOutboundCall::new(OutboundCallBody::new(
+        "agent/id",
+        "phone/id",
+        "+15550000000",
+    ));
+    assert_endpoint(
+        &sip,
+        Method::POST,
+        "https://api.elevenlabs.io/v1/convai/sip-trunk/outbound-call",
+    );
+
+    let wa_call = WhatsAppOutboundCall::new(WhatsAppOutboundCallBody::new(
+        "agent/id",
+        "wa_phone",
+        "wa_user",
+        "permission_template",
+        "en",
+    ));
+    assert_endpoint(
+        &wa_call,
+        Method::POST,
+        "https://api.elevenlabs.io/v1/convai/whatsapp/outbound-call",
+    );
+    assert_eq!(json_body(&wa_call).await["whatsapp_user_id"], "wa_user");
+
+    let wa_msg = WhatsAppOutboundMessage::new(WhatsAppOutboundMessageBody::new(
+        "agent/id",
+        "wa_phone",
+        "wa_user",
+        "template",
+        "en",
+        [json!("param1")],
+    ));
+    assert_endpoint(
+        &wa_msg,
+        Method::POST,
+        "https://api.elevenlabs.io/v1/convai/whatsapp/outbound-message",
+    );
+    assert_eq!(json_body(&wa_msg).await["template_params"][0], "param1");
 }
 
 #[tokio::test]

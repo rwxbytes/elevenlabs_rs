@@ -956,3 +956,139 @@ impl ElevenLabsEndpoint for RegisterTwilioCall {
         Ok(resp.text().await?)
     }
 }
+
+/// Get the live (in-progress) conversation count, optionally for a single agent.
+///
+/// See [Get Live Count API reference](https://elevenlabs.io/docs/conversational-ai/api-reference/analytics/live-count)
+#[derive(Clone, Debug, Default)]
+pub struct GetLiveCount {
+    agent_id: Option<String>,
+}
+
+impl GetLiveCount {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn with_agent_id(mut self, agent_id: impl Into<String>) -> Self {
+        self.agent_id = Some(agent_id.into());
+        self
+    }
+}
+
+impl crate::endpoints::sealed::Sealed for GetLiveCount {}
+
+impl ElevenLabsEndpoint for GetLiveCount {
+    const PATH: &'static str = "/v1/convai/analytics/live-count";
+
+    const METHOD: Method = Method::GET;
+
+    type ResponseBody = LiveCountResponse;
+
+    fn query_params(&self) -> Option<QueryValues> {
+        self.agent_id
+            .as_ref()
+            .map(|agent_id| vec![("agent_id", agent_id.clone())])
+    }
+
+    async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
+        Ok(resp.json().await?)
+    }
+}
+
+/// The response of [`GetLiveCount`].
+#[derive(Clone, Debug, Deserialize)]
+pub struct LiveCountResponse {
+    pub count: i64,
+}
+
+/// List the end users that have conversed with the workspace's agents.
+///
+/// See [Get Conversation Users API reference](https://elevenlabs.io/docs/conversational-ai/api-reference/users/list)
+#[derive(Clone, Debug, Default)]
+pub struct GetConversationUsers {
+    query: Option<ConversationUsersQuery>,
+}
+
+impl GetConversationUsers {
+    pub fn with_query(mut self, query: ConversationUsersQuery) -> Self {
+        self.query = Some(query);
+        self
+    }
+}
+
+/// Query parameters for [`GetConversationUsers`].
+#[derive(Clone, Debug, Default)]
+pub struct ConversationUsersQuery {
+    params: QueryValues,
+}
+
+impl ConversationUsersQuery {
+    pub fn with_agent_id(mut self, agent_id: impl Into<String>) -> Self {
+        self.params.push(("agent_id", agent_id.into()));
+        self
+    }
+
+    pub fn with_branch_id(mut self, branch_id: impl Into<String>) -> Self {
+        self.params.push(("branch_id", branch_id.into()));
+        self
+    }
+
+    pub fn with_call_start_before_unix(mut self, call_start_before_unix: i64) -> Self {
+        self.params
+            .push(("call_start_before_unix", call_start_before_unix.to_string()));
+        self
+    }
+
+    pub fn with_call_start_after_unix(mut self, call_start_after_unix: i64) -> Self {
+        self.params
+            .push(("call_start_after_unix", call_start_after_unix.to_string()));
+        self
+    }
+
+    pub fn with_search(mut self, search: impl Into<String>) -> Self {
+        self.params.push(("search", search.into()));
+        self
+    }
+
+    pub fn with_page_size(mut self, page_size: u32) -> Self {
+        self.params.push(("page_size", page_size.to_string()));
+        self
+    }
+
+    pub fn with_sort_by(mut self, sort_by: impl Into<String>) -> Self {
+        self.params.push(("sort_by", sort_by.into()));
+        self
+    }
+
+    pub fn with_cursor(mut self, cursor: impl Into<String>) -> Self {
+        self.params.push(("cursor", cursor.into()));
+        self
+    }
+}
+
+impl crate::endpoints::sealed::Sealed for GetConversationUsers {}
+
+impl ElevenLabsEndpoint for GetConversationUsers {
+    const PATH: &'static str = "/v1/convai/users";
+
+    const METHOD: Method = Method::GET;
+
+    type ResponseBody = ConversationUsersPage;
+
+    fn query_params(&self) -> Option<QueryValues> {
+        self.query.as_ref().map(|q| q.params.clone())
+    }
+
+    async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
+        Ok(resp.json().await?)
+    }
+}
+
+/// A page of conversation users. Each user entry is preserved as raw JSON.
+#[derive(Clone, Debug, Deserialize)]
+pub struct ConversationUsersPage {
+    pub users: Vec<Value>,
+    pub next_cursor: Option<String>,
+    pub has_more: bool,
+}
