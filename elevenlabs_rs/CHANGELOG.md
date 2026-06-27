@@ -45,6 +45,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Audio-native content endpoints: `UpdateAudioNativeContentFromUrl`, `UpdateAudioNativeProjectContent`, and `GetAudioNativeProjectSettings`
 - Workspace endpoints: `GetWorkspaceAuditLogs`, `GetWorkspaceGroups`, `SearchWorkspaceGroups`, `AddMemberToGroup`, `RemoveMemberFromGroup`, `InviteUsers` (bulk), `GetWorkspaceWebhooks`, `CreateWorkspaceWebhook`, `UpdateWorkspaceWebhook`, and `DeleteWorkspaceWebhook`
 - Conversational AI batch-calling endpoints in a new `convai::batch_calling` module: `SubmitBatchCall`, `ListWorkspaceBatchCalls`, `GetBatchCall`, `CancelBatchCall`, `RetryBatchCall`, and `DeleteBatchCall`
+- Conversational AI endpoints completing several clusters: `GetSipMessages` (phone-numbers), `GetSecretDependencies`, `GetDashboardSettings`, `UpdateDashboardSettings` (workspace), `GetToolDependentAgents`, `GetToolExecutions` (tools), `GetWebRtcToken`, and `RegisterTwilioCall` (conversations)
+- `with_query`, `with_include_conversation_id`, `with_branch_id`, and `with_environment` builder methods to `GetSignedUrl`/`GetSignedUrlQuery`
 - Workspace auth-connection endpoints in a new `admin::auth_connections` module: `CreateAuthConnection`, `ListAuthConnections`, `UpdateAuthConnection`, and `DeleteAuthConnection`, with typed per-auth-type request builders and a discriminated `AuthConnection`/`AuthConnectionConfig` response model
 - Professional Voice Cloning (PVC) endpoints in a new `admin::pvc_voices` module: `CreatePvcVoice`, `EditPvcVoice`, `GetPvcVoiceCaptcha`, `VerifyPvcVoiceCaptcha`, `AddPvcVoiceSamples`, `UpdatePvcVoiceSample`, `DeletePvcVoiceSample`, `GetPvcSampleAudio`, `StartSpeakerSeparation`, `GetSpeakerSeparationStatus`, `GetSeparatedSpeakerAudio`, `GetPvcSampleWaveform`, `RunPvcTraining`, and `RequestPvcManualVerification`
 - Pronunciation dictionary endpoints: `AddDictionaryFromRules`, `SetRules`, and `UpdateDictionary`
@@ -72,6 +74,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `GetUsage` (admin usage endpoint). It will be kept for one release.
 
 ### Fixed
+- `GetSignedUrl` now targets the current `/v1/convai/conversation/get-signed-url` path (previously the outdated `get_signed_url`)
 - Streaming-with-timestamps JSON parser (in `tts` and `text_to_dialogue`) now buffers across network chunk boundaries instead of assuming one chunk is exactly one message; `segment_text` offsets per-chunk character indices so it is correct for stream chunks
 - WebSocket TTS text chunks now serialize through `serde_json` instead of manual string formatting, so quotes, backslashes, control characters, and Unicode are escaped correctly
 - WebSocket TTS URL path/query construction now percent-encodes values correctly

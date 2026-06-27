@@ -394,3 +394,183 @@ impl TryInto<RequestBody> for &CreateSecretBody {
         Ok(RequestBody::Json(serde_json::to_value(self)?))
     }
 }
+
+/// The kind of resource that can depend on a secret.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum SecretDependencyResourceType {
+    Tools,
+    Agents,
+    PhoneNumbers,
+}
+
+impl SecretDependencyResourceType {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Tools => "tools",
+            Self::Agents => "agents",
+            Self::PhoneNumbers => "phone_numbers",
+        }
+    }
+}
+
+/// Get the resources of a given type that depend on a secret.
+///
+/// # Example
+/// ```no_run
+/// use elevenlabs_rs::{ElevenLabsClient, Result};
+/// use elevenlabs_rs::endpoints::convai::workspace::{
+///     GetSecretDependencies, SecretDependencyResourceType,
+/// };
+///
+/// #[tokio::main]
+/// async fn main() -> Result<()> {
+///     let client = ElevenLabsClient::from_env()?;
+///     let endpoint =
+///         GetSecretDependencies::new("secret_id", SecretDependencyResourceType::Tools);
+///     let resp = client.hit(endpoint).await?;
+///     println!("{} dependencies", resp.dependencies.len());
+///     Ok(())
+/// }
+/// ```
+/// See [Get Secret Dependencies API reference](https://elevenlabs.io/docs/conversational-ai/api-reference/workspace/get-secret-dependencies)
+#[derive(Clone, Debug)]
+pub struct GetSecretDependencies {
+    secret_id: String,
+    resource_type: SecretDependencyResourceType,
+    query: Option<SecretDependenciesQuery>,
+}
+
+impl GetSecretDependencies {
+    pub fn new(secret_id: impl Into<String>, resource_type: SecretDependencyResourceType) -> Self {
+        Self {
+            secret_id: secret_id.into(),
+            resource_type,
+            query: None,
+        }
+    }
+
+    pub fn with_query(mut self, query: SecretDependenciesQuery) -> Self {
+        self.query = Some(query);
+        self
+    }
+}
+
+/// Query parameters for [`GetSecretDependencies`].
+#[derive(Clone, Debug, Default)]
+pub struct SecretDependenciesQuery {
+    params: QueryValues,
+}
+
+impl SecretDependenciesQuery {
+    pub fn with_page_size(mut self, page_size: u32) -> Self {
+        self.params.push(("page_size", page_size.to_string()));
+        self
+    }
+
+    pub fn with_cursor(mut self, cursor: impl Into<String>) -> Self {
+        self.params.push(("cursor", cursor.into()));
+        self
+    }
+}
+
+impl crate::endpoints::sealed::Sealed for GetSecretDependencies {}
+
+impl ElevenLabsEndpoint for GetSecretDependencies {
+    const PATH: &'static str = "/v1/convai/secrets/:secret_id/dependencies/:resource_type";
+
+    const METHOD: Method = Method::GET;
+
+    type ResponseBody = GetSecretDependenciesResponse;
+
+    fn query_params(&self) -> Option<QueryValues> {
+        self.query.as_ref().map(|q| q.params.clone())
+    }
+
+    fn path_params(&self) -> Vec<(&'static str, &str)> {
+        vec![
+            self.secret_id.and_param(PathParam::SecretID),
+            (PathParam::ResourceType.into(), self.resource_type.as_str()),
+        ]
+    }
+
+    async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
+        Ok(resp.json().await?)
+    }
+}
+
+/// A page of resources that depend on a secret. The dependency shape varies by
+/// resource type, so each is preserved as raw JSON.
+#[derive(Clone, Debug, Deserialize)]
+pub struct GetSecretDependenciesResponse {
+    pub dependencies: Vec<Value>,
+    pub next_cursor: Option<String>,
+}
+
+/// Get the ConvAI dashboard settings for the workspace.
+///
+/// See [Get Dashboard Settings API reference](https://elevenlabs.io/docs/conversational-ai/api-reference/workspace/get-dashboard-settings)
+#[derive(Clone, Debug, Default)]
+pub struct GetDashboardSettings;
+
+impl crate::endpoints::sealed::Sealed for GetDashboardSettings {}
+
+impl ElevenLabsEndpoint for GetDashboardSettings {
+    const PATH: &'static str = "/v1/convai/settings/dashboard";
+
+    const METHOD: Method = Method::GET;
+
+    type ResponseBody = DashboardSettings;
+
+    async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
+        Ok(resp.json().await?)
+    }
+}
+
+/// Update the ConvAI dashboard settings for the workspace.
+///
+/// See [Update Dashboard Settings API reference](https://elevenlabs.io/docs/conversational-ai/api-reference/workspace/update-dashboard-settings)
+#[derive(Clone, Debug)]
+pub struct UpdateDashboardSettings {
+    body: DashboardSettings,
+}
+
+impl UpdateDashboardSettings {
+    pub fn new(body: DashboardSettings) -> Self {
+        Self { body }
+    }
+}
+
+impl crate::endpoints::sealed::Sealed for UpdateDashboardSettings {}
+
+impl ElevenLabsEndpoint for UpdateDashboardSettings {
+    const PATH: &'static str = "/v1/convai/settings/dashboard";
+
+    const METHOD: Method = Method::PATCH;
+
+    type ResponseBody = DashboardSettings;
+
+    async fn request_body(&self) -> Result<RequestBody> {
+        Ok(RequestBody::Json(serde_json::to_value(&self.body)?))
+    }
+
+    async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
+        Ok(resp.json().await?)
+    }
+}
+
+/// The ConvAI dashboard settings.
+///
+/// Each chart is a polymorphic configuration object, preserved as raw JSON.
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+pub struct DashboardSettings {
+    #[serde(default)]
+    pub charts: Vec<Value>,
+}
+
+impl DashboardSettings {
+    pub fn new(charts: impl IntoIterator<Item = Value>) -> Self {
+        Self {
+            charts: charts.into_iter().collect(),
+        }
+    }
+}

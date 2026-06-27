@@ -366,3 +366,114 @@ impl ElevenLabsEndpoint for DeletePhoneNumber {
         Ok(())
     }
 }
+
+/// Get the SIP log messages for a phone number.
+///
+/// # Example
+/// ```no_run
+/// use elevenlabs_rs::endpoints::convai::phone_numbers::{GetSipMessages, SipMessagesQuery};
+/// use elevenlabs_rs::{ElevenLabsClient, Result};
+///
+/// #[tokio::main]
+/// async fn main() -> Result<()> {
+///     let client = ElevenLabsClient::from_env()?;
+///     let endpoint =
+///         GetSipMessages::new("phone_number_id").with_query(SipMessagesQuery::default().with_page_size(50));
+///     let resp = client.hit(endpoint).await?;
+///     for message in &resp.sip_messages {
+///         println!("{}: {}", message.call_id, message.raw_message);
+///     }
+///     Ok(())
+/// }
+/// ```
+/// See [Get SIP Messages API reference](https://elevenlabs.io/docs/conversational-ai/api-reference/phone-numbers/get-sip-messages)
+#[derive(Clone, Debug)]
+pub struct GetSipMessages {
+    phone_number_id: String,
+    query: Option<SipMessagesQuery>,
+}
+
+impl GetSipMessages {
+    pub fn new(phone_number_id: impl Into<String>) -> Self {
+        Self {
+            phone_number_id: phone_number_id.into(),
+            query: None,
+        }
+    }
+
+    pub fn with_query(mut self, query: SipMessagesQuery) -> Self {
+        self.query = Some(query);
+        self
+    }
+}
+
+/// Query parameters for [`GetSipMessages`].
+#[derive(Clone, Debug, Default)]
+pub struct SipMessagesQuery {
+    params: QueryValues,
+}
+
+impl SipMessagesQuery {
+    pub fn with_page_size(mut self, page_size: u32) -> Self {
+        self.params.push(("page_size", page_size.to_string()));
+        self
+    }
+
+    pub fn with_cursor(mut self, cursor: impl Into<String>) -> Self {
+        self.params.push(("cursor", cursor.into()));
+        self
+    }
+}
+
+impl crate::endpoints::sealed::Sealed for GetSipMessages {}
+
+impl ElevenLabsEndpoint for GetSipMessages {
+    const PATH: &'static str = "/v1/convai/phone-numbers/:phone_number_id/sip-messages";
+
+    const METHOD: Method = Method::GET;
+
+    type ResponseBody = GetSipMessagesResponse;
+
+    fn query_params(&self) -> Option<QueryValues> {
+        self.query.as_ref().map(|q| q.params.clone())
+    }
+
+    fn path_params(&self) -> Vec<(&'static str, &str)> {
+        vec![self.phone_number_id.and_param(PathParam::PhoneNumberID)]
+    }
+
+    async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
+        Ok(resp.json().await?)
+    }
+}
+
+/// A page of SIP log messages.
+#[derive(Clone, Debug, Deserialize)]
+pub struct GetSipMessagesResponse {
+    pub sip_messages: Vec<SipLogMessage>,
+    pub next_cursor: Option<String>,
+    #[serde(default)]
+    pub has_more: bool,
+}
+
+/// A single SIP log message.
+#[derive(Clone, Debug, Deserialize)]
+pub struct SipLogMessage {
+    pub call_id: String,
+    pub phone_numbers: Vec<String>,
+    pub local_address: String,
+    pub remote_address: String,
+    pub transport: String,
+    pub raw_message: String,
+    pub error_message: String,
+    pub direction: SipLogMessageDirection,
+    pub created_at_unix_micro: i64,
+}
+
+/// The direction of a SIP log message.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum SipLogMessageDirection {
+    In,
+    Out,
+}

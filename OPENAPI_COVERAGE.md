@@ -1,6 +1,6 @@
 # OpenAPI coverage
 
-Generated: 2026-06-27T11:59:12Z
+Generated: 2026-06-27T12:09:43Z
 Snapshot: `openapi/elevenlabs-openapi.paths.json`
 Source: https://api.elevenlabs.io/openapi.json
 
@@ -9,9 +9,9 @@ Source: https://api.elevenlabs.io/openapi.json
 | Metric | Value |
 | --- | ---: |
 | OpenAPI operations | 320 |
-| Implemented method/path pairs | 156 |
-| Coverage | 48.8% |
-| Local endpoint constants checked | 156 |
+| Implemented method/path pairs | 164 |
+| Coverage | 51.2% |
+| Local endpoint constants checked | 164 |
 | Local constants missing from snapshot | 0 |
 
 ## Coverage By Path
@@ -21,7 +21,7 @@ Source: https://api.elevenlabs.io/openapi.json
 | /docs | 0 | 1 | 0.0% |
 | /v1/audio-isolation | 4 | 4 | 100.0% |
 | /v1/audio-native | 4 | 4 | 100.0% |
-| /v1/convai | 44 | 149 | 29.5% |
+| /v1/convai | 52 | 149 | 34.9% |
 | /v1/dubbing | 6 | 20 | 30.0% |
 | /v1/forced-alignment | 1 | 1 | 100.0% |
 | /v1/history | 5 | 5 | 100.0% |
@@ -89,8 +89,7 @@ All local endpoint method/path constants match the snapshot.
 | `POST` | `/v1/convai/agents/{agent_id}/simulate-conversation/stream` | Simulates A Conversation (Stream) |
 | `GET` | `/v1/convai/agents/{agent_id}/versions/{version_id}` | Get Agent Version Metadata |
 | `GET` | `/v1/convai/analytics/live-count` | Get Live Count |
-| `GET` | `/v1/convai/conversation/get-signed-url` | Get Signed Url |
-| `GET` | `/v1/convai/conversation/token` | Get Webrtc Token |
+| `GET` | `/v1/convai/conversation/get_signed_url` | Get Signed Url |
 | `GET` | `/v1/convai/conversations/messages/smart-search` | Smart Search Conversation Messages |
 | `GET` | `/v1/convai/conversations/messages/text-search` | Text Search Conversation Messages |
 | `POST` | `/v1/convai/conversations/{conversation_id}/files` | Upload File |
@@ -132,21 +131,14 @@ All local endpoint method/path constants match the snapshot.
 | `GET` | `/v1/convai/mcp-servers/{mcp_server_id}/tool-configs/{tool_name}` | Get Mcp Tool Configuration Override |
 | `PATCH` | `/v1/convai/mcp-servers/{mcp_server_id}/tool-configs/{tool_name}` | Update Mcp Tool Configuration Override |
 | `GET` | `/v1/convai/mcp-servers/{mcp_server_id}/tools` | List Mcp Server Tools |
-| `GET` | `/v1/convai/phone-numbers/{phone_number_id}/sip-messages` | Get Sip Messages For A Phone Number |
 | `GET` | `/v1/convai/secrets/{secret_id}` | Get Convai Workspace Secret |
 | `PATCH` | `/v1/convai/secrets/{secret_id}` | Update Convai Workspace Secret |
-| `GET` | `/v1/convai/secrets/{secret_id}/dependencies/{resource_type}` | Get Secret Dependencies By Type |
-| `GET` | `/v1/convai/settings/dashboard` | Get Convai Dashboard Settings |
-| `PATCH` | `/v1/convai/settings/dashboard` | Update Convai Dashboard Settings |
 | `POST` | `/v1/convai/sip-trunk/outbound-call` | Handle An Outbound Call Via Sip Trunk |
 | `GET` | `/v1/convai/tags` | List Conversation Tags |
 | `POST` | `/v1/convai/tags` | Create Conversation Tag |
 | `DELETE` | `/v1/convai/tags/{tag_id}` | Delete Conversation Tag |
 | `GET` | `/v1/convai/tags/{tag_id}` | Get Conversation Tag |
 | `PATCH` | `/v1/convai/tags/{tag_id}` | Update Conversation Tag |
-| `GET` | `/v1/convai/tools/{tool_id}/dependent-agents` | Get Dependent Agents List |
-| `GET` | `/v1/convai/tools/{tool_id}/executions` | Get Tool Executions |
-| `POST` | `/v1/convai/twilio/register-call` | Register A Twilio Call And Return Twiml |
 | `GET` | `/v1/convai/users` | Get Conversation Users |
 | `GET` | `/v1/convai/whatsapp-accounts` | List Whatsapp Accounts |
 | `DELETE` | `/v1/convai/whatsapp-accounts/{phone_number_id}` | Delete Whatsapp Account |

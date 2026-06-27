@@ -516,10 +516,13 @@ pub struct GetSignedUrl {
 impl GetSignedUrl {
     pub fn new(agent_id: impl Into<String>) -> Self {
         GetSignedUrl {
-            query: GetSignedUrlQuery {
-                params: vec![("agent_id", agent_id.into())],
-            },
+            query: GetSignedUrlQuery::new(agent_id),
         }
+    }
+
+    pub fn with_query(mut self, query: GetSignedUrlQuery) -> Self {
+        self.query = query;
+        self
     }
 }
 
@@ -528,10 +531,36 @@ pub struct GetSignedUrlQuery {
     params: QueryValues,
 }
 
+impl GetSignedUrlQuery {
+    pub fn new(agent_id: impl Into<String>) -> Self {
+        Self {
+            params: vec![("agent_id", agent_id.into())],
+        }
+    }
+
+    pub fn with_include_conversation_id(mut self, include_conversation_id: bool) -> Self {
+        self.params.push((
+            "include_conversation_id",
+            include_conversation_id.to_string(),
+        ));
+        self
+    }
+
+    pub fn with_branch_id(mut self, branch_id: impl Into<String>) -> Self {
+        self.params.push(("branch_id", branch_id.into()));
+        self
+    }
+
+    pub fn with_environment(mut self, environment: impl Into<String>) -> Self {
+        self.params.push(("environment", environment.into()));
+        self
+    }
+}
+
 impl crate::endpoints::sealed::Sealed for GetSignedUrl {}
 
 impl ElevenLabsEndpoint for GetSignedUrl {
-    const PATH: &'static str = "/v1/convai/conversation/get_signed_url";
+    const PATH: &'static str = "/v1/convai/conversation/get-signed-url";
 
     const METHOD: Method = Method::GET;
 
@@ -754,5 +783,176 @@ impl<'a> IntoIterator for &'a GetConversationDetailsResponse {
 
     fn into_iter(self) -> Self::IntoIter {
         self.transcript.as_deref().unwrap_or_default().iter()
+    }
+}
+
+/// Get a WebRTC token to start a conversation with an agent.
+///
+/// # Example
+/// ```no_run
+/// use elevenlabs_rs::endpoints::convai::conversations::GetWebRtcToken;
+/// use elevenlabs_rs::{ElevenLabsClient, Result};
+///
+/// #[tokio::main]
+/// async fn main() -> Result<()> {
+///     let client = ElevenLabsClient::from_env()?;
+///     let resp = client.hit(GetWebRtcToken::new("agent_id")).await?;
+///     println!("{}", resp.token);
+///     Ok(())
+/// }
+/// ```
+/// See [Get WebRTC Token API reference](https://elevenlabs.io/docs/conversational-ai/api-reference/conversations/get-webrtc-token)
+#[derive(Clone, Debug)]
+pub struct GetWebRtcToken {
+    query: WebRtcTokenQuery,
+}
+
+impl GetWebRtcToken {
+    pub fn new(agent_id: impl Into<String>) -> Self {
+        Self {
+            query: WebRtcTokenQuery::new(agent_id),
+        }
+    }
+
+    pub fn with_query(mut self, query: WebRtcTokenQuery) -> Self {
+        self.query = query;
+        self
+    }
+}
+
+/// Query parameters for [`GetWebRtcToken`].
+#[derive(Clone, Debug)]
+pub struct WebRtcTokenQuery {
+    params: QueryValues,
+}
+
+impl WebRtcTokenQuery {
+    pub fn new(agent_id: impl Into<String>) -> Self {
+        Self {
+            params: vec![("agent_id", agent_id.into())],
+        }
+    }
+
+    pub fn with_participant_name(mut self, participant_name: impl Into<String>) -> Self {
+        self.params
+            .push(("participant_name", participant_name.into()));
+        self
+    }
+
+    pub fn with_branch_id(mut self, branch_id: impl Into<String>) -> Self {
+        self.params.push(("branch_id", branch_id.into()));
+        self
+    }
+
+    pub fn with_environment(mut self, environment: impl Into<String>) -> Self {
+        self.params.push(("environment", environment.into()));
+        self
+    }
+}
+
+impl crate::endpoints::sealed::Sealed for GetWebRtcToken {}
+
+impl ElevenLabsEndpoint for GetWebRtcToken {
+    const PATH: &'static str = "/v1/convai/conversation/token";
+
+    const METHOD: Method = Method::GET;
+
+    type ResponseBody = WebRtcTokenResponse;
+
+    fn query_params(&self) -> Option<QueryValues> {
+        Some(self.query.params.clone())
+    }
+
+    async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
+        Ok(resp.json().await?)
+    }
+}
+
+/// The response of [`GetWebRtcToken`].
+#[derive(Clone, Debug, Deserialize)]
+pub struct WebRtcTokenResponse {
+    pub token: String,
+}
+
+/// The direction of a telephony call.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum TelephonyDirection {
+    Inbound,
+    Outbound,
+}
+
+/// Register an inbound Twilio call and return the TwiML to drive it.
+///
+/// The response is the raw TwiML XML document.
+///
+/// See [Register Twilio Call API reference](https://elevenlabs.io/docs/conversational-ai/api-reference/twilio/register-call)
+#[derive(Clone, Debug)]
+pub struct RegisterTwilioCall {
+    body: RegisterTwilioCallBody,
+}
+
+impl RegisterTwilioCall {
+    pub fn new(body: RegisterTwilioCallBody) -> Self {
+        Self { body }
+    }
+}
+
+/// Register-Twilio-call body.
+#[derive(Clone, Debug, Serialize)]
+pub struct RegisterTwilioCallBody {
+    agent_id: String,
+    from_number: String,
+    to_number: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    direction: Option<TelephonyDirection>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    conversation_initiation_client_data: Option<ConversationInitiationClientData>,
+}
+
+impl RegisterTwilioCallBody {
+    pub fn new(
+        agent_id: impl Into<String>,
+        from_number: impl Into<String>,
+        to_number: impl Into<String>,
+    ) -> Self {
+        Self {
+            agent_id: agent_id.into(),
+            from_number: from_number.into(),
+            to_number: to_number.into(),
+            direction: None,
+            conversation_initiation_client_data: None,
+        }
+    }
+
+    pub fn with_direction(mut self, direction: TelephonyDirection) -> Self {
+        self.direction = Some(direction);
+        self
+    }
+
+    pub fn with_conversation_initiation_client_data(
+        mut self,
+        data: ConversationInitiationClientData,
+    ) -> Self {
+        self.conversation_initiation_client_data = Some(data);
+        self
+    }
+}
+
+impl crate::endpoints::sealed::Sealed for RegisterTwilioCall {}
+
+impl ElevenLabsEndpoint for RegisterTwilioCall {
+    const PATH: &'static str = "/v1/convai/twilio/register-call";
+
+    const METHOD: Method = Method::POST;
+
+    type ResponseBody = String;
+
+    async fn request_body(&self) -> Result<RequestBody> {
+        Ok(RequestBody::Json(serde_json::to_value(&self.body)?))
+    }
+
+    async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
+        Ok(resp.text().await?)
     }
 }

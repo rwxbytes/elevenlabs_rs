@@ -42,7 +42,9 @@ use crate::endpoints::convai::batch_calling::{
     SubmitBatchCallBody,
 };
 use crate::endpoints::convai::conversations::{
-    GetConversations, GetConversationsQuery, OutboundCallViaTwilio, OutboundCallViaTwilioBody,
+    GetConversations, GetConversationsQuery, GetSignedUrl, GetSignedUrlQuery, GetWebRtcToken,
+    OutboundCallViaTwilio, OutboundCallViaTwilioBody, RegisterTwilioCall, RegisterTwilioCallBody,
+    TelephonyDirection,
 };
 use crate::endpoints::convai::knowledge_base::{
     CreateKnowledgeBaseDoc, EmbeddingModel, KnowledgeBaseDoc,
@@ -50,8 +52,16 @@ use crate::endpoints::convai::knowledge_base::{
 use crate::endpoints::convai::phone_numbers::{
     CreatePhoneNumber, CreatePhoneNumberBody, GetPhoneNumber, ListPhoneNumbers,
 };
+use crate::endpoints::convai::phone_numbers::{GetSipMessages, SipMessagesQuery};
 use crate::endpoints::convai::tools::{CreateTool, GetTool};
+use crate::endpoints::convai::tools::{
+    GetToolDependentAgents, GetToolExecutions, ToolExecutionsQuery,
+};
 use crate::endpoints::convai::widget::{CreateWidgetAvatar, CreateWidgetAvatarBody};
+use crate::endpoints::convai::workspace::{
+    DashboardSettings, GetDashboardSettings, GetSecretDependencies, SecretDependencyResourceType,
+    UpdateDashboardSettings,
+};
 use crate::endpoints::genai::audio_isolation::{
     AudioIsolation, AudioIsolationBody, AudioIsolationHistoryQuery,
     DeleteAudioIsolationHistoryItem, GetAudioIsolationHistory,
@@ -956,6 +966,85 @@ async fn workspace_endpoints_encode_paths_and_bodies() {
         Method::DELETE,
         "https://api.elevenlabs.io/v1/workspace/webhooks/webhook%2Fid",
     );
+}
+
+#[tokio::test]
+async fn convai_quick_win_endpoints_encode_paths_and_bodies() {
+    let sip =
+        GetSipMessages::new("phone/id").with_query(SipMessagesQuery::default().with_page_size(50));
+    assert_endpoint(
+        &sip,
+        Method::GET,
+        "https://api.elevenlabs.io/v1/convai/phone-numbers/phone%2Fid/sip-messages?page_size=50",
+    );
+
+    let deps = GetSecretDependencies::new("secret/id", SecretDependencyResourceType::Tools);
+    assert_endpoint(
+        &deps,
+        Method::GET,
+        "https://api.elevenlabs.io/v1/convai/secrets/secret%2Fid/dependencies/tools",
+    );
+
+    assert_endpoint(
+        &GetDashboardSettings,
+        Method::GET,
+        "https://api.elevenlabs.io/v1/convai/settings/dashboard",
+    );
+
+    let update_dashboard =
+        UpdateDashboardSettings::new(DashboardSettings::new([json!({ "type": "call_success" })]));
+    assert_endpoint(
+        &update_dashboard,
+        Method::PATCH,
+        "https://api.elevenlabs.io/v1/convai/settings/dashboard",
+    );
+    assert_eq!(
+        json_body(&update_dashboard).await["charts"][0]["type"],
+        "call_success"
+    );
+
+    let dependent = GetToolDependentAgents::new("tool/id");
+    assert_endpoint(
+        &dependent,
+        Method::GET,
+        "https://api.elevenlabs.io/v1/convai/tools/tool%2Fid/dependent-agents",
+    );
+
+    let executions = GetToolExecutions::new("tool/id")
+        .with_query(ToolExecutionsQuery::default().with_is_error(true));
+    assert_endpoint(
+        &executions,
+        Method::GET,
+        "https://api.elevenlabs.io/v1/convai/tools/tool%2Fid/executions?is_error=true",
+    );
+
+    let signed = GetSignedUrl::new("agent/id")
+        .with_query(GetSignedUrlQuery::new("agent/id").with_include_conversation_id(true));
+    assert_endpoint(
+        &signed,
+        Method::GET,
+        "https://api.elevenlabs.io/v1/convai/conversation/get-signed-url?agent_id=agent%2Fid&include_conversation_id=true",
+    );
+
+    let token = GetWebRtcToken::new("agent/id");
+    assert_endpoint(
+        &token,
+        Method::GET,
+        "https://api.elevenlabs.io/v1/convai/conversation/token?agent_id=agent%2Fid",
+    );
+
+    let register = RegisterTwilioCall::new(
+        RegisterTwilioCallBody::new("agent/id", "+15550000000", "+15551111111")
+            .with_direction(TelephonyDirection::Inbound),
+    );
+    assert_endpoint(
+        &register,
+        Method::POST,
+        "https://api.elevenlabs.io/v1/convai/twilio/register-call",
+    );
+    let body = json_body(&register).await;
+    assert_eq!(body["agent_id"], "agent/id");
+    assert_eq!(body["direction"], "inbound");
 }
 
 #[tokio::test]

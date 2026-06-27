@@ -326,3 +326,197 @@ impl<'a> IntoIterator for &'a GetToolResponse {
         self.dependent_agents.iter()
     }
 }
+
+/// Get the list of agents that depend on a tool.
+///
+/// See [Get Dependent Agents API reference](https://elevenlabs.io/docs/conversational-ai/api-reference/tools/get-dependent-agents)
+#[derive(Clone, Debug)]
+pub struct GetToolDependentAgents {
+    tool_id: String,
+    query: Option<ToolDependentAgentsQuery>,
+}
+
+impl GetToolDependentAgents {
+    pub fn new(tool_id: impl Into<String>) -> Self {
+        Self {
+            tool_id: tool_id.into(),
+            query: None,
+        }
+    }
+
+    pub fn with_query(mut self, query: ToolDependentAgentsQuery) -> Self {
+        self.query = Some(query);
+        self
+    }
+}
+
+/// Query parameters for [`GetToolDependentAgents`].
+#[derive(Clone, Debug, Default)]
+pub struct ToolDependentAgentsQuery {
+    params: QueryValues,
+}
+
+impl ToolDependentAgentsQuery {
+    pub fn with_page_size(mut self, page_size: u32) -> Self {
+        self.params.push(("page_size", page_size.to_string()));
+        self
+    }
+
+    pub fn with_cursor(mut self, cursor: impl Into<String>) -> Self {
+        self.params.push(("cursor", cursor.into()));
+        self
+    }
+}
+
+impl crate::endpoints::sealed::Sealed for GetToolDependentAgents {}
+
+impl ElevenLabsEndpoint for GetToolDependentAgents {
+    const PATH: &'static str = "/v1/convai/tools/:tool_id/dependent-agents";
+
+    const METHOD: Method = Method::GET;
+
+    type ResponseBody = GetToolDependentAgentsResponse;
+
+    fn query_params(&self) -> Option<QueryValues> {
+        self.query.as_ref().map(|q| q.params.clone())
+    }
+
+    fn path_params(&self) -> Vec<(&'static str, &str)> {
+        vec![self.tool_id.and_param(PathParam::ToolID)]
+    }
+
+    async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
+        Ok(resp.json().await?)
+    }
+}
+
+/// A page of agents that depend on a tool.
+#[derive(Clone, Debug, Deserialize)]
+pub struct GetToolDependentAgentsResponse {
+    pub agents: Vec<DependentAgent>,
+    /// Branch information for the dependent agents, preserved as raw JSON.
+    #[serde(default)]
+    pub branches: Vec<Value>,
+    pub next_cursor: Option<String>,
+    #[serde(default)]
+    pub has_more: bool,
+}
+
+/// Get the execution history of a tool.
+///
+/// See [Get Tool Executions API reference](https://elevenlabs.io/docs/conversational-ai/api-reference/tools/get-executions)
+#[derive(Clone, Debug)]
+pub struct GetToolExecutions {
+    tool_id: String,
+    query: Option<ToolExecutionsQuery>,
+}
+
+impl GetToolExecutions {
+    pub fn new(tool_id: impl Into<String>) -> Self {
+        Self {
+            tool_id: tool_id.into(),
+            query: None,
+        }
+    }
+
+    pub fn with_query(mut self, query: ToolExecutionsQuery) -> Self {
+        self.query = Some(query);
+        self
+    }
+}
+
+/// Query parameters for [`GetToolExecutions`].
+#[derive(Clone, Debug, Default)]
+pub struct ToolExecutionsQuery {
+    params: QueryValues,
+}
+
+impl ToolExecutionsQuery {
+    pub fn with_page_size(mut self, page_size: u32) -> Self {
+        self.params.push(("page_size", page_size.to_string()));
+        self
+    }
+
+    pub fn with_cursor(mut self, cursor: impl Into<String>) -> Self {
+        self.params.push(("cursor", cursor.into()));
+        self
+    }
+
+    /// Only return executions that resulted in an error (or, with `false`, only successful ones).
+    pub fn with_is_error(mut self, is_error: bool) -> Self {
+        self.params.push(("is_error", is_error.to_string()));
+        self
+    }
+
+    pub fn with_agent_id(mut self, agent_id: impl Into<String>) -> Self {
+        self.params.push(("agent_id", agent_id.into()));
+        self
+    }
+
+    pub fn with_branch_id(mut self, branch_id: impl Into<String>) -> Self {
+        self.params.push(("branch_id", branch_id.into()));
+        self
+    }
+
+    pub fn with_start_time(mut self, start_time: i64) -> Self {
+        self.params.push(("start_time", start_time.to_string()));
+        self
+    }
+
+    pub fn with_end_time(mut self, end_time: i64) -> Self {
+        self.params.push(("end_time", end_time.to_string()));
+        self
+    }
+}
+
+impl crate::endpoints::sealed::Sealed for GetToolExecutions {}
+
+impl ElevenLabsEndpoint for GetToolExecutions {
+    const PATH: &'static str = "/v1/convai/tools/:tool_id/executions";
+
+    const METHOD: Method = Method::GET;
+
+    type ResponseBody = GetToolExecutionsResponse;
+
+    fn query_params(&self) -> Option<QueryValues> {
+        self.query.as_ref().map(|q| q.params.clone())
+    }
+
+    fn path_params(&self) -> Vec<(&'static str, &str)> {
+        vec![self.tool_id.and_param(PathParam::ToolID)]
+    }
+
+    async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
+        Ok(resp.json().await?)
+    }
+}
+
+/// A page of tool executions.
+#[derive(Clone, Debug, Deserialize)]
+pub struct GetToolExecutionsResponse {
+    pub executions: Vec<ToolExecution>,
+    pub next_cursor: Option<String>,
+    #[serde(default)]
+    pub has_more: bool,
+}
+
+/// A single tool execution. Request/response payloads and tool-call details are
+/// preserved as raw JSON because their shape depends on the tool.
+#[derive(Clone, Debug, Deserialize)]
+pub struct ToolExecution {
+    pub id: String,
+    pub tool_id: String,
+    pub tool_request_id: String,
+    pub conversation_id: String,
+    pub agent_id: String,
+    pub branch_id: Option<String>,
+    pub timestamp: f64,
+    pub latency_secs: f64,
+    #[serde(default)]
+    pub is_error: bool,
+    pub request_payload: Option<Value>,
+    pub response_payload: Option<Value>,
+    pub error_message: Option<String>,
+    pub error_type: Option<String>,
+    pub tool_call_details: Option<Value>,
+}
