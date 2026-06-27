@@ -32,6 +32,12 @@ use crate::endpoints::admin::workspace::{
     RemoveMemberFromGroup, SearchWorkspaceGroups, SeatType, UpdateWorkspaceWebhook,
     UpdateWorkspaceWebhookBody, WebhookHmacSettings,
 };
+use crate::endpoints::convai::agent_testing::{
+    AgentTestsQuery, BulkMoveTests, BulkMoveTestsBody, CreateAgentTest, CreateAgentTestFolder,
+    CreateAgentTestFolderBody, DeleteAgentTest, DeleteAgentTestFolder, GetAgentTest,
+    GetAgentTestFolder, GetAgentTestSummaries, ListAgentTests, UpdateAgentTest,
+    UpdateAgentTestFolder,
+};
 use crate::endpoints::convai::agents::GetAgentKnowledgeBaseSize;
 use crate::endpoints::convai::agents::{
     AgentQuery, ApiSchema, ConvAIModel, ConversationConfig, CreateAgent, CreateAgentBody,
@@ -999,6 +1005,97 @@ async fn workspace_endpoints_encode_paths_and_bodies() {
         &delete_webhook,
         Method::DELETE,
         "https://api.elevenlabs.io/v1/workspace/webhooks/webhook%2Fid",
+    );
+}
+
+#[tokio::test]
+async fn convai_agent_testing_endpoints_encode_paths_and_bodies() {
+    let list = ListAgentTests::default().with_query(
+        AgentTestsQuery::default()
+            .with_page_size(30)
+            .with_include_folders(true),
+    );
+    assert_endpoint(
+        &list,
+        Method::GET,
+        "https://api.elevenlabs.io/v1/convai/agent-testing?page_size=30&include_folders=true",
+    );
+
+    let create = CreateAgentTest::new(json!({ "type": "llm", "name": "greeting test" }));
+    assert_endpoint(
+        &create,
+        Method::POST,
+        "https://api.elevenlabs.io/v1/convai/agent-testing/create",
+    );
+    assert_eq!(json_body(&create).await["type"], "llm");
+
+    assert_endpoint(
+        &GetAgentTest::new("test/id"),
+        Method::GET,
+        "https://api.elevenlabs.io/v1/convai/agent-testing/test%2Fid",
+    );
+
+    let update = UpdateAgentTest::new("test/id", json!({ "type": "llm", "name": "renamed" }));
+    assert_endpoint(
+        &update,
+        Method::PUT,
+        "https://api.elevenlabs.io/v1/convai/agent-testing/test%2Fid",
+    );
+    assert_eq!(json_body(&update).await["name"], "renamed");
+
+    assert_endpoint(
+        &DeleteAgentTest::new("test/id"),
+        Method::DELETE,
+        "https://api.elevenlabs.io/v1/convai/agent-testing/test%2Fid",
+    );
+
+    let summaries = GetAgentTestSummaries::new(["test_1", "test_2"]);
+    assert_endpoint(
+        &summaries,
+        Method::POST,
+        "https://api.elevenlabs.io/v1/convai/agent-testing/summaries",
+    );
+    assert_eq!(json_body(&summaries).await["test_ids"][0], "test_1");
+
+    let bulk = BulkMoveTests::new(BulkMoveTestsBody::new(["test_1"]).with_move_to("folder/id"));
+    assert_endpoint(
+        &bulk,
+        Method::POST,
+        "https://api.elevenlabs.io/v1/convai/agent-testing/bulk-move",
+    );
+    let body = json_body(&bulk).await;
+    assert_eq!(body["entity_ids"][0], "test_1");
+    assert_eq!(body["move_to"], "folder/id");
+
+    let create_folder = CreateAgentTestFolder::new(
+        CreateAgentTestFolderBody::new("My Folder").with_parent_folder_id("parent/id"),
+    );
+    assert_endpoint(
+        &create_folder,
+        Method::POST,
+        "https://api.elevenlabs.io/v1/convai/agent-testing/folders",
+    );
+    assert_eq!(json_body(&create_folder).await["name"], "My Folder");
+
+    assert_endpoint(
+        &GetAgentTestFolder::new("folder/id"),
+        Method::GET,
+        "https://api.elevenlabs.io/v1/convai/agent-testing/folders/folder%2Fid",
+    );
+
+    let update_folder = UpdateAgentTestFolder::new("folder/id", "Renamed");
+    assert_endpoint(
+        &update_folder,
+        Method::PATCH,
+        "https://api.elevenlabs.io/v1/convai/agent-testing/folders/folder%2Fid",
+    );
+    assert_eq!(json_body(&update_folder).await["name"], "Renamed");
+
+    let delete_folder = DeleteAgentTestFolder::new("folder/id").with_force(true);
+    assert_endpoint(
+        &delete_folder,
+        Method::DELETE,
+        "https://api.elevenlabs.io/v1/convai/agent-testing/folders/folder%2Fid?force=true",
     );
 }
 

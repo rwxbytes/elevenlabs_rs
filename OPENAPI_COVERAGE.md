@@ -1,6 +1,6 @@
 # OpenAPI coverage
 
-Generated: 2026-06-27T17:10:54Z
+Generated: 2026-06-27T17:20:07Z
 Snapshot: `openapi/elevenlabs-openapi.paths.json`
 Source: https://api.elevenlabs.io/openapi.json
 
@@ -9,9 +9,9 @@ Source: https://api.elevenlabs.io/openapi.json
 | Metric | Value |
 | --- | ---: |
 | OpenAPI operations | 320 |
-| Implemented method/path pairs | 203 |
-| Coverage | 63.4% |
-| Local endpoint constants checked | 203 |
+| Implemented method/path pairs | 214 |
+| Coverage | 66.9% |
+| Local endpoint constants checked | 214 |
 | Local constants missing from snapshot | 0 |
 
 ## Coverage By Path
@@ -21,7 +21,7 @@ Source: https://api.elevenlabs.io/openapi.json
 | /docs | 0 | 1 | 0.0% |
 | /v1/audio-isolation | 4 | 4 | 100.0% |
 | /v1/audio-native | 4 | 4 | 100.0% |
-| /v1/convai | 91 | 149 | 61.1% |
+| /v1/convai | 102 | 149 | 68.5% |
 | /v1/dubbing | 6 | 20 | 30.0% |
 | /v1/forced-alignment | 1 | 1 | 100.0% |
 | /v1/history | 5 | 5 | 100.0% |
@@ -65,11 +65,6 @@ All local endpoint method/path constants match the snapshot.
 | Method | Path | Summary |
 | --- | --- | --- |
 | `GET` | `/v1/convai/agents/{agent_id}/topics` | Get Agent Conversation Topics |
-| `POST` | `/v1/convai/agent-testing/bulk-move` | Bulk Move Tests To Folder |
-| `POST` | `/v1/convai/agent-testing/folders` | Create Agent Test Folder |
-| `DELETE` | `/v1/convai/agent-testing/folders/{folder_id}` | Delete Agent Test Folder |
-| `GET` | `/v1/convai/agent-testing/folders/{folder_id}` | Get Agent Test Folder By Id |
-| `PATCH` | `/v1/convai/agent-testing/folders/{folder_id}` | Update Agent Test Folder |
 | `GET` | `/v1/convai/agents/summaries` | Get Agent Summaries |
 | `GET` | `/v1/convai/agents/{agent_id}/branches` | List Agent Branches |
 | `POST` | `/v1/convai/agents/{agent_id}/branches` | Create A New Branch |
@@ -115,12 +110,6 @@ All local endpoint method/path constants match the snapshot.
 | `POST` | `/v1/convai/knowledge-base/bulk-move` | Bulk Move Entities To Folder |
 | `POST` | `/v1/convai/knowledge-base/folder` | Create Folder |
 | `POST` | `/v1/convai/knowledge-base/{document_id}/move` | Move Entity To Folder |
-| `GET` | `/v1/convai/agent-testing` | List Agent Response Tests |
-| `POST` | `/v1/convai/agent-testing/create` | Create Agent Response Test |
-| `POST` | `/v1/convai/agent-testing/summaries` | Get Agent Response Test Summaries By Ids |
-| `DELETE` | `/v1/convai/agent-testing/{test_id}` | Delete Agent Response Test |
-| `GET` | `/v1/convai/agent-testing/{test_id}` | Get Agent Response Test By Id |
-| `PUT` | `/v1/convai/agent-testing/{test_id}` | Update Agent Response Test |
 | `POST` | `/v1/convai/agents/{agent_id}/run-tests` | Run Tests On The Agent |
 
 ### /v1/dubbing

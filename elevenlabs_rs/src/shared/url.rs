@@ -29,6 +29,8 @@ pub(crate) enum PathParam {
     DubbingID,
     #[strum(serialize = ":env_var_id")]
     EnvVarID,
+    #[strum(serialize = ":folder_id")]
+    FolderID,
     #[strum(serialize = ":history_item_id")]
     HistoryItemID,
     #[strum(serialize = ":mcp_server_id")]
@@ -65,6 +67,8 @@ pub(crate) enum PathParam {
     WebhookID,
     #[strum(serialize = ":tag_id")]
     TagID,
+    #[strum(serialize = ":test_id")]
+    TestID,
     #[strum(serialize = ":test_invocation_id")]
     TestInvocationID,
     #[strum(serialize = ":token_type")]
