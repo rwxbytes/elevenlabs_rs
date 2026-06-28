@@ -1,6 +1,6 @@
 # OpenAPI coverage
 
-Generated: 2026-06-28T11:00:56Z
+Generated: 2026-06-28T11:08:03Z
 Snapshot: `openapi/elevenlabs-openapi.paths.json`
 Source: https://api.elevenlabs.io/openapi.json
 
@@ -9,9 +9,9 @@ Source: https://api.elevenlabs.io/openapi.json
 | Metric | Value |
 | --- | ---: |
 | OpenAPI operations | 320 |
-| Implemented method/path pairs | 261 |
-| Coverage | 81.6% |
-| Local endpoint constants checked | 261 |
+| Implemented method/path pairs | 260 |
+| Coverage | 81.3% |
+| Local endpoint constants checked | 260 |
 | Local constants missing from snapshot | 0 |
 
 ## Coverage By Path
@@ -21,7 +21,7 @@ Source: https://api.elevenlabs.io/openapi.json
 | /docs | 0 | 1 | 0.0% |
 | /v1/audio-isolation | 4 | 4 | 100.0% |
 | /v1/audio-native | 4 | 4 | 100.0% |
-| /v1/convai | 149 | 149 | 100.0% |
+| /v1/convai | 148 | 149 | 99.3% |
 | /v1/dubbing | 6 | 20 | 30.0% |
 | /v1/forced-alignment | 1 | 1 | 100.0% |
 | /v1/history | 5 | 5 | 100.0% |
@@ -59,6 +59,12 @@ All local endpoint method/path constants match the snapshot.
 | Method | Path | Summary |
 | --- | --- | --- |
 | `GET` | `/docs` | Redirect To Mintlify |
+
+### /v1/convai
+
+| Method | Path | Summary |
+| --- | --- | --- |
+| `GET` | `/v1/convai/conversation/get_signed_url` | Get Signed Url |
 
 ### /v1/dubbing
 
