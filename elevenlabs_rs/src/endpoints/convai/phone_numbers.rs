@@ -423,6 +423,10 @@ impl SipMessagesQuery {
         self.params.push(("cursor", cursor.into()));
         self
     }
+
+    pub(crate) fn into_params(self) -> QueryValues {
+        self.params
+    }
 }
 
 impl crate::endpoints::sealed::Sealed for GetSipMessages {}

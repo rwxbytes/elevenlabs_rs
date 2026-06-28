@@ -1092,3 +1092,528 @@ pub struct ConversationUsersPage {
     pub next_cursor: Option<String>,
     pub has_more: bool,
 }
+
+/// A page of conversation-message search results. Each result is preserved as
+/// raw JSON.
+#[derive(Clone, Debug, Deserialize)]
+pub struct MessagesSearchResponse {
+    pub results: Vec<Value>,
+    pub meta: Option<Value>,
+    pub next_cursor: Option<String>,
+    pub has_more: bool,
+}
+
+/// Semantic ("smart") search across conversation messages.
+///
+/// See [Smart Search API reference](https://elevenlabs.io/docs/conversational-ai/api-reference/conversations/smart-search)
+#[derive(Clone, Debug)]
+pub struct SmartSearchConversationMessages {
+    query: ConversationMessagesSearchQuery,
+}
+
+impl SmartSearchConversationMessages {
+    pub fn new(text_query: impl Into<String>) -> Self {
+        Self {
+            query: ConversationMessagesSearchQuery::new(text_query),
+        }
+    }
+
+    pub fn with_query(mut self, query: ConversationMessagesSearchQuery) -> Self {
+        self.query = query;
+        self
+    }
+}
+
+/// Query parameters for [`SmartSearchConversationMessages`] and
+/// [`TextSearchConversationMessages`].
+///
+/// The text-search endpoint accepts many additional filters; use
+/// [`with_param`](Self::with_param) to set any not covered by a dedicated method.
+#[derive(Clone, Debug)]
+pub struct ConversationMessagesSearchQuery {
+    params: QueryValues,
+}
+
+impl ConversationMessagesSearchQuery {
+    pub fn new(text_query: impl Into<String>) -> Self {
+        Self {
+            params: vec![("text_query", text_query.into())],
+        }
+    }
+
+    pub fn with_agent_id(mut self, agent_id: impl Into<String>) -> Self {
+        self.params.push(("agent_id", agent_id.into()));
+        self
+    }
+
+    pub fn with_page_size(mut self, page_size: u32) -> Self {
+        self.params.push(("page_size", page_size.to_string()));
+        self
+    }
+
+    pub fn with_cursor(mut self, cursor: impl Into<String>) -> Self {
+        self.params.push(("cursor", cursor.into()));
+        self
+    }
+
+    pub fn with_branch_id(mut self, branch_id: impl Into<String>) -> Self {
+        self.params.push(("branch_id", branch_id.into()));
+        self
+    }
+
+    pub fn with_user_id(mut self, user_id: impl Into<String>) -> Self {
+        self.params.push(("user_id", user_id.into()));
+        self
+    }
+
+    pub fn with_sort_by(mut self, sort_by: impl Into<String>) -> Self {
+        self.params.push(("sort_by", sort_by.into()));
+        self
+    }
+
+    /// Set an arbitrary query parameter (e.g. a text-search filter).
+    pub fn with_param(mut self, key: &'static str, value: impl Into<String>) -> Self {
+        self.params.push((key, value.into()));
+        self
+    }
+}
+
+impl crate::endpoints::sealed::Sealed for SmartSearchConversationMessages {}
+
+impl ElevenLabsEndpoint for SmartSearchConversationMessages {
+    const PATH: &'static str = "/v1/convai/conversations/messages/smart-search";
+
+    const METHOD: Method = Method::GET;
+
+    type ResponseBody = MessagesSearchResponse;
+
+    fn query_params(&self) -> Option<QueryValues> {
+        Some(self.query.params.clone())
+    }
+
+    async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
+        Ok(resp.json().await?)
+    }
+}
+
+/// Full-text search across conversation messages, with rich filters.
+///
+/// See [Text Search API reference](https://elevenlabs.io/docs/conversational-ai/api-reference/conversations/text-search)
+#[derive(Clone, Debug)]
+pub struct TextSearchConversationMessages {
+    query: ConversationMessagesSearchQuery,
+}
+
+impl TextSearchConversationMessages {
+    pub fn new(text_query: impl Into<String>) -> Self {
+        Self {
+            query: ConversationMessagesSearchQuery::new(text_query),
+        }
+    }
+
+    pub fn with_query(mut self, query: ConversationMessagesSearchQuery) -> Self {
+        self.query = query;
+        self
+    }
+}
+
+impl crate::endpoints::sealed::Sealed for TextSearchConversationMessages {}
+
+impl ElevenLabsEndpoint for TextSearchConversationMessages {
+    const PATH: &'static str = "/v1/convai/conversations/messages/text-search";
+
+    const METHOD: Method = Method::GET;
+
+    type ResponseBody = MessagesSearchResponse;
+
+    fn query_params(&self) -> Option<QueryValues> {
+        Some(self.query.params.clone())
+    }
+
+    async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
+        Ok(resp.json().await?)
+    }
+}
+
+/// Run analysis for a conversation. Returns the updated conversation details.
+///
+/// See [Run Analysis API reference](https://elevenlabs.io/docs/conversational-ai/api-reference/conversations/run-analysis)
+#[derive(Clone, Debug)]
+pub struct RunConversationAnalysis {
+    conversation_id: String,
+}
+
+impl RunConversationAnalysis {
+    pub fn new(conversation_id: impl Into<String>) -> Self {
+        Self {
+            conversation_id: conversation_id.into(),
+        }
+    }
+}
+
+impl crate::endpoints::sealed::Sealed for RunConversationAnalysis {}
+
+impl ElevenLabsEndpoint for RunConversationAnalysis {
+    const PATH: &'static str = "/v1/convai/conversations/:conversation_id/analysis/run";
+
+    const METHOD: Method = Method::POST;
+
+    type ResponseBody = GetConversationDetailsResponse;
+
+    fn path_params(&self) -> Vec<(&'static str, &str)> {
+        vec![self.conversation_id.and_param(PathParam::ConversationID)]
+    }
+
+    async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
+        Ok(resp.json().await?)
+    }
+}
+
+/// Run a named evaluation for a conversation. Returns the updated conversation
+/// details.
+///
+/// See [Run Evaluation API reference](https://elevenlabs.io/docs/conversational-ai/api-reference/conversations/run-evaluation)
+#[derive(Clone, Debug)]
+pub struct RunConversationEvaluation {
+    conversation_id: String,
+    body: RunConversationEvaluationBody,
+}
+
+impl RunConversationEvaluation {
+    pub fn new(conversation_id: impl Into<String>, body: RunConversationEvaluationBody) -> Self {
+        Self {
+            conversation_id: conversation_id.into(),
+            body,
+        }
+    }
+}
+
+/// Body for [`RunConversationEvaluation`].
+#[derive(Clone, Debug, Serialize)]
+pub struct RunConversationEvaluationBody {
+    evaluation_id: String,
+    /// The analysis scope, e.g. `"conversation"`.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    scope: Option<String>,
+}
+
+impl RunConversationEvaluationBody {
+    pub fn new(evaluation_id: impl Into<String>) -> Self {
+        Self {
+            evaluation_id: evaluation_id.into(),
+            scope: None,
+        }
+    }
+
+    pub fn with_scope(mut self, scope: impl Into<String>) -> Self {
+        self.scope = Some(scope.into());
+        self
+    }
+}
+
+impl crate::endpoints::sealed::Sealed for RunConversationEvaluation {}
+
+impl ElevenLabsEndpoint for RunConversationEvaluation {
+    const PATH: &'static str = "/v1/convai/conversations/:conversation_id/analysis/evaluations/run";
+
+    const METHOD: Method = Method::POST;
+
+    type ResponseBody = GetConversationDetailsResponse;
+
+    fn path_params(&self) -> Vec<(&'static str, &str)> {
+        vec![self.conversation_id.and_param(PathParam::ConversationID)]
+    }
+
+    async fn request_body(&self) -> Result<RequestBody> {
+        Ok(RequestBody::Json(serde_json::to_value(&self.body)?))
+    }
+
+    async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
+        Ok(resp.json().await?)
+    }
+}
+
+/// Upload a file to a conversation.
+///
+/// See [Upload File API reference](https://elevenlabs.io/docs/conversational-ai/api-reference/conversations/upload-file)
+#[derive(Clone, Debug)]
+pub struct UploadConversationFile {
+    conversation_id: String,
+    file: crate::shared::FilePart,
+}
+
+impl UploadConversationFile {
+    pub fn new(
+        conversation_id: impl Into<String>,
+        file: impl Into<crate::shared::FilePart>,
+    ) -> Self {
+        Self {
+            conversation_id: conversation_id.into(),
+            file: file.into(),
+        }
+    }
+
+    pub fn from_bytes(
+        conversation_id: impl Into<String>,
+        file_name: impl Into<String>,
+        mime: impl Into<String>,
+        bytes: impl Into<Bytes>,
+    ) -> Self {
+        Self::new(
+            conversation_id,
+            crate::shared::FilePart::bytes(file_name, mime, bytes),
+        )
+    }
+}
+
+impl crate::endpoints::sealed::Sealed for UploadConversationFile {}
+
+impl ElevenLabsEndpoint for UploadConversationFile {
+    const PATH: &'static str = "/v1/convai/conversations/:conversation_id/files";
+
+    const METHOD: Method = Method::POST;
+
+    type ResponseBody = ConversationFileUploadResponse;
+
+    fn path_params(&self) -> Vec<(&'static str, &str)> {
+        vec![self.conversation_id.and_param(PathParam::ConversationID)]
+    }
+
+    async fn request_body(&self) -> Result<RequestBody> {
+        let part = self
+            .file
+            .clone()
+            .into_part(Some("application/octet-stream".to_owned()))?;
+        Ok(RequestBody::Multipart(Form::new().part("file", part)))
+    }
+
+    async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
+        Ok(resp.json().await?)
+    }
+}
+
+/// The response of [`UploadConversationFile`] and [`DeleteConversationFile`].
+#[derive(Clone, Debug, Deserialize)]
+pub struct ConversationFileUploadResponse {
+    pub file_id: String,
+}
+
+/// Delete a previously uploaded conversation file.
+///
+/// See [Delete File API reference](https://elevenlabs.io/docs/conversational-ai/api-reference/conversations/delete-file)
+#[derive(Clone, Debug)]
+pub struct DeleteConversationFile {
+    conversation_id: String,
+    file_id: String,
+}
+
+impl DeleteConversationFile {
+    pub fn new(conversation_id: impl Into<String>, file_id: impl Into<String>) -> Self {
+        Self {
+            conversation_id: conversation_id.into(),
+            file_id: file_id.into(),
+        }
+    }
+}
+
+impl crate::endpoints::sealed::Sealed for DeleteConversationFile {}
+
+impl ElevenLabsEndpoint for DeleteConversationFile {
+    const PATH: &'static str = "/v1/convai/conversations/:conversation_id/files/:file_id";
+
+    const METHOD: Method = Method::DELETE;
+
+    type ResponseBody = ConversationFileUploadResponse;
+
+    fn path_params(&self) -> Vec<(&'static str, &str)> {
+        vec![
+            self.conversation_id.and_param(PathParam::ConversationID),
+            self.file_id.and_param(PathParam::FileID),
+        ]
+    }
+
+    async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
+        Ok(resp.json().await?)
+    }
+}
+
+/// Get the SIP log messages for a conversation.
+///
+/// See [Get Conversation SIP Messages API reference](https://elevenlabs.io/docs/conversational-ai/api-reference/conversations/get-sip-messages)
+#[derive(Clone, Debug)]
+pub struct GetConversationSipMessages {
+    conversation_id: String,
+    query: Option<crate::endpoints::convai::phone_numbers::SipMessagesQuery>,
+}
+
+impl GetConversationSipMessages {
+    pub fn new(conversation_id: impl Into<String>) -> Self {
+        Self {
+            conversation_id: conversation_id.into(),
+            query: None,
+        }
+    }
+
+    pub fn with_query(
+        mut self,
+        query: crate::endpoints::convai::phone_numbers::SipMessagesQuery,
+    ) -> Self {
+        self.query = Some(query);
+        self
+    }
+}
+
+impl crate::endpoints::sealed::Sealed for GetConversationSipMessages {}
+
+impl ElevenLabsEndpoint for GetConversationSipMessages {
+    const PATH: &'static str = "/v1/convai/conversations/:conversation_id/sip-messages";
+
+    const METHOD: Method = Method::GET;
+
+    type ResponseBody = crate::endpoints::convai::phone_numbers::GetSipMessagesResponse;
+
+    fn query_params(&self) -> Option<QueryValues> {
+        self.query.as_ref().map(|q| q.clone().into_params())
+    }
+
+    fn path_params(&self) -> Vec<(&'static str, &str)> {
+        vec![self.conversation_id.and_param(PathParam::ConversationID)]
+    }
+
+    async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
+        Ok(resp.json().await?)
+    }
+}
+
+/// Assign tags to a conversation.
+///
+/// See [Assign Tags API reference](https://elevenlabs.io/docs/conversational-ai/api-reference/conversations/assign-tags)
+#[derive(Clone, Debug)]
+pub struct AssignConversationTags {
+    conversation_id: String,
+    tag_ids: Vec<String>,
+}
+
+impl AssignConversationTags {
+    pub fn new<I, S>(conversation_id: impl Into<String>, tag_ids: I) -> Self
+    where
+        I: IntoIterator<Item = S>,
+        S: Into<String>,
+    {
+        Self {
+            conversation_id: conversation_id.into(),
+            tag_ids: tag_ids.into_iter().map(Into::into).collect(),
+        }
+    }
+}
+
+impl crate::endpoints::sealed::Sealed for AssignConversationTags {}
+
+impl ElevenLabsEndpoint for AssignConversationTags {
+    const PATH: &'static str = "/v1/convai/conversations/:conversation_id/tags";
+
+    const METHOD: Method = Method::POST;
+
+    type ResponseBody = ();
+
+    fn path_params(&self) -> Vec<(&'static str, &str)> {
+        vec![self.conversation_id.and_param(PathParam::ConversationID)]
+    }
+
+    async fn request_body(&self) -> Result<RequestBody> {
+        Ok(RequestBody::Json(
+            serde_json::json!({ "tag_ids": self.tag_ids }),
+        ))
+    }
+
+    async fn response_body(self, _resp: Response) -> Result<Self::ResponseBody> {
+        Ok(())
+    }
+}
+
+/// Unassign a single tag from a conversation.
+///
+/// See [Unassign Tag API reference](https://elevenlabs.io/docs/conversational-ai/api-reference/conversations/unassign-tag)
+#[derive(Clone, Debug)]
+pub struct UnassignConversationTag {
+    conversation_id: String,
+    tag_id: String,
+}
+
+impl UnassignConversationTag {
+    pub fn new(conversation_id: impl Into<String>, tag_id: impl Into<String>) -> Self {
+        Self {
+            conversation_id: conversation_id.into(),
+            tag_id: tag_id.into(),
+        }
+    }
+}
+
+impl crate::endpoints::sealed::Sealed for UnassignConversationTag {}
+
+impl ElevenLabsEndpoint for UnassignConversationTag {
+    const PATH: &'static str = "/v1/convai/conversations/:conversation_id/tags/:tag_id";
+
+    const METHOD: Method = Method::DELETE;
+
+    type ResponseBody = ();
+
+    fn path_params(&self) -> Vec<(&'static str, &str)> {
+        vec![
+            self.conversation_id.and_param(PathParam::ConversationID),
+            self.tag_id.and_param(PathParam::TagID),
+        ]
+    }
+
+    async fn response_body(self, _resp: Response) -> Result<Self::ResponseBody> {
+        Ok(())
+    }
+}
+
+/// Get a signed URL to start a conversation with an agent that requires
+/// authorization.
+///
+/// Deprecated: this is the legacy `get_signed_url` path. Use [`GetSignedUrl`]
+/// (`/v1/convai/conversation/get-signed-url`) instead.
+#[deprecated(
+    since = "0.7.0",
+    note = "use GetSignedUrl (/v1/convai/conversation/get-signed-url)"
+)]
+#[derive(Clone, Debug)]
+pub struct GetSignedUrlLegacy {
+    query: GetSignedUrlQuery,
+}
+
+#[allow(deprecated)]
+impl GetSignedUrlLegacy {
+    pub fn new(agent_id: impl Into<String>) -> Self {
+        Self {
+            query: GetSignedUrlQuery::new(agent_id),
+        }
+    }
+
+    pub fn with_query(mut self, query: GetSignedUrlQuery) -> Self {
+        self.query = query;
+        self
+    }
+}
+
+#[allow(deprecated)]
+impl crate::endpoints::sealed::Sealed for GetSignedUrlLegacy {}
+
+#[allow(deprecated)]
+impl ElevenLabsEndpoint for GetSignedUrlLegacy {
+    const PATH: &'static str = "/v1/convai/conversation/get_signed_url";
+
+    const METHOD: Method = Method::GET;
+
+    type ResponseBody = SignedUrlResponse;
+
+    fn query_params(&self) -> Option<QueryValues> {
+        Some(self.query.params.clone())
+    }
+
+    async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
+        Ok(resp.json().await?)
+    }
+}

@@ -56,7 +56,11 @@ use crate::endpoints::convai::batch_calling::{
     SubmitBatchCallBody,
 };
 use crate::endpoints::convai::conversations::{
-    ConversationUsersQuery, GetConversationUsers, GetLiveCount,
+    AssignConversationTags, ConversationMessagesSearchQuery, ConversationUsersQuery,
+    DeleteConversationFile, GetConversationSipMessages, GetConversationUsers, GetLiveCount,
+    RunConversationAnalysis, RunConversationEvaluation, RunConversationEvaluationBody,
+    SmartSearchConversationMessages, TextSearchConversationMessages, UnassignConversationTag,
+    UploadConversationFile,
 };
 use crate::endpoints::convai::conversations::{
     GetConversations, GetConversationsQuery, GetSignedUrl, GetSignedUrlQuery, GetWebRtcToken,
@@ -73,10 +77,10 @@ use crate::endpoints::convai::knowledge_base::{
     BulkMoveKnowledgeBase, BulkMoveKnowledgeBaseBody, ComputeRagIndexesBatch, CreateFileDocument,
     CreateKnowledgeBaseDoc, CreateKnowledgeBaseFolder, CreateKnowledgeBaseFolderBody,
     CreateTextDocument, CreateTextDocumentBody, CreateUrlDocument, CreateUrlDocumentBody,
-    DeleteRagIndex, DocumentChunksQuery, EmbeddingModel, GetDocumentChunks,
+    DeleteRagIndex, DocumentChunksQuery, EmbeddingModel, GetDocumentChunks, GetDocumentRagIndexes,
     GetKnowledgeBaseSummaries, GetRagIndexOverview, GetSourceFileUrl, KnowledgeBaseDoc,
     MoveKnowledgeBaseEntity, RagIndexItem, RefreshDocument, SearchKnowledgeBase,
-    UpdateFileDocument,
+    UpdateFileDocument, UpdateKnowledgeBaseDocument, UpdateKnowledgeBaseDocumentBody,
 };
 use crate::endpoints::convai::llm::{
     AgentLlmUsageBody, CalculateAgentLlmUsage, CalculateLlmUsage, ListLlms, LlmUsageBody,
@@ -113,8 +117,8 @@ use crate::endpoints::convai::whatsapp_accounts::{
 };
 use crate::endpoints::convai::widget::{CreateWidgetAvatar, CreateWidgetAvatarBody};
 use crate::endpoints::convai::workspace::{
-    DashboardSettings, GetDashboardSettings, GetSecretDependencies, SecretDependencyResourceType,
-    UpdateDashboardSettings,
+    DashboardSettings, GetDashboardSettings, GetSecret, GetSecretDependencies,
+    SecretDependencyResourceType, UpdateDashboardSettings, UpdateSecret,
 };
 use crate::endpoints::genai::audio_isolation::{
     AudioIsolation, AudioIsolationBody, AudioIsolationHistoryQuery,
@@ -1023,6 +1027,79 @@ async fn workspace_endpoints_encode_paths_and_bodies() {
 }
 
 #[tokio::test]
+async fn convai_conversation_management_endpoints_encode_paths_and_bodies() {
+    let smart = SmartSearchConversationMessages::new("hello").with_query(
+        ConversationMessagesSearchQuery::new("hello")
+            .with_agent_id("agent/id")
+            .with_page_size(10),
+    );
+    assert_endpoint(
+        &smart,
+        Method::GET,
+        "https://api.elevenlabs.io/v1/convai/conversations/messages/smart-search?text_query=hello&agent_id=agent%2Fid&page_size=10",
+    );
+
+    let text = TextSearchConversationMessages::new("hi")
+        .with_query(ConversationMessagesSearchQuery::new("hi").with_param("rating_min", "3"));
+    assert_endpoint(
+        &text,
+        Method::GET,
+        "https://api.elevenlabs.io/v1/convai/conversations/messages/text-search?text_query=hi&rating_min=3",
+    );
+
+    assert_endpoint(
+        &RunConversationAnalysis::new("conv/id"),
+        Method::POST,
+        "https://api.elevenlabs.io/v1/convai/conversations/conv%2Fid/analysis/run",
+    );
+
+    let eval = RunConversationEvaluation::new(
+        "conv/id",
+        RunConversationEvaluationBody::new("eval_1").with_scope("conversation"),
+    );
+    assert_endpoint(
+        &eval,
+        Method::POST,
+        "https://api.elevenlabs.io/v1/convai/conversations/conv%2Fid/analysis/evaluations/run",
+    );
+    assert_eq!(json_body(&eval).await["evaluation_id"], "eval_1");
+
+    let upload = UploadConversationFile::from_bytes("conv/id", "a.png", "image/png", b"x".to_vec());
+    assert_endpoint(
+        &upload,
+        Method::POST,
+        "https://api.elevenlabs.io/v1/convai/conversations/conv%2Fid/files",
+    );
+    assert_multipart_body(&upload).await;
+
+    assert_endpoint(
+        &DeleteConversationFile::new("conv/id", "file/id"),
+        Method::DELETE,
+        "https://api.elevenlabs.io/v1/convai/conversations/conv%2Fid/files/file%2Fid",
+    );
+
+    assert_endpoint(
+        &GetConversationSipMessages::new("conv/id"),
+        Method::GET,
+        "https://api.elevenlabs.io/v1/convai/conversations/conv%2Fid/sip-messages",
+    );
+
+    let assign = AssignConversationTags::new("conv/id", ["tag_1", "tag_2"]);
+    assert_endpoint(
+        &assign,
+        Method::POST,
+        "https://api.elevenlabs.io/v1/convai/conversations/conv%2Fid/tags",
+    );
+    assert_eq!(json_body(&assign).await["tag_ids"][0], "tag_1");
+
+    assert_endpoint(
+        &UnassignConversationTag::new("conv/id", "tag/id"),
+        Method::DELETE,
+        "https://api.elevenlabs.io/v1/convai/conversations/conv%2Fid/tags/tag%2Fid",
+    );
+}
+
+#[tokio::test]
 async fn convai_agent_management_endpoints_encode_paths_and_bodies() {
     assert_endpoint(
         &GetAgentSummaries::new(["a_1", "a_2"]),
@@ -1290,6 +1367,39 @@ async fn convai_knowledge_base_endpoints_encode_paths_and_bodies() {
         "https://api.elevenlabs.io/v1/convai/knowledge-base/doc%2Fid/update-file",
     );
     assert_multipart_body(&update_file).await;
+
+    let update_doc = UpdateKnowledgeBaseDocument::new(
+        "doc/id",
+        UpdateKnowledgeBaseDocumentBody::default().with_name("Renamed"),
+    );
+    assert_endpoint(
+        &update_doc,
+        Method::PATCH,
+        "https://api.elevenlabs.io/v1/convai/knowledge-base/doc%2Fid",
+    );
+    assert_eq!(json_body(&update_doc).await["name"], "Renamed");
+
+    assert_endpoint(
+        &GetDocumentRagIndexes::new("doc/id"),
+        Method::GET,
+        "https://api.elevenlabs.io/v1/convai/knowledge-base/doc%2Fid/rag-index",
+    );
+
+    assert_endpoint(
+        &GetSecret::new("secret/id"),
+        Method::GET,
+        "https://api.elevenlabs.io/v1/convai/secrets/secret%2Fid",
+    );
+
+    let update_secret = UpdateSecret::new("secret/id", "API_KEY", "new-value");
+    assert_endpoint(
+        &update_secret,
+        Method::PATCH,
+        "https://api.elevenlabs.io/v1/convai/secrets/secret%2Fid",
+    );
+    let body = json_body(&update_secret).await;
+    assert_eq!(body["name"], "API_KEY");
+    assert_eq!(body["value"], "new-value");
 }
 
 #[tokio::test]

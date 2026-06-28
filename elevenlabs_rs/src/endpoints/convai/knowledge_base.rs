@@ -1592,3 +1592,106 @@ fn kb_file_part(file: &FilePart) -> Result<reqwest::multipart::Part> {
     file.clone()
         .into_part(Some("application/octet-stream".to_owned()))
 }
+
+/// Update a knowledge-base document's name and/or text content. The updated
+/// document is returned as raw JSON.
+///
+/// See [Update Document API reference](https://elevenlabs.io/docs/conversational-ai/api-reference/knowledge-base/update)
+#[derive(Clone, Debug)]
+pub struct UpdateKnowledgeBaseDocument {
+    documentation_id: String,
+    body: UpdateKnowledgeBaseDocumentBody,
+}
+
+impl UpdateKnowledgeBaseDocument {
+    pub fn new(documentation_id: impl Into<String>, body: UpdateKnowledgeBaseDocumentBody) -> Self {
+        Self {
+            documentation_id: documentation_id.into(),
+            body,
+        }
+    }
+}
+
+/// Body for [`UpdateKnowledgeBaseDocument`]. All fields are optional.
+#[derive(Clone, Debug, Default, Serialize)]
+pub struct UpdateKnowledgeBaseDocumentBody {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    name: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    content: Option<String>,
+}
+
+impl UpdateKnowledgeBaseDocumentBody {
+    pub fn with_name(mut self, name: impl Into<String>) -> Self {
+        self.name = Some(name.into());
+        self
+    }
+
+    pub fn with_content(mut self, content: impl Into<String>) -> Self {
+        self.content = Some(content.into());
+        self
+    }
+}
+
+impl crate::endpoints::sealed::Sealed for UpdateKnowledgeBaseDocument {}
+
+impl ElevenLabsEndpoint for UpdateKnowledgeBaseDocument {
+    const PATH: &'static str = "/v1/convai/knowledge-base/:documentation_id";
+
+    const METHOD: Method = Method::PATCH;
+
+    type ResponseBody = Value;
+
+    fn path_params(&self) -> Vec<(&'static str, &str)> {
+        vec![self.documentation_id.and_param(PathParam::DocumentationID)]
+    }
+
+    async fn request_body(&self) -> Result<RequestBody> {
+        Ok(RequestBody::Json(serde_json::to_value(&self.body)?))
+    }
+
+    async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
+        Ok(resp.json().await?)
+    }
+}
+
+/// List the RAG indexes of a knowledge-base document.
+///
+/// See [Get Document RAG Indexes API reference](https://elevenlabs.io/docs/conversational-ai/api-reference/knowledge-base/get-document-rag-indexes)
+#[derive(Clone, Debug)]
+pub struct GetDocumentRagIndexes {
+    documentation_id: String,
+}
+
+impl GetDocumentRagIndexes {
+    pub fn new(documentation_id: impl Into<String>) -> Self {
+        Self {
+            documentation_id: documentation_id.into(),
+        }
+    }
+}
+
+impl crate::endpoints::sealed::Sealed for GetDocumentRagIndexes {}
+
+impl ElevenLabsEndpoint for GetDocumentRagIndexes {
+    const PATH: &'static str = "/v1/convai/knowledge-base/:documentation_id/rag-index";
+
+    const METHOD: Method = Method::GET;
+
+    type ResponseBody = DocumentRagIndexes;
+
+    fn path_params(&self) -> Vec<(&'static str, &str)> {
+        vec![self.documentation_id.and_param(PathParam::DocumentationID)]
+    }
+
+    async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
+        Ok(resp.json().await?)
+    }
+}
+
+/// The response of [`GetDocumentRagIndexes`]. Each index entry is preserved as
+/// raw JSON.
+#[derive(Clone, Debug, Deserialize)]
+pub struct DocumentRagIndexes {
+    pub indexes: Vec<Value>,
+}

@@ -33,6 +33,8 @@ pub(crate) enum PathParam {
     DubbingID,
     #[strum(serialize = ":env_var_id")]
     EnvVarID,
+    #[strum(serialize = ":file_id")]
+    FileID,
     #[strum(serialize = ":folder_id")]
     FolderID,
     #[strum(serialize = ":history_item_id")]

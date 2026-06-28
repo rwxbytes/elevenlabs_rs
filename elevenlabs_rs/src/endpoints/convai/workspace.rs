@@ -574,3 +574,97 @@ impl DashboardSettings {
         }
     }
 }
+
+/// Get a single workspace secret by ID. The stored secret config is returned as
+/// raw JSON.
+///
+/// See [Get Secret API reference](https://elevenlabs.io/docs/conversational-ai/api-reference/workspace/get-secret)
+#[derive(Clone, Debug)]
+pub struct GetSecret {
+    secret_id: String,
+}
+
+impl GetSecret {
+    pub fn new(secret_id: impl Into<String>) -> Self {
+        Self {
+            secret_id: secret_id.into(),
+        }
+    }
+}
+
+impl crate::endpoints::sealed::Sealed for GetSecret {}
+
+impl ElevenLabsEndpoint for GetSecret {
+    const PATH: &'static str = "/v1/convai/secrets/:secret_id";
+
+    const METHOD: Method = Method::GET;
+
+    type ResponseBody = Value;
+
+    fn path_params(&self) -> Vec<(&'static str, &str)> {
+        vec![self.secret_id.and_param(PathParam::SecretID)]
+    }
+
+    async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
+        Ok(resp.json().await?)
+    }
+}
+
+/// Update a workspace secret's name and value.
+///
+/// See [Update Secret API reference](https://elevenlabs.io/docs/conversational-ai/api-reference/workspace/update-secret)
+#[derive(Clone, Debug)]
+pub struct UpdateSecret {
+    secret_id: String,
+    name: String,
+    value: String,
+}
+
+impl UpdateSecret {
+    pub fn new(
+        secret_id: impl Into<String>,
+        name: impl Into<String>,
+        value: impl Into<String>,
+    ) -> Self {
+        Self {
+            secret_id: secret_id.into(),
+            name: name.into(),
+            value: value.into(),
+        }
+    }
+}
+
+impl crate::endpoints::sealed::Sealed for UpdateSecret {}
+
+impl ElevenLabsEndpoint for UpdateSecret {
+    const PATH: &'static str = "/v1/convai/secrets/:secret_id";
+
+    const METHOD: Method = Method::PATCH;
+
+    type ResponseBody = UpdateSecretResponse;
+
+    fn path_params(&self) -> Vec<(&'static str, &str)> {
+        vec![self.secret_id.and_param(PathParam::SecretID)]
+    }
+
+    async fn request_body(&self) -> Result<RequestBody> {
+        Ok(RequestBody::Json(serde_json::json!({
+            "type": "new",
+            "name": self.name,
+            "value": self.value,
+        })))
+    }
+
+    async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
+        Ok(resp.json().await?)
+    }
+}
+
+/// The response of [`UpdateSecret`].
+#[derive(Clone, Debug, Deserialize)]
+pub struct UpdateSecretResponse {
+    pub secret_id: String,
+    pub name: String,
+    #[serde(rename = "type")]
+    pub secret_type: String,
+}

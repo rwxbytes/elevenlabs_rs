@@ -1,6 +1,6 @@
 # OpenAPI coverage
 
-Generated: 2026-06-27T22:12:48Z
+Generated: 2026-06-28T11:00:56Z
 Snapshot: `openapi/elevenlabs-openapi.paths.json`
 Source: https://api.elevenlabs.io/openapi.json
 
@@ -9,9 +9,9 @@ Source: https://api.elevenlabs.io/openapi.json
 | Metric | Value |
 | --- | ---: |
 | OpenAPI operations | 320 |
-| Implemented method/path pairs | 247 |
-| Coverage | 77.2% |
-| Local endpoint constants checked | 247 |
+| Implemented method/path pairs | 261 |
+| Coverage | 81.6% |
+| Local endpoint constants checked | 261 |
 | Local constants missing from snapshot | 0 |
 
 ## Coverage By Path
@@ -21,7 +21,7 @@ Source: https://api.elevenlabs.io/openapi.json
 | /docs | 0 | 1 | 0.0% |
 | /v1/audio-isolation | 4 | 4 | 100.0% |
 | /v1/audio-native | 4 | 4 | 100.0% |
-| /v1/convai | 135 | 149 | 90.6% |
+| /v1/convai | 149 | 149 | 100.0% |
 | /v1/dubbing | 6 | 20 | 30.0% |
 | /v1/forced-alignment | 1 | 1 | 100.0% |
 | /v1/history | 5 | 5 | 100.0% |
@@ -59,25 +59,6 @@ All local endpoint method/path constants match the snapshot.
 | Method | Path | Summary |
 | --- | --- | --- |
 | `GET` | `/docs` | Redirect To Mintlify |
-
-### /v1/convai
-
-| Method | Path | Summary |
-| --- | --- | --- |
-| `GET` | `/v1/convai/conversation/get_signed_url` | Get Signed Url |
-| `GET` | `/v1/convai/conversations/messages/smart-search` | Smart Search Conversation Messages |
-| `GET` | `/v1/convai/conversations/messages/text-search` | Text Search Conversation Messages |
-| `POST` | `/v1/convai/conversations/{conversation_id}/files` | Upload File |
-| `DELETE` | `/v1/convai/conversations/{conversation_id}/files/{file_id}` | Delete File Upload |
-| `GET` | `/v1/convai/conversations/{conversation_id}/sip-messages` | Get Sip Messages For A Conversation |
-| `POST` | `/v1/convai/conversations/{conversation_id}/tags` | Assign Conversation Tags |
-| `DELETE` | `/v1/convai/conversations/{conversation_id}/tags/{tag_id}` | Unassign Conversation Tag |
-| `PATCH` | `/v1/convai/knowledge-base/{documentation_id}` | Update Document |
-| `GET` | `/v1/convai/knowledge-base/{documentation_id}/rag-index` | Get Rag Indexes Of The Specified Knowledgebase Document. |
-| `GET` | `/v1/convai/secrets/{secret_id}` | Get Convai Workspace Secret |
-| `PATCH` | `/v1/convai/secrets/{secret_id}` | Update Convai Workspace Secret |
-| `POST` | `/v1/convai/conversations/{conversation_id}/analysis/evaluations/run` | Run Conversation Evaluation |
-| `POST` | `/v1/convai/conversations/{conversation_id}/analysis/run` | Run Conversation Analysis |
 
 ### /v1/dubbing
 

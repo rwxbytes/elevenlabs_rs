@@ -54,6 +54,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Conversational AI WhatsApp-account endpoints in a new `convai::whatsapp_accounts` module: `ListWhatsAppAccounts`, `GetWhatsAppAccount`, `UpdateWhatsAppAccount`, and `DeleteWhatsAppAccount`
 - Conversational AI test-invocation endpoints in a new `convai::test_invocations` module: `ListTestInvocations`, `GetTestInvocation`, and `ResubmitTests`
 - Conversational AI knowledge-base endpoints: `CreateTextDocument`, `CreateUrlDocument`, `CreateFileDocument`, `CreateKnowledgeBaseFolder`, `BulkMoveKnowledgeBase`, `MoveKnowledgeBaseEntity`, `GetRagIndexOverview`, `ComputeRagIndexesBatch`, `DeleteRagIndex`, `SearchKnowledgeBase`, `GetKnowledgeBaseSummaries`, `GetDocumentChunks`, `RefreshDocument`, `GetSourceFileUrl`, and `UpdateFileDocument`
+- Conversational AI conversation-management endpoints: `SmartSearchConversationMessages`, `TextSearchConversationMessages`, `RunConversationAnalysis`, `RunConversationEvaluation`, `UploadConversationFile`, `DeleteConversationFile`, `GetConversationSipMessages`, `AssignConversationTags`, and `UnassignConversationTag`
+- Conversational AI knowledge-base `UpdateKnowledgeBaseDocument` and `GetDocumentRagIndexes`, and workspace `GetSecret`/`UpdateSecret` endpoints (completing `/v1/convai` coverage)
 - Advanced Conversational AI agent-management endpoints in a new `convai::agent_management` module: agent summaries; branch create/list/get/update/rebase/rebase-preview/merge/merge-preview; deployments; draft create/delete; `DuplicateAgent`; `RunAgentTests`; `SimulateConversation` and `SimulateConversationStream`; `GetAgentTopics`; and `GetAgentVersion`
 - Conversational AI agent-testing endpoints in a new `convai::agent_testing` module: `ListAgentTests`, `CreateAgentTest`, `GetAgentTest`, `UpdateAgentTest`, `DeleteAgentTest`, `GetAgentTestSummaries`, `BulkMoveTests`, `CreateAgentTestFolder`, `GetAgentTestFolder`, `UpdateAgentTestFolder`, and `DeleteAgentTestFolder`
 - Conversational AI MCP-server endpoints in a new `convai::mcp_servers` module: `CreateMcpServer`, `ListMcpServers`, `GetMcpServer`, `DeleteMcpServer`, `UpdateMcpServerConfig`, `UpdateMcpApprovalPolicy`, `AddMcpToolApproval`, `DeleteMcpToolApproval`, `CreateMcpToolConfig`, `GetMcpToolConfig`, `UpdateMcpToolConfig`, `DeleteMcpToolConfig`, and `ListMcpTools`
@@ -84,6 +86,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `ElevenLabsClient::hit_ws`; use `connect_text_to_speech`. It will be kept for one release.
 - `GetUsage` (admin usage endpoint). It will be kept for one release.
 - `CreateKnowledgeBaseDoc` (`POST /v1/convai/knowledge-base`); use `CreateFileDocument`, `CreateUrlDocument`, or `CreateTextDocument`. It will be kept for one release.
+- `GetSignedUrlLegacy` (`GET /v1/convai/conversation/get_signed_url`); use `GetSignedUrl`. It will be kept for one release.
 
 ### Fixed
 - `GetSignedUrl` now targets the current `/v1/convai/conversation/get-signed-url` path (previously the outdated `get_signed_url`)
