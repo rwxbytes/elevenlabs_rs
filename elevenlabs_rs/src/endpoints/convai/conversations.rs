@@ -509,7 +509,7 @@ impl ElevenLabsEndpoint for GetConversationAudio {
 /// }
 /// ```
 /// See [Get Signed URL API reference](https://elevenlabs.io/docs/conversational-ai/api-reference/conversations/get-signed-url)
-#[deprecated(since = "0.7.0", note = "use GetWebRtcToken")]
+#[deprecated(since = "0.7.0", note = "deprecated by ElevenLabs")]
 #[derive(Clone, Debug, Serialize)]
 pub struct GetSignedUrl {
     query: GetSignedUrlQuery,
