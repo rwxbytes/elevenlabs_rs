@@ -32,7 +32,9 @@ impl DefaultSpeakersManager {
 
         tokio::spawn(async move {
             while let Some(samples) = audio_rx.recv().await {
-                let mut buffer = buffer.lock().unwrap();
+                let Ok(mut buffer) = buffer.lock() else {
+                    break;
+                };
                 buffer.extend(samples);
             }
         });
@@ -41,13 +43,18 @@ impl DefaultSpeakersManager {
             .build_output_stream(
                 &config.into(),
                 move |output: &mut [i16], _| {
-                    let mut buffer = buffer_for_processing.lock().unwrap();
-                    if buffer.len() >= output.len() {
-                        let chunk: Vec<i16> = buffer.drain(..output.len()).collect();
-                        output.copy_from_slice(&chunk);
-                    } else {
+                    let Ok(mut buffer) = buffer_for_processing.lock() else {
                         output.fill(0);
+                        return;
+                    };
+
+                    if buffer.len() < output.len() {
+                        output.fill(0);
+                        return;
                     }
+
+                    let chunk: Vec<i16> = buffer.drain(..output.len()).collect();
+                    output.copy_from_slice(&chunk);
                 },
                 |err| eprintln!("Output stream error: {}", err),
                 None,

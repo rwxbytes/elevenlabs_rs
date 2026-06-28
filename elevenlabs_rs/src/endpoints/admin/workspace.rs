@@ -1159,3 +1159,595 @@ impl ElevenLabsEndpoint for DeleteWorkspaceWebhook {
         Ok(resp.json().await?)
     }
 }
+
+// =============================================================================
+// GET /v1/service-accounts — Get Workspace Service Accounts
+// =============================================================================
+
+/// Lists the workspace's service accounts.
+///
+/// See [Get Service Accounts API reference](https://elevenlabs.io/docs/api-reference/workspace/service-accounts).
+#[derive(Clone, Debug, Default)]
+pub struct GetServiceAccounts;
+
+impl crate::endpoints::sealed::Sealed for GetServiceAccounts {}
+
+impl ElevenLabsEndpoint for GetServiceAccounts {
+    const PATH: &'static str = "/v1/service-accounts";
+
+    const METHOD: Method = Method::GET;
+
+    type ResponseBody = ServiceAccountsResponse;
+
+    async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
+        Ok(resp.json().await?)
+    }
+}
+
+/// The response of [`GetServiceAccounts`]. Each service account is preserved as
+/// raw JSON.
+#[derive(Clone, Debug, Deserialize)]
+pub struct ServiceAccountsResponse {
+    #[serde(rename = "service-accounts")]
+    pub service_accounts: Vec<Value>,
+}
+
+// =============================================================================
+// GET /v1/service-accounts/{service_account_user_id}/api-keys — List API Keys
+// =============================================================================
+
+/// Lists the API keys of a service account.
+///
+/// See [Get Service Account API Keys API reference](https://elevenlabs.io/docs/api-reference/workspace/get-service-account-api-keys).
+#[derive(Clone, Debug)]
+pub struct GetServiceAccountApiKeys {
+    service_account_user_id: String,
+}
+
+impl GetServiceAccountApiKeys {
+    pub fn new(service_account_user_id: impl Into<String>) -> Self {
+        Self {
+            service_account_user_id: service_account_user_id.into(),
+        }
+    }
+}
+
+impl crate::endpoints::sealed::Sealed for GetServiceAccountApiKeys {}
+
+impl ElevenLabsEndpoint for GetServiceAccountApiKeys {
+    const PATH: &'static str = "/v1/service-accounts/:service_account_user_id/api-keys";
+
+    const METHOD: Method = Method::GET;
+
+    type ResponseBody = ServiceAccountApiKeysResponse;
+
+    fn path_params(&self) -> Vec<(&'static str, &str)> {
+        vec![self
+            .service_account_user_id
+            .and_param(PathParam::ServiceAccountUserID)]
+    }
+
+    async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
+        Ok(resp.json().await?)
+    }
+}
+
+/// The response of [`GetServiceAccountApiKeys`]. Each API key is preserved as
+/// raw JSON.
+#[derive(Clone, Debug, Deserialize)]
+pub struct ServiceAccountApiKeysResponse {
+    #[serde(rename = "api-keys")]
+    pub api_keys: Vec<Value>,
+}
+
+// =============================================================================
+// POST /v1/service-accounts/{service_account_user_id}/api-keys — Create API Key
+// =============================================================================
+
+/// Creates an API key for a service account.
+///
+/// See [Create Service Account API Key API reference](https://elevenlabs.io/docs/api-reference/workspace/create-service-account-api-key).
+#[derive(Clone, Debug)]
+pub struct CreateServiceAccountApiKey {
+    service_account_user_id: String,
+    body: CreateServiceAccountApiKeyBody,
+}
+
+impl CreateServiceAccountApiKey {
+    pub fn new(
+        service_account_user_id: impl Into<String>,
+        body: CreateServiceAccountApiKeyBody,
+    ) -> Self {
+        Self {
+            service_account_user_id: service_account_user_id.into(),
+            body,
+        }
+    }
+}
+
+/// Body for [`CreateServiceAccountApiKey`].
+#[derive(Clone, Debug, Serialize)]
+pub struct CreateServiceAccountApiKeyBody {
+    name: String,
+    permissions: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    character_limit: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    allowed_ips: Option<Vec<String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    third_party_disable_allowed: Option<bool>,
+}
+
+impl CreateServiceAccountApiKeyBody {
+    pub fn new<I, S>(name: impl Into<String>, permissions: I) -> Self
+    where
+        I: IntoIterator<Item = S>,
+        S: Into<String>,
+    {
+        Self {
+            name: name.into(),
+            permissions: permissions.into_iter().map(Into::into).collect(),
+            character_limit: None,
+            allowed_ips: None,
+            third_party_disable_allowed: None,
+        }
+    }
+
+    pub fn with_character_limit(mut self, character_limit: u64) -> Self {
+        self.character_limit = Some(character_limit);
+        self
+    }
+
+    pub fn with_allowed_ips<I, S>(mut self, allowed_ips: I) -> Self
+    where
+        I: IntoIterator<Item = S>,
+        S: Into<String>,
+    {
+        self.allowed_ips = Some(allowed_ips.into_iter().map(Into::into).collect());
+        self
+    }
+
+    pub fn with_third_party_disable_allowed(mut self, third_party_disable_allowed: bool) -> Self {
+        self.third_party_disable_allowed = Some(third_party_disable_allowed);
+        self
+    }
+}
+
+impl crate::endpoints::sealed::Sealed for CreateServiceAccountApiKey {}
+
+impl ElevenLabsEndpoint for CreateServiceAccountApiKey {
+    const PATH: &'static str = "/v1/service-accounts/:service_account_user_id/api-keys";
+
+    const METHOD: Method = Method::POST;
+
+    type ResponseBody = CreateApiKeyResponse;
+
+    fn path_params(&self) -> Vec<(&'static str, &str)> {
+        vec![self
+            .service_account_user_id
+            .and_param(PathParam::ServiceAccountUserID)]
+    }
+
+    async fn request_body(&self) -> Result<RequestBody> {
+        Ok(RequestBody::Json(serde_json::to_value(&self.body)?))
+    }
+
+    async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
+        Ok(resp.json().await?)
+    }
+}
+
+/// The response of [`CreateServiceAccountApiKey`].
+#[derive(Clone, Debug, Deserialize)]
+pub struct CreateApiKeyResponse {
+    #[serde(rename = "xi-api-key")]
+    pub xi_api_key: String,
+    pub key_id: String,
+}
+
+// =============================================================================
+// PATCH /v1/service-accounts/{service_account_user_id}/api-keys/{api_key_id}
+// =============================================================================
+
+/// Edits an API key of a service account. The updated key is returned as raw JSON.
+///
+/// See [Edit Service Account API Key API reference](https://elevenlabs.io/docs/api-reference/workspace/edit-service-account-api-key).
+#[derive(Clone, Debug)]
+pub struct EditServiceAccountApiKey {
+    service_account_user_id: String,
+    api_key_id: String,
+    body: EditServiceAccountApiKeyBody,
+}
+
+impl EditServiceAccountApiKey {
+    pub fn new(
+        service_account_user_id: impl Into<String>,
+        api_key_id: impl Into<String>,
+        body: EditServiceAccountApiKeyBody,
+    ) -> Self {
+        Self {
+            service_account_user_id: service_account_user_id.into(),
+            api_key_id: api_key_id.into(),
+            body,
+        }
+    }
+}
+
+/// Body for [`EditServiceAccountApiKey`]. All fields are optional.
+#[derive(Clone, Debug, Default, Serialize)]
+pub struct EditServiceAccountApiKeyBody {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    is_enabled: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    name: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    permissions: Option<Vec<String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    character_limit: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    allowed_ips: Option<Vec<String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    third_party_disable_allowed: Option<bool>,
+}
+
+impl EditServiceAccountApiKeyBody {
+    pub fn with_is_enabled(mut self, is_enabled: bool) -> Self {
+        self.is_enabled = Some(is_enabled);
+        self
+    }
+
+    pub fn with_name(mut self, name: impl Into<String>) -> Self {
+        self.name = Some(name.into());
+        self
+    }
+
+    pub fn with_permissions<I, S>(mut self, permissions: I) -> Self
+    where
+        I: IntoIterator<Item = S>,
+        S: Into<String>,
+    {
+        self.permissions = Some(permissions.into_iter().map(Into::into).collect());
+        self
+    }
+
+    pub fn with_character_limit(mut self, character_limit: u64) -> Self {
+        self.character_limit = Some(character_limit);
+        self
+    }
+
+    pub fn with_allowed_ips<I, S>(mut self, allowed_ips: I) -> Self
+    where
+        I: IntoIterator<Item = S>,
+        S: Into<String>,
+    {
+        self.allowed_ips = Some(allowed_ips.into_iter().map(Into::into).collect());
+        self
+    }
+
+    pub fn with_third_party_disable_allowed(mut self, third_party_disable_allowed: bool) -> Self {
+        self.third_party_disable_allowed = Some(third_party_disable_allowed);
+        self
+    }
+}
+
+impl crate::endpoints::sealed::Sealed for EditServiceAccountApiKey {}
+
+impl ElevenLabsEndpoint for EditServiceAccountApiKey {
+    const PATH: &'static str = "/v1/service-accounts/:service_account_user_id/api-keys/:api_key_id";
+
+    const METHOD: Method = Method::PATCH;
+
+    type ResponseBody = Value;
+
+    fn path_params(&self) -> Vec<(&'static str, &str)> {
+        vec![
+            self.service_account_user_id
+                .and_param(PathParam::ServiceAccountUserID),
+            self.api_key_id.and_param(PathParam::ApiKeyID),
+        ]
+    }
+
+    async fn request_body(&self) -> Result<RequestBody> {
+        Ok(RequestBody::Json(serde_json::to_value(&self.body)?))
+    }
+
+    async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
+        Ok(resp.json().await?)
+    }
+}
+
+// =============================================================================
+// DELETE /v1/service-accounts/{service_account_user_id}/api-keys/{api_key_id}
+// =============================================================================
+
+/// Deletes an API key of a service account. The result is returned as raw JSON.
+///
+/// See [Delete Service Account API Key API reference](https://elevenlabs.io/docs/api-reference/workspace/delete-service-account-api-key).
+#[derive(Clone, Debug)]
+pub struct DeleteServiceAccountApiKey {
+    service_account_user_id: String,
+    api_key_id: String,
+}
+
+impl DeleteServiceAccountApiKey {
+    pub fn new(service_account_user_id: impl Into<String>, api_key_id: impl Into<String>) -> Self {
+        Self {
+            service_account_user_id: service_account_user_id.into(),
+            api_key_id: api_key_id.into(),
+        }
+    }
+}
+
+impl crate::endpoints::sealed::Sealed for DeleteServiceAccountApiKey {}
+
+impl ElevenLabsEndpoint for DeleteServiceAccountApiKey {
+    const PATH: &'static str = "/v1/service-accounts/:service_account_user_id/api-keys/:api_key_id";
+
+    const METHOD: Method = Method::DELETE;
+
+    type ResponseBody = Value;
+
+    fn path_params(&self) -> Vec<(&'static str, &str)> {
+        vec![
+            self.service_account_user_id
+                .and_param(PathParam::ServiceAccountUserID),
+            self.api_key_id.and_param(PathParam::ApiKeyID),
+        ]
+    }
+
+    async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
+        Ok(resp.json().await?)
+    }
+}
+
+// =============================================================================
+// Workspace analytics
+// =============================================================================
+
+/// The response of the workspace analytics queries: a column-oriented table.
+/// Cell rows and column units are preserved as raw JSON.
+#[derive(Clone, Debug, Deserialize)]
+pub struct WorkspaceAnalyticsResponse {
+    pub columns: Vec<String>,
+    pub column_types: Vec<String>,
+    pub column_units: Vec<Value>,
+    pub rows: Vec<Value>,
+}
+
+/// Query workspace usage grouped by product over time.
+///
+/// See [Get Workspace Usage API reference](https://elevenlabs.io/docs/api-reference/workspace/usage-by-product-over-time).
+#[derive(Clone, Debug)]
+pub struct GetWorkspaceUsage {
+    body: GetWorkspaceUsageBody,
+}
+
+impl GetWorkspaceUsage {
+    pub fn new(body: GetWorkspaceUsageBody) -> Self {
+        Self { body }
+    }
+}
+
+/// Body for [`GetWorkspaceUsage`].
+#[derive(Clone, Debug, Serialize)]
+pub struct GetWorkspaceUsageBody {
+    start_time: i64,
+    end_time: i64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    interval_seconds: Option<i64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    group_by: Option<Vec<Value>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    filters: Option<Vec<Value>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    time_zone: Option<String>,
+}
+
+impl GetWorkspaceUsageBody {
+    pub fn new(start_time: i64, end_time: i64) -> Self {
+        Self {
+            start_time,
+            end_time,
+            interval_seconds: None,
+            group_by: None,
+            filters: None,
+            time_zone: None,
+        }
+    }
+
+    pub fn with_interval_seconds(mut self, interval_seconds: i64) -> Self {
+        self.interval_seconds = Some(interval_seconds);
+        self
+    }
+
+    pub fn with_group_by(mut self, group_by: impl IntoIterator<Item = Value>) -> Self {
+        self.group_by = Some(group_by.into_iter().collect());
+        self
+    }
+
+    pub fn with_filters(mut self, filters: impl IntoIterator<Item = Value>) -> Self {
+        self.filters = Some(filters.into_iter().collect());
+        self
+    }
+
+    pub fn with_time_zone(mut self, time_zone: impl Into<String>) -> Self {
+        self.time_zone = Some(time_zone.into());
+        self
+    }
+}
+
+impl crate::endpoints::sealed::Sealed for GetWorkspaceUsage {}
+
+impl ElevenLabsEndpoint for GetWorkspaceUsage {
+    const PATH: &'static str = "/v1/workspace/analytics/query/usage-by-product-over-time";
+
+    const METHOD: Method = Method::POST;
+
+    type ResponseBody = WorkspaceAnalyticsResponse;
+
+    async fn request_body(&self) -> Result<RequestBody> {
+        Ok(RequestBody::Json(serde_json::to_value(&self.body)?))
+    }
+
+    async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
+        Ok(resp.json().await?)
+    }
+}
+
+/// List the workspace's API requests.
+///
+/// See [List API Requests API reference](https://elevenlabs.io/docs/api-reference/workspace/list-api-requests).
+#[derive(Clone, Debug, Default)]
+pub struct ListApiRequests {
+    body: ListApiRequestsBody,
+}
+
+impl ListApiRequests {
+    pub fn new(body: ListApiRequestsBody) -> Self {
+        Self { body }
+    }
+}
+
+/// Body for [`ListApiRequests`]. All fields are optional.
+#[derive(Clone, Debug, Default, Serialize)]
+pub struct ListApiRequestsBody {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    start_time: Option<i64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    end_time: Option<i64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    limit: Option<i64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    sort: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    filters: Option<Vec<Value>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    search: Option<String>,
+}
+
+impl ListApiRequestsBody {
+    pub fn with_start_time(mut self, start_time: i64) -> Self {
+        self.start_time = Some(start_time);
+        self
+    }
+
+    pub fn with_end_time(mut self, end_time: i64) -> Self {
+        self.end_time = Some(end_time);
+        self
+    }
+
+    pub fn with_limit(mut self, limit: i64) -> Self {
+        self.limit = Some(limit);
+        self
+    }
+
+    pub fn with_sort(mut self, sort: impl Into<String>) -> Self {
+        self.sort = Some(sort.into());
+        self
+    }
+
+    pub fn with_filters(mut self, filters: impl IntoIterator<Item = Value>) -> Self {
+        self.filters = Some(filters.into_iter().collect());
+        self
+    }
+
+    pub fn with_search(mut self, search: impl Into<String>) -> Self {
+        self.search = Some(search.into());
+        self
+    }
+}
+
+impl crate::endpoints::sealed::Sealed for ListApiRequests {}
+
+impl ElevenLabsEndpoint for ListApiRequests {
+    const PATH: &'static str = "/v1/workspace/analytics/requests";
+
+    const METHOD: Method = Method::POST;
+
+    type ResponseBody = WorkspaceAnalyticsResponse;
+
+    async fn request_body(&self) -> Result<RequestBody> {
+        Ok(RequestBody::Json(serde_json::to_value(&self.body)?))
+    }
+
+    async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
+        Ok(resp.json().await?)
+    }
+}
+
+// =============================================================================
+// Workspace API-key policy
+// =============================================================================
+
+/// Disable a workspace API key by name.
+///
+/// See [Disable API Key API reference](https://elevenlabs.io/docs/api-reference/workspace/disable-api-key).
+#[derive(Clone, Debug)]
+pub struct DisableApiKey {
+    api_key_name: String,
+}
+
+impl DisableApiKey {
+    pub fn new(api_key_name: impl Into<String>) -> Self {
+        Self {
+            api_key_name: api_key_name.into(),
+        }
+    }
+}
+
+impl crate::endpoints::sealed::Sealed for DisableApiKey {}
+
+impl ElevenLabsEndpoint for DisableApiKey {
+    const PATH: &'static str = "/v1/workspaces/api-keys/disable";
+
+    const METHOD: Method = Method::POST;
+
+    type ResponseBody = Value;
+
+    fn query_params(&self) -> Option<QueryValues> {
+        Some(vec![("api_key_name", self.api_key_name.clone())])
+    }
+
+    async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
+        Ok(resp.json().await?)
+    }
+}
+
+/// Set the workspace's third-party API-key disabling policy.
+///
+/// See [Set Third-Party Disabling Policy API reference](https://elevenlabs.io/docs/api-reference/workspace/set-third-party-disabling-policy).
+#[derive(Clone, Debug, Default)]
+pub struct SetThirdPartyDisablingPolicy {
+    third_party_disable_allowed: Option<bool>,
+}
+
+impl SetThirdPartyDisablingPolicy {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn with_third_party_disable_allowed(mut self, third_party_disable_allowed: bool) -> Self {
+        self.third_party_disable_allowed = Some(third_party_disable_allowed);
+        self
+    }
+}
+
+impl crate::endpoints::sealed::Sealed for SetThirdPartyDisablingPolicy {}
+
+impl ElevenLabsEndpoint for SetThirdPartyDisablingPolicy {
+    const PATH: &'static str = "/v1/workspaces/api-keys/third-party-disabling";
+
+    const METHOD: Method = Method::POST;
+
+    type ResponseBody = Value;
+
+    async fn request_body(&self) -> Result<RequestBody> {
+        Ok(RequestBody::Json(serde_json::json!({
+            "third_party_disable_allowed": self.third_party_disable_allowed,
+        })))
+    }
+
+    async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
+        Ok(resp.json().await?)
+    }
+}

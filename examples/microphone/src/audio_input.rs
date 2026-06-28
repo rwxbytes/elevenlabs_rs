@@ -40,9 +40,7 @@ impl DefaultMicrophoneManager {
                         })
                         .collect();
 
-                    audio_tx
-                        .send(mono_samples)
-                        .expect("Failed to send audio samples");
+                    let _ = audio_tx.send(mono_samples);
                 },
                 |err| eprintln!("Input stream error: {}", err),
                 None,

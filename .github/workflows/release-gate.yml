@@ -45,6 +45,9 @@ jobs:
       - name: Check workspace
         run: cargo check --workspace --all-features
 
+      - name: Check elevenlabs_rs default features
+        run: cargo check -p elevenlabs_rs
+
       - name: Check elevenlabs_rs without default features
         run: cargo check -p elevenlabs_rs --no-default-features
 
@@ -56,6 +59,12 @@ jobs:
 
       - name: Check elevenlabs_rs convai feature
         run: cargo check -p elevenlabs_rs --no-default-features --features convai
+
+      - name: Check elevenlabs_rs ws feature
+        run: cargo check -p elevenlabs_rs --no-default-features --features ws
+
+      - name: Check elevenlabs_rs genai websocket feature set
+        run: cargo check -p elevenlabs_rs --no-default-features --features genai,ws,native-tls
 
       - name: Run clippy
         run: cargo clippy --workspace --all-targets --all-features -- -D warnings

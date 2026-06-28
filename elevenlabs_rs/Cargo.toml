@@ -13,7 +13,6 @@ keywords = ["elevenlabs", "genai", "tts", "AI", "AI-audio"]
 async-stream = "0.3.5"
 base64 = "0.22.1"
 bytes = "1.9.0"
-futures-channel = "0.3.30"
 futures-util = "0.3.28"
 hmac = { version = "0.12", optional = true }
 reqwest = { version = "0.13", features = [
@@ -27,36 +26,48 @@ serde_json = "1.0.103"
 sha2 = { version = "0.10", optional = true }
 strum = { version = "0.26.3", features = ["derive"] }
 thiserror = "2"
-tokio = { version = "1.29.1", features = ["full"] }
-tokio-tungstenite = { version = "0.29" }
+tokio = { version = "1.29.1", default-features = false, features = ["rt"] }
+tokio-tungstenite = { version = "0.29", optional = true }
 
 [features]
-default = [
-  "admin",
-  "genai",
-  "playback",
-  "reqwest/native-tls",
-  "tokio-tungstenite/native-tls",
-]
+default = ["native-tls"]
 playback = ["dep:rodio"]
 admin = []
 convai = []
 genai = []
-ws = ["dep:hmac", "dep:sha2"]
+ws = [
+  "dep:hmac",
+  "dep:sha2",
+  "dep:tokio-tungstenite",
+  "tokio/macros",
+  "tokio/net",
+  "tokio/sync",
+  "tokio/time",
+]
 # Enable rustls for TLS support
-rustls = ["reqwest/rustls", "tokio-tungstenite/rustls-tls-native-roots"]
+rustls = ["reqwest/rustls", "tokio-tungstenite?/rustls-tls-native-roots"]
 # Enable rustls and webpki-roots
 rustls-webpki-roots = [
   "reqwest/rustls",
-  "tokio-tungstenite/rustls-tls-webpki-roots",
+  "tokio-tungstenite?/rustls-tls-webpki-roots",
 ]
 # Enable native-tls for TLS support
-native-tls = ["reqwest/native-tls", "tokio-tungstenite/native-tls"]
+native-tls = ["reqwest/native-tls", "tokio-tungstenite?/native-tls"]
 # Remove dependency on OpenSSL
 native-tls-vendored = [
   "reqwest/native-tls-vendored",
-  "tokio-tungstenite/native-tls",
+  "tokio-tungstenite?/native-tls",
 ]
+
+[dev-dependencies]
+tokio = { version = "1.29.1", default-features = false, features = [
+  "io-util",
+  "macros",
+  "net",
+  "rt-multi-thread",
+  "sync",
+  "time",
+] }
 
 [package.metadata.docs.rs]
 all-features = true

@@ -69,9 +69,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - **Breaking**: `elevenlabs_rs::Result` now uses `elevenlabs_rs::error::Error` instead of a boxed trait-object error
 - **Breaking**: `ElevenLabsEndpoint` is now sealed; use `ElevenLabsClient::raw` for unsupported endpoints
+- **Breaking**: default features are now slim and only enable native TLS; enable `admin`, `genai`, `convai`, `ws`, and `playback` explicitly as needed
 - **Breaking**: `Alignment` timestamp fields and the `Timestamps` iterator item are now `f64` (were `f32`)
 - **Breaking**: model and format enums now include open custom variants for provider-owned values
 - Deprecated old ElevenLabs model variants and changed `ConvAIModel::default()` from `ElevenTurboV2` to `ElevenFlashV2`
+- `tokio` no longer uses the `full` feature set in normal builds
+- WebSocket transport dependencies are now gated behind the `ws` feature
 - WebSocket TTS streams now retain reader/writer task handles and abort them when the returned stream is dropped
 - WebSocket transport now uses shared URL/auth construction and more diagnostic close/frame/decode errors
 - WebSocket TTS and realtime STT now route through a sealed internal endpoint/codec transport abstraction
@@ -86,10 +89,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `ElevenLabsClient::hit_ws`; use `connect_text_to_speech`. It will be kept for one release.
 - `GetUsage` (admin usage endpoint). It will be kept for one release.
 - `CreateKnowledgeBaseDoc` (`POST /v1/convai/knowledge-base`); use `CreateFileDocument`, `CreateUrlDocument`, or `CreateTextDocument`. It will be kept for one release.
-- `GetSignedUrl` (`GET /v1/convai/conversation/get-signed-url`); deprecated by ElevenLabs. It will be kept for one release.
+
+### Removed
+- Removed the custom `elevenlabs_twilio` bridge crate and Twilio server examples from this public workspace. Official ElevenLabs Twilio endpoints remain in `elevenlabs_rs`.
 
 ### Fixed
 - `GetSignedUrl` now targets the current `/v1/convai/conversation/get-signed-url` path (previously the outdated `get_signed_url`)
+- Removed the incorrect deprecation marker from `GetSignedUrl`; only the legacy `get_signed_url` alias is deprecated.
 - Streaming-with-timestamps JSON parser (in `tts` and `text_to_dialogue`) now buffers across network chunk boundaries instead of assuming one chunk is exactly one message; `segment_text` offsets per-chunk character indices so it is correct for stream chunks
 - WebSocket TTS text chunks now serialize through `serde_json` instead of manual string formatting, so quotes, backslashes, control characters, and Unicode are escaped correctly
 - WebSocket TTS URL path/query construction now percent-encodes values correctly

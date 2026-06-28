@@ -4,7 +4,10 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-elevenlabs_rs = { path = "../../elevenlabs_rs"}
+elevenlabs_rs = { path = "../../elevenlabs_rs", default-features = false, features = [
+  "genai",
+  "native-tls",
+] }
 rig-core = "0.18.2"
 serde_json = "1.0.143"
 tokio = "1.47.1"

@@ -48,9 +48,9 @@ impl AudioProcessor {
                 let chunk = std::mem::take(&mut buffer);
                 if !chunk.is_empty() {
                     let encoded_audio = resample_and_encode_audio_to_b64(&chunk, sample_rate);
-                    self.encoded_audio_tx
-                        .send(encoded_audio)
-                        .expect("Failed to send encoded audio");
+                    if self.encoded_audio_tx.send(encoded_audio).is_err() {
+                        break;
+                    }
                 }
             }
         }

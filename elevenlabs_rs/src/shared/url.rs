@@ -15,6 +15,8 @@ impl AndPathParam for String {
 pub(crate) enum PathParam {
     #[strum(serialize = ":agent_id")]
     AgentID,
+    #[strum(serialize = ":api_key_id")]
+    ApiKeyID,
     #[strum(serialize = ":auth_connection_id")]
     AuthConnectionID,
     #[strum(serialize = ":batch_id")]
@@ -63,6 +65,8 @@ pub(crate) enum PathParam {
     SampleID,
     #[strum(serialize = ":secret_id")]
     SecretID,
+    #[strum(serialize = ":service_account_user_id")]
+    ServiceAccountUserID,
     #[strum(serialize = ":source_branch_id")]
     SourceBranchID,
     #[strum(serialize = ":speaker_id")]

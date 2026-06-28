@@ -1,8 +1,9 @@
 use super::*;
+use serde::de;
+use serde_json::{Map, Value};
 
 /// See [Server Messages](https://elevenlabs.io/docs/conversational-ai/api-reference/websocket#server-to-client-messages)
-#[derive(Clone, Debug, Deserialize)]
-#[serde(untagged)]
+#[derive(Clone, Debug)]
 pub enum ServerMessage {
     AgentCorrection(AgentCorrection),
     AgentResponse(AgentResponse),
@@ -17,9 +18,29 @@ pub enum ServerMessage {
     TurnProbability(TurnProbability),
     UserTranscript(UserTranscript),
     VadScore(VadScore),
+    Unknown(UnknownServerMessage),
 }
 
 impl ServerMessage {
+    pub fn message_type(&self) -> &str {
+        match self {
+            Self::AgentCorrection(message) => &message.r#type,
+            Self::AgentResponse(message) => &message.r#type,
+            Self::Audio(message) => &message.r#type,
+            Self::ClientToolCall(message) => &message.r#type,
+            Self::ConversationInitiationMetadata(message) => &message.r#type,
+            Self::Interruption(message) => &message.r#type,
+            Self::McpConnectionStatus(message) => &message.r#type,
+            Self::McpToolCall(message) => &message.r#type,
+            Self::Ping(message) => &message.r#type,
+            Self::TentativeAgent(message) => &message.r#type,
+            Self::TurnProbability(message) => &message.r#type,
+            Self::UserTranscript(message) => &message.r#type,
+            Self::VadScore(message) => &message.r#type,
+            Self::Unknown(message) => &message.message_type,
+        }
+    }
+
     /// Indicates if the message is an agent correction response
     pub fn is_agent_correction(&self) -> bool {
         matches!(*self, ServerMessage::AgentCorrection(_))
@@ -190,6 +211,78 @@ impl ServerMessage {
             _ => None,
         }
     }
+
+    pub fn as_unknown(&self) -> Option<&UnknownServerMessage> {
+        match self {
+            ServerMessage::Unknown(unknown) => Some(unknown),
+            _ => None,
+        }
+    }
+}
+
+impl<'de> Deserialize<'de> for ServerMessage {
+    fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let value = Value::deserialize(deserializer)?;
+        let message_type = value
+            .get("type")
+            .and_then(Value::as_str)
+            .ok_or_else(|| de::Error::missing_field("type"))?
+            .to_owned();
+
+        match message_type.as_str() {
+            "agent_response_correction" => {
+                deserialize_server_message(value).map(Self::AgentCorrection)
+            }
+            "agent_response" => deserialize_server_message(value).map(Self::AgentResponse),
+            "audio" => deserialize_server_message(value).map(Self::Audio),
+            "client_tool_call" => deserialize_server_message(value).map(Self::ClientToolCall),
+            "conversation_initiation_metadata" => {
+                deserialize_server_message(value).map(Self::ConversationInitiationMetadata)
+            }
+            "interruption" => deserialize_server_message(value).map(Self::Interruption),
+            "mcp_connection_status" => {
+                deserialize_server_message(value).map(Self::McpConnectionStatus)
+            }
+            "mcp_tool_call" => deserialize_server_message(value).map(Self::McpToolCall),
+            "ping" => deserialize_server_message(value).map(Self::Ping),
+            "tentative_agent_response" => {
+                deserialize_server_message(value).map(Self::TentativeAgent)
+            }
+            "turn_probability" => deserialize_server_message(value).map(Self::TurnProbability),
+            "user_transcript" => deserialize_server_message(value).map(Self::UserTranscript),
+            "vad_score" => deserialize_server_message(value).map(Self::VadScore),
+            unknown => unknown_server_message(unknown, value).map(Self::Unknown),
+        }
+    }
+}
+
+fn deserialize_server_message<T, E>(value: Value) -> std::result::Result<T, E>
+where
+    T: serde::de::DeserializeOwned,
+    E: de::Error,
+{
+    serde_json::from_value(value).map_err(E::custom)
+}
+
+fn unknown_server_message<E>(
+    message_type: &str,
+    value: Value,
+) -> std::result::Result<UnknownServerMessage, E>
+where
+    E: de::Error,
+{
+    let Value::Object(mut payload) = value else {
+        return Err(E::custom("convai websocket message must be a JSON object"));
+    };
+    payload.remove("type");
+
+    Ok(UnknownServerMessage {
+        message_type: message_type.to_owned(),
+        payload,
+    })
 }
 
 impl TryFrom<&str> for ServerMessage {
@@ -199,6 +292,12 @@ impl TryFrom<&str> for ServerMessage {
         let response: ServerMessage = serde_json::from_str(text)?;
         Ok(response)
     }
+}
+
+#[derive(Clone, Debug)]
+pub struct UnknownServerMessage {
+    pub message_type: String,
+    pub payload: Map<String, Value>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]

@@ -27,10 +27,14 @@ use crate::endpoints::admin::voice::{
     VoiceBody, VoiceType,
 };
 use crate::endpoints::admin::workspace::{
-    AddMemberToGroup, AuditLogsQuery, CreateWorkspaceWebhook, DeleteWorkspaceWebhook,
-    GetWorkspaceAuditLogs, GetWorkspaceGroups, GetWorkspaceWebhooks, InviteUsers, InviteUsersBody,
-    RemoveMemberFromGroup, SearchWorkspaceGroups, SeatType, UpdateWorkspaceWebhook,
-    UpdateWorkspaceWebhookBody, WebhookHmacSettings,
+    AddMemberToGroup, AuditLogsQuery, CreateServiceAccountApiKey, CreateServiceAccountApiKeyBody,
+    CreateWorkspaceWebhook, DeleteServiceAccountApiKey, DeleteWorkspaceWebhook, DisableApiKey,
+    EditServiceAccountApiKey, EditServiceAccountApiKeyBody, GetServiceAccountApiKeys,
+    GetServiceAccounts, GetWorkspaceAuditLogs, GetWorkspaceGroups, GetWorkspaceUsage,
+    GetWorkspaceUsageBody, GetWorkspaceWebhooks, InviteUsers, InviteUsersBody, ListApiRequests,
+    ListApiRequestsBody, RemoveMemberFromGroup, SearchWorkspaceGroups, SeatType,
+    SetThirdPartyDisablingPolicy, UpdateWorkspaceWebhook, UpdateWorkspaceWebhookBody,
+    WebhookHmacSettings,
 };
 use crate::endpoints::convai::agent_management::{
     CreateAgentBranch, CreateAgentBranchBody, CreateAgentDeployments, CreateAgentDraft,
@@ -62,7 +66,6 @@ use crate::endpoints::convai::conversations::{
     SmartSearchConversationMessages, TextSearchConversationMessages, UnassignConversationTag,
     UploadConversationFile,
 };
-#[allow(deprecated)]
 use crate::endpoints::convai::conversations::{
     GetConversations, GetConversationsQuery, GetSignedUrl, GetSignedUrlQuery, GetWebRtcToken,
     OutboundCallViaTwilio, OutboundCallViaTwilioBody, RegisterTwilioCall, RegisterTwilioCallBody,
@@ -928,6 +931,90 @@ async fn pvc_voice_endpoints_encode_paths_and_bodies() {
         "https://api.elevenlabs.io/v1/voices/pvc/voice%2Fid/verification",
     );
     assert_multipart_body(&verification).await;
+}
+
+#[tokio::test]
+async fn workspace_service_account_and_analytics_endpoints_encode_paths_and_bodies() {
+    assert_endpoint(
+        &GetServiceAccounts,
+        Method::GET,
+        "https://api.elevenlabs.io/v1/service-accounts",
+    );
+
+    assert_endpoint(
+        &GetServiceAccountApiKeys::new("sa/id"),
+        Method::GET,
+        "https://api.elevenlabs.io/v1/service-accounts/sa%2Fid/api-keys",
+    );
+
+    let create_key = CreateServiceAccountApiKey::new(
+        "sa/id",
+        CreateServiceAccountApiKeyBody::new("CI key", ["text_to_speech"])
+            .with_character_limit(1000),
+    );
+    assert_endpoint(
+        &create_key,
+        Method::POST,
+        "https://api.elevenlabs.io/v1/service-accounts/sa%2Fid/api-keys",
+    );
+    let body = json_body(&create_key).await;
+    assert_eq!(body["name"], "CI key");
+    assert_eq!(body["permissions"][0], "text_to_speech");
+    assert_eq!(body["character_limit"], 1000);
+
+    let edit_key = EditServiceAccountApiKey::new(
+        "sa/id",
+        "key/id",
+        EditServiceAccountApiKeyBody::default().with_is_enabled(false),
+    );
+    assert_endpoint(
+        &edit_key,
+        Method::PATCH,
+        "https://api.elevenlabs.io/v1/service-accounts/sa%2Fid/api-keys/key%2Fid",
+    );
+    assert_eq!(json_body(&edit_key).await["is_enabled"], false);
+
+    assert_endpoint(
+        &DeleteServiceAccountApiKey::new("sa/id", "key/id"),
+        Method::DELETE,
+        "https://api.elevenlabs.io/v1/service-accounts/sa%2Fid/api-keys/key%2Fid",
+    );
+
+    let usage =
+        GetWorkspaceUsage::new(GetWorkspaceUsageBody::new(1000, 2000).with_interval_seconds(3600));
+    assert_endpoint(
+        &usage,
+        Method::POST,
+        "https://api.elevenlabs.io/v1/workspace/analytics/query/usage-by-product-over-time",
+    );
+    let body = json_body(&usage).await;
+    assert_eq!(body["start_time"], 1000);
+    assert_eq!(body["interval_seconds"], 3600);
+
+    let requests = ListApiRequests::new(ListApiRequestsBody::default().with_limit(50));
+    assert_endpoint(
+        &requests,
+        Method::POST,
+        "https://api.elevenlabs.io/v1/workspace/analytics/requests",
+    );
+    assert_eq!(json_body(&requests).await["limit"], 50);
+
+    assert_endpoint(
+        &DisableApiKey::new("my key"),
+        Method::POST,
+        "https://api.elevenlabs.io/v1/workspaces/api-keys/disable?api_key_name=my+key",
+    );
+
+    let policy = SetThirdPartyDisablingPolicy::new().with_third_party_disable_allowed(true);
+    assert_endpoint(
+        &policy,
+        Method::POST,
+        "https://api.elevenlabs.io/v1/workspaces/api-keys/third-party-disabling",
+    );
+    assert_eq!(
+        json_body(&policy).await["third_party_disable_allowed"],
+        true
+    );
 }
 
 #[tokio::test]
@@ -1891,7 +1978,6 @@ async fn convai_tags_and_environment_variable_endpoints_encode_paths_and_bodies(
 }
 
 #[tokio::test]
-#[allow(deprecated)]
 async fn convai_quick_win_endpoints_encode_paths_and_bodies() {
     let sip =
         GetSipMessages::new("phone/id").with_query(SipMessagesQuery::default().with_page_size(50));

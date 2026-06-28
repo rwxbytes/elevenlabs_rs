@@ -5,8 +5,12 @@ edition = "2021"
 publish = false
 
 [dependencies]
-# The realtime speech-to-text WebSocket lives behind the `ws` feature.
-elevenlabs_rs = { path = "../../elevenlabs_rs", features = ["ws"] }
+# The realtime speech-to-text WebSocket lives behind the `genai` and `ws` features.
+elevenlabs_rs = { path = "../../elevenlabs_rs", default-features = false, features = [
+  "genai",
+  "native-tls",
+  "ws",
+] }
 tokio = { version = "1.42.0", features = ["macros", "rt-multi-thread", "signal"] }
 tokio-stream = "0.1.16"
 cpal = "0.15.3"

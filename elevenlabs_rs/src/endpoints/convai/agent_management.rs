@@ -1,6 +1,6 @@
 //! Advanced Conversational AI agent-management endpoints.
 //!
-//! Beyond the core agent CRUD in [`agents`](super::agents), these endpoints
+//! Beyond the core agent CRUD in [`agents`], these endpoints
 //! cover branches, deployments, drafts, duplication, simulations, test runs,
 //! topics, versions, the widget embed, and the avatar.
 //!

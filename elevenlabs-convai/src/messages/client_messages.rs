@@ -6,6 +6,11 @@ const PONG: &str = "pong";
 const CONVERSATION_INITIATION_CLIENT_DATA: &str = "conversation_initiation_client_data";
 const CLIENT_TOOL_RESULT: &str = "client_tool_result";
 const CONTEXTUAL_UPDATE: &str = "contextual_update";
+const FEEDBACK: &str = "feedback";
+const FILE_INPUT: &str = "file_input";
+const MULTIMODAL_MESSAGE: &str = "multimodal_message";
+const USER_ACTIVITY: &str = "user_activity";
+const USER_MESSAGE: &str = "user_message";
 
 /// An enum for new types of individual client messages.
 #[derive(Clone, Debug)]
@@ -20,6 +25,10 @@ pub enum ClientMessage {
     ClientToolResult(ClientToolResult),
     /// A new type of `ContextualUpdate`
     ContextualUpdate(ContextualUpdate),
+    Feedback(Feedback),
+    UserMessage(UserMessage),
+    UserActivity(UserActivity),
+    MultimodalMessage(MultimodalMessage),
 }
 
 /// See [User Audio Chunks API reference](https://elevenlabs.io/docs/conversational-ai/api-reference/websocket#user-audio-chunk)
@@ -42,7 +51,7 @@ impl UserAudioChunk {
 impl TryFrom<UserAudioChunk> for Message {
     type Error = ConvAIError;
     fn try_from(chunk: UserAudioChunk) -> Result<Self, Self::Error> {
-        Ok(Message::Text(serde_json::to_string(&chunk)?))
+        to_text_message(&chunk)
     }
 }
 
@@ -68,7 +77,7 @@ impl Pong {
 impl TryFrom<Pong> for Message {
     type Error = ConvAIError;
     fn try_from(pong: Pong) -> Result<Self, Self::Error> {
-        Ok(Message::Text(serde_json::to_string(&pong)?))
+        to_text_message(&pong)
     }
 }
 
@@ -254,6 +263,10 @@ impl ClientToolResult {
         self.tool_call_id = Some(client_tool_id);
         self
     }
+    pub fn with_tool_call_id(mut self, tool_call_id: impl Into<String>) -> Self {
+        self.tool_call_id = Some(tool_call_id.into());
+        self
+    }
     pub fn with_result(mut self, result: String) -> Self {
         self.result = Some(result);
         self
@@ -267,14 +280,14 @@ impl ClientToolResult {
 impl TryFrom<ClientToolResult> for Message {
     type Error = ConvAIError;
     fn try_from(result: ClientToolResult) -> Result<Self, Self::Error> {
-        Ok(Message::Text(serde_json::to_string(&result)?))
+        to_text_message(&result)
     }
 }
 
 impl TryFrom<ConversationInitiationClientData> for Message {
     type Error = ConvAIError;
     fn try_from(data: ConversationInitiationClientData) -> Result<Self, Self::Error> {
-        Ok(Message::Text(serde_json::to_string(&data)?))
+        to_text_message(&data)
     }
 }
 
@@ -296,6 +309,190 @@ impl ContextualUpdate {
 impl TryFrom<ContextualUpdate> for Message {
     type Error = ConvAIError;
     fn try_from(update: ContextualUpdate) -> Result<Self, Self::Error> {
-        Ok(Message::Text(serde_json::to_string(&update)?))
+        to_text_message(&update)
+    }
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct Feedback {
+    r#type: String,
+    pub score: String,
+    pub event_id: u32,
+}
+
+impl Feedback {
+    pub fn new(event_id: u32, score: impl Into<String>) -> Self {
+        Self {
+            r#type: FEEDBACK.to_owned(),
+            score: score.into(),
+            event_id,
+        }
+    }
+
+    pub fn like(event_id: u32) -> Self {
+        Self::new(event_id, "like")
+    }
+
+    pub fn dislike(event_id: u32) -> Self {
+        Self::new(event_id, "dislike")
+    }
+}
+
+impl TryFrom<Feedback> for Message {
+    type Error = ConvAIError;
+    fn try_from(feedback: Feedback) -> Result<Self, Self::Error> {
+        to_text_message(&feedback)
+    }
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct UserMessage {
+    r#type: String,
+    pub text: String,
+}
+
+impl UserMessage {
+    pub fn new(text: impl Into<String>) -> Self {
+        Self {
+            r#type: USER_MESSAGE.to_owned(),
+            text: text.into(),
+        }
+    }
+}
+
+impl TryFrom<UserMessage> for Message {
+    type Error = ConvAIError;
+    fn try_from(message: UserMessage) -> Result<Self, Self::Error> {
+        to_text_message(&message)
+    }
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct UserActivity {
+    r#type: String,
+}
+
+impl UserActivity {
+    pub fn new() -> Self {
+        Self {
+            r#type: USER_ACTIVITY.to_owned(),
+        }
+    }
+}
+
+impl Default for UserActivity {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl TryFrom<UserActivity> for Message {
+    type Error = ConvAIError;
+    fn try_from(activity: UserActivity) -> Result<Self, Self::Error> {
+        to_text_message(&activity)
+    }
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct MultimodalMessage {
+    r#type: String,
+    pub text: UserMessage,
+    pub file: FileInput,
+}
+
+impl MultimodalMessage {
+    pub fn new(text: impl Into<String>, file_id: impl Into<String>) -> Self {
+        Self {
+            r#type: MULTIMODAL_MESSAGE.to_owned(),
+            text: UserMessage::new(text),
+            file: FileInput::new(file_id),
+        }
+    }
+}
+
+impl TryFrom<MultimodalMessage> for Message {
+    type Error = ConvAIError;
+    fn try_from(message: MultimodalMessage) -> Result<Self, Self::Error> {
+        to_text_message(&message)
+    }
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct FileInput {
+    r#type: String,
+    pub file_id: String,
+}
+
+impl FileInput {
+    pub fn new(file_id: impl Into<String>) -> Self {
+        Self {
+            r#type: FILE_INPUT.to_owned(),
+            file_id: file_id.into(),
+        }
+    }
+}
+
+impl TryFrom<ClientMessage> for Message {
+    type Error = ConvAIError;
+
+    fn try_from(message: ClientMessage) -> Result<Self, Self::Error> {
+        match message {
+            ClientMessage::UserAudioChunk(message) => message.try_into(),
+            ClientMessage::Pong(message) => message.try_into(),
+            ClientMessage::ConversationInitiationClientData(message) => message.try_into(),
+            ClientMessage::ClientToolResult(message) => message.try_into(),
+            ClientMessage::ContextualUpdate(message) => message.try_into(),
+            ClientMessage::Feedback(message) => message.try_into(),
+            ClientMessage::UserMessage(message) => message.try_into(),
+            ClientMessage::UserActivity(message) => message.try_into(),
+            ClientMessage::MultimodalMessage(message) => message.try_into(),
+        }
+    }
+}
+
+fn to_text_message<T>(value: &T) -> Result<Message, ConvAIError>
+where
+    T: Serialize,
+{
+    Ok(Message::Text(serde_json::to_string(value)?.into()))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::{json, Value};
+
+    fn message_json(message: Message) -> Value {
+        let Message::Text(text) = message else {
+            panic!("expected text message");
+        };
+        serde_json::from_str(&text).unwrap()
+    }
+
+    #[test]
+    fn current_client_events_serialize_to_protocol_shapes() {
+        assert_eq!(
+            message_json(Message::try_from(Feedback::like(43)).unwrap()),
+            json!({ "type": "feedback", "score": "like", "event_id": 43 })
+        );
+        assert_eq!(
+            message_json(Message::try_from(UserMessage::new("upgrade me")).unwrap()),
+            json!({ "type": "user_message", "text": "upgrade me" })
+        );
+        assert_eq!(
+            message_json(Message::try_from(UserActivity::new()).unwrap()),
+            json!({ "type": "user_activity" })
+        );
+        assert_eq!(
+            message_json(
+                Message::try_from(MultimodalMessage::new("What is this file?", "file_12345"))
+                    .unwrap()
+            ),
+            json!({
+                "type": "multimodal_message",
+                "text": { "type": "user_message", "text": "What is this file?" },
+                "file": { "type": "file_input", "file_id": "file_12345" }
+            })
+        );
     }
 }

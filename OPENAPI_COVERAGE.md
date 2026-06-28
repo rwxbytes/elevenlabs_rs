@@ -1,6 +1,6 @@
 # OpenAPI coverage
 
-Generated: 2026-06-28T11:08:03Z
+Generated: 2026-06-28T20:42:48Z
 Snapshot: `openapi/elevenlabs-openapi.paths.json`
 Source: https://api.elevenlabs.io/openapi.json
 
@@ -9,9 +9,9 @@ Source: https://api.elevenlabs.io/openapi.json
 | Metric | Value |
 | --- | ---: |
 | OpenAPI operations | 320 |
-| Implemented method/path pairs | 260 |
-| Coverage | 81.3% |
-| Local endpoint constants checked | 260 |
+| Implemented method/path pairs | 269 |
+| Coverage | 84.1% |
+| Local endpoint constants checked | 269 |
 | Local constants missing from snapshot | 0 |
 
 ## Coverage By Path
@@ -29,7 +29,7 @@ Source: https://api.elevenlabs.io/openapi.json
 | /v1/music | 7 | 7 | 100.0% |
 | /v1/productions | 0 | 11 | 0.0% |
 | /v1/pronunciation-dictionaries | 9 | 9 | 100.0% |
-| /v1/service-accounts | 0 | 5 | 0.0% |
+| /v1/service-accounts | 5 | 5 | 100.0% |
 | /v1/shared-voices | 1 | 1 | 100.0% |
 | /v1/similar-voices | 1 | 1 | 100.0% |
 | /v1/single-use-token | 1 | 1 | 100.0% |
@@ -44,13 +44,28 @@ Source: https://api.elevenlabs.io/openapi.json
 | /v1/usage | 1 | 1 | 100.0% |
 | /v1/user | 2 | 2 | 100.0% |
 | /v1/voices | 24 | 25 | 96.0% |
-| /v1/workspace | 20 | 22 | 90.9% |
-| /v1/workspaces | 0 | 2 | 0.0% |
+| /v1/workspace | 22 | 22 | 100.0% |
+| /v1/workspaces | 2 | 2 | 100.0% |
 | /v2/voices | 1 | 1 | 100.0% |
 
 ## Local Endpoint Constants Missing From Snapshot
 
 All local endpoint method/path constants match the snapshot.
+
+## Coverage Notes
+
+The official OpenAPI snapshot still includes a few legacy or deprecated
+operations. They remain visible in the generated coverage totals, but they are
+not planned as `0.7.0` typed endpoints unless ElevenLabs reintroduces them as
+current APIs.
+
+- `GET /v1/convai/conversation/get_signed_url` is the legacy underscore-path
+  signed URL route. The current hyphen-path route,
+  `GET /v1/convai/conversation/get-signed-url`, is already implemented.
+- `GET /v1/voices` is the legacy V1 voice-list route. The crate already exposes
+  the current V2 voice-list variant.
+- Dubbing paths containing `/resource/` are legacy beta-era dubbing resource
+  routes and are intentionally left out of the `0.7.0` typed surface.
 
 ## OpenAPI Operations Not Yet Implemented
 
@@ -62,11 +77,18 @@ All local endpoint method/path constants match the snapshot.
 
 ### /v1/convai
 
+Note: the missing signed URL operation below is the legacy underscore-path alias.
+The current hyphen-path endpoint is already implemented.
+
 | Method | Path | Summary |
 | --- | --- | --- |
 | `GET` | `/v1/convai/conversation/get_signed_url` | Get Signed Url |
 
 ### /v1/dubbing
+
+Note: paths containing `/resource/` are legacy beta-era dubbing APIs and are not
+planned for the `0.7.0` typed surface. The non-resource rows remain ordinary
+coverage gaps.
 
 | Method | Path | Summary |
 | --- | --- | --- |
@@ -101,16 +123,6 @@ All local endpoint method/path constants match the snapshot.
 | `GET` | `/v1/productions/orders/{order_id}/media/{media_id}` | Get Media Info |
 | `POST` | `/v1/productions/orders/{order_id}/submit` | Submit Order |
 
-### /v1/service-accounts
-
-| Method | Path | Summary |
-| --- | --- | --- |
-| `GET` | `/v1/service-accounts` | Get Workspace Service Accounts |
-| `GET` | `/v1/service-accounts/{service_account_user_id}/api-keys` | Get Service Account Api Keys Route |
-| `POST` | `/v1/service-accounts/{service_account_user_id}/api-keys` | Create Service Account Api Key |
-| `DELETE` | `/v1/service-accounts/{service_account_user_id}/api-keys/{api_key_id}` | Delete Service Account Api Key |
-| `PATCH` | `/v1/service-accounts/{service_account_user_id}/api-keys/{api_key_id}` | Edit Service Account Api Key |
-
 ### /v1/studio
 
 | Method | Path | Summary |
@@ -141,23 +153,12 @@ All local endpoint method/path constants match the snapshot.
 
 ### /v1/voices
 
+Note: the missing operation below is the legacy V1 voice-list route. The crate
+already exposes the current V2 voice-list variant.
+
 | Method | Path | Summary |
 | --- | --- | --- |
 | `GET` | `/v1/voices` | List Voices |
-
-### /v1/workspace
-
-| Method | Path | Summary |
-| --- | --- | --- |
-| `POST` | `/v1/workspace/analytics/query/usage-by-product-over-time` | Get Workspace Usage |
-| `POST` | `/v1/workspace/analytics/requests` | List Api Requests |
-
-### /v1/workspaces
-
-| Method | Path | Summary |
-| --- | --- | --- |
-| `POST` | `/v1/workspaces/api-keys/disable` | Disable Api Key |
-| `POST` | `/v1/workspaces/api-keys/third-party-disabling` | Set Workspace Third-Party Disabling Policy |
 
 ## Maintainer Commands
 

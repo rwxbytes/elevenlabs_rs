@@ -16,8 +16,8 @@
 //!   ELEVENLABS_API_KEY=... cargo run -p dialogue_karaoke
 //!
 //! Docs:
-//!   - https://elevenlabs.io/docs/overview/capabilities/text-to-dialogue
-//!   - https://elevenlabs.io/docs/overview/capabilities/text-to-speech/best-practices
+//!   - <https://elevenlabs.io/docs/overview/capabilities/text-to-dialogue>
+//!   - <https://elevenlabs.io/docs/overview/capabilities/text-to-speech/best-practices>
 
 use elevenlabs_rs::endpoints::genai::text_to_dialogue::*;
 use elevenlabs_rs::utils::{play, save};

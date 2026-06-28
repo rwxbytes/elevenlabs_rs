@@ -55,6 +55,7 @@ pub enum Error {
     AudioDecodeError(#[from] rodio::decoder::DecoderError),
     #[error("websocket error: {0}")]
     WebSocketError(#[from] WebSocketError),
+    #[cfg(feature = "ws")]
     #[error("websocket transport error: {0}")]
     WebSocketTransportError(#[source] Box<tokio_tungstenite::tungstenite::Error>),
     #[error("channel send error: {0}")]
@@ -87,22 +88,10 @@ impl From<String> for Error {
     }
 }
 
+#[cfg(feature = "ws")]
 impl From<tokio_tungstenite::tungstenite::Error> for Error {
     fn from(value: tokio_tungstenite::tungstenite::Error) -> Self {
         Self::WebSocketTransportError(Box::new(value))
-    }
-}
-
-impl<T> From<futures_channel::mpsc::TrySendError<T>> for Error {
-    fn from(value: futures_channel::mpsc::TrySendError<T>) -> Self {
-        let reason = if value.is_disconnected() {
-            "receiver disconnected"
-        } else if value.is_full() {
-            "channel full"
-        } else {
-            "unknown channel send failure"
-        };
-        Self::ChannelSendError(reason.to_owned())
     }
 }
 
