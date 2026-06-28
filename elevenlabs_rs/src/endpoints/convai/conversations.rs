@@ -495,6 +495,7 @@ impl ElevenLabsEndpoint for GetConversationAudio {
 ///
 /// # Example
 /// ```no_run
+/// # #![allow(deprecated)]
 /// use elevenlabs_rs::endpoints::convai::conversations::GetSignedUrl;
 /// use elevenlabs_rs::{ElevenLabsClient, Result};
 ///
@@ -508,11 +509,13 @@ impl ElevenLabsEndpoint for GetConversationAudio {
 /// }
 /// ```
 /// See [Get Signed URL API reference](https://elevenlabs.io/docs/conversational-ai/api-reference/conversations/get-signed-url)
+#[deprecated(since = "0.7.0", note = "use GetWebRtcToken")]
 #[derive(Clone, Debug, Serialize)]
 pub struct GetSignedUrl {
     query: GetSignedUrlQuery,
 }
 
+#[allow(deprecated)]
 impl GetSignedUrl {
     pub fn new(agent_id: impl Into<String>) -> Self {
         GetSignedUrl {
@@ -557,8 +560,10 @@ impl GetSignedUrlQuery {
     }
 }
 
+#[allow(deprecated)]
 impl crate::endpoints::sealed::Sealed for GetSignedUrl {}
 
+#[allow(deprecated)]
 impl ElevenLabsEndpoint for GetSignedUrl {
     const PATH: &'static str = "/v1/convai/conversation/get-signed-url";
 

@@ -62,6 +62,7 @@ use crate::endpoints::convai::conversations::{
     SmartSearchConversationMessages, TextSearchConversationMessages, UnassignConversationTag,
     UploadConversationFile,
 };
+#[allow(deprecated)]
 use crate::endpoints::convai::conversations::{
     GetConversations, GetConversationsQuery, GetSignedUrl, GetSignedUrlQuery, GetWebRtcToken,
     OutboundCallViaTwilio, OutboundCallViaTwilioBody, RegisterTwilioCall, RegisterTwilioCallBody,
@@ -1890,6 +1891,7 @@ async fn convai_tags_and_environment_variable_endpoints_encode_paths_and_bodies(
 }
 
 #[tokio::test]
+#[allow(deprecated)]
 async fn convai_quick_win_endpoints_encode_paths_and_bodies() {
     let sip =
         GetSipMessages::new("phone/id").with_query(SipMessagesQuery::default().with_page_size(50));

@@ -4,6 +4,7 @@ use crate::messages::client_messages::{
 };
 use crate::messages::server_messages::ServerMessage;
 use crate::Result;
+#[allow(deprecated)]
 use elevenlabs_rs::endpoints::convai::conversations::GetSignedUrl;
 use elevenlabs_rs::ElevenLabsClient;
 use futures_util::stream::{SplitSink, SplitStream};
@@ -126,6 +127,7 @@ impl AgentWebSocket {
         Ok(())
     }
 
+    #[allow(deprecated)]
     async fn get_url(&self) -> Result<String> {
         if let Some(key) = &self.api_key {
             let signed_url = ElevenLabsClient::new(key)

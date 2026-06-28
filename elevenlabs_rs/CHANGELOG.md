@@ -86,6 +86,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `ElevenLabsClient::hit_ws`; use `connect_text_to_speech`. It will be kept for one release.
 - `GetUsage` (admin usage endpoint). It will be kept for one release.
 - `CreateKnowledgeBaseDoc` (`POST /v1/convai/knowledge-base`); use `CreateFileDocument`, `CreateUrlDocument`, or `CreateTextDocument`. It will be kept for one release.
+- `GetSignedUrl` (`GET /v1/convai/conversation/get-signed-url`); use `GetWebRtcToken`. It will be kept for one release.
 
 ### Fixed
 - `GetSignedUrl` now targets the current `/v1/convai/conversation/get-signed-url` path (previously the outdated `get_signed_url`)
