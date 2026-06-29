@@ -32,7 +32,7 @@ use strum::Display;
 /// See [Get Usage API reference](https://elevenlabs.io/docs/api-reference/usage/get-characters-usage-metrics)
 #[deprecated(
     since = "0.7.0",
-    note = "GetUsage is deprecated and will be removed in a future release"
+    note = "GetUsage is deprecated upstream and remains available while ElevenLabs supports it"
 )]
 #[derive(Debug, Clone)]
 pub struct GetUsage {

@@ -1,10 +1,11 @@
 [package]
 name = "elevenlabs_rs"
-version = "0.6.0"
+version = "0.7.0"
 description = "A lib crate for ElevenLabs"
 authors = ["rwxbytes <rwxbytes@proton.me>"]
 license = "MIT"
 edition = "2021"
+rust-version = "1.85"
 readme = "README.md"
 repository = "https://github.com/rwxbytes/elevenlabs_rs"
 keywords = ["elevenlabs", "genai", "tts", "AI", "AI-audio"]

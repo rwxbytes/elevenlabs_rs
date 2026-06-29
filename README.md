@@ -11,6 +11,8 @@ See [OPENAPI_COVERAGE.md](OPENAPI_COVERAGE.md) for coverage grouped by path.
 
 Default features are intentionally slim for `0.7.0`: only native TLS is enabled.
 
+Minimum supported Rust version: **1.85**.
+
 Opt into product areas and optional runtime support explicitly:
 
 ```toml

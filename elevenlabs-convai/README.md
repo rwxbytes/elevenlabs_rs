@@ -1,5 +1,7 @@
 An unofficial lib crate for [ElevenLabs' Conversational AI](https://elevenlabs.io/docs/conversational-ai/docs/introduction)
 
+MSRV: Rust 1.85.
+
 #### Examples
 
 - [Microphone](https://github.com/rwxbytes/elevenlabs_rs/tree/master/examples/microphone/src/main.rs)

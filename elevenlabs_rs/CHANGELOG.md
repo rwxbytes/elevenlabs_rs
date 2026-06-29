@@ -5,111 +5,83 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [0.7.0] - 2026-06-29
+
+### Breaking
+- `elevenlabs_rs::Result` now uses the typed `elevenlabs_rs::error::Error` enum instead of a boxed trait-object error.
+- `ElevenLabsEndpoint` is sealed. Downstream crates should use `ElevenLabsClient::raw` for endpoints not modeled by this crate yet.
+- Default features are now slim and only enable `native-tls`. Enable `admin`, `genai`, `convai`, `ws`, and `playback` explicitly as needed.
+- Minimum supported Rust version is now 1.85.
+- `Alignment` timestamp fields and the `Timestamps` iterator item are now `f64` instead of `f32`.
+- Model and format enums now preserve provider-owned values through open custom variants.
+
 ### Added
-- `TextToDialogue` endpoint
-- `TextToDialogueWithTimestamps` endpoint
-- `TextToDialogueStream` endpoint
-- `TextToDialogueStreamWithTimestamps` endpoint
-- `language_code` and `apply_text_normalization` fields to `TextToDialogueBody`
-- `with_logging` query method to `TextToDialogueQuery`
-- helper methods to `TextToDialogueWithTimestampsResponse`: `audio`, `segment_text`, `segments_with_text`
-- `VoiceSegment::duration` method
-- `dialogue_karaoke` example
-- public `accent` field on `VerifiedLanguage`
-- typed `ApiError`/`Error` model and `ApiResponse`
-- `ElevenLabsClient::hit_with_metadata`
-- endpoint contract tests for high-traffic TTS, STT, voices, history, pronunciation dictionary, ConvAI, and text-to-dialogue surfaces
-- `CreateTranscript::with_query`
-- `SpeechToTextModel::ScribeV2`
-- WebSocket TTS serialization tests for escaped text/control messages
-- OpenAPI coverage snapshot, report, and maintainer tooling
-- `ElevenLabsClient::raw` for authenticated raw HTTP calls to endpoints not yet modeled by the crate
-- public `WebSocketSession<T>` with `close`, `abort`, and `is_closed` lifecycle controls
-- `ElevenLabsClient::connect_text_to_speech` and `ElevenLabsClient::connect_realtime_speech_to_text` as the preferred WebSocket session entry points
-- `WebSocketOptions`, `WebSocketSession::join`, and WebSocket task completion reports
-- local WebSocket integration tests for TTS/STT message order, auth, close, ping, non-normal close, and malformed JSON handling
-- `CreateSingleUseToken` endpoint
-- `CreateForcedAlignment` endpoint
-- `GetTranscript` and `DeleteTranscript` endpoints
-- `TextToVoiceDesign`, `TextToVoiceRemix`, and `TextToVoicePreviewStream` endpoints
-- realtime speech-to-text WebSocket support via `RealtimeSpeechToText`
-- multi-context text-to-speech WebSocket support via `MultiContextWebSocketTTS`
-- `with_sync_alignment`, `with_text_normalization`, and `with_seed` methods to `TTSWebSocketQuery`
-- `FilePart` for multipart uploads from either paths or in-memory bytes
-- in-memory upload constructors for speech-to-text, forced alignment, audio isolation, voice changer, dubbing, knowledge base, voice, similar voice, and widget avatar bodies
-- Speech Engine REST endpoints: `ListSpeechEngines`, `CreateSpeechEngine`, `GetSpeechEngine`, `UpdateSpeechEngine`, and `DeleteSpeechEngine`
-- Speech Engine upstream WebSocket protocol types, JWT verification, and framework-neutral session wrapper
-- Music generation endpoints in a new `genai::music` module: `ComposeMusic`, `StreamMusic`, `ComposeMusicDetailed`, `GenerateCompositionPlan`, `SeparateStems`, `UploadMusic`, and `VideoToMusic`
-- Music composition-plan types: `MusicCompositionPlan`, `MusicPrompt`, `SongSection`, `SectionSource`, `TimeRange`, `CompositionPlan`, `CompositionChunk`, `GenerationChunk`, and `AudioRefChunk`
-- Audio isolation history endpoints: `GetAudioIsolationHistory` and `DeleteAudioIsolationHistoryItem`
-- Audio-native content endpoints: `UpdateAudioNativeContentFromUrl`, `UpdateAudioNativeProjectContent`, and `GetAudioNativeProjectSettings`
-- Workspace endpoints: `GetWorkspaceAuditLogs`, `GetWorkspaceGroups`, `SearchWorkspaceGroups`, `AddMemberToGroup`, `RemoveMemberFromGroup`, `InviteUsers` (bulk), `GetWorkspaceWebhooks`, `CreateWorkspaceWebhook`, `UpdateWorkspaceWebhook`, and `DeleteWorkspaceWebhook`
-- Conversational AI batch-calling endpoints in a new `convai::batch_calling` module: `SubmitBatchCall`, `ListWorkspaceBatchCalls`, `GetBatchCall`, `CancelBatchCall`, `RetryBatchCall`, and `DeleteBatchCall`
-- Conversational AI endpoints completing several clusters: `GetSipMessages` (phone-numbers), `GetSecretDependencies`, `GetDashboardSettings`, `UpdateDashboardSettings` (workspace), `GetToolDependentAgents`, `GetToolExecutions` (tools), `GetWebRtcToken`, and `RegisterTwilioCall` (conversations)
-- Conversational AI conversation-tags endpoints in a new `convai::tags` module: `ListConversationTags`, `CreateConversationTag`, `GetConversationTag`, `UpdateConversationTag`, and `DeleteConversationTag`
-- Conversational AI environment-variable endpoints in a new `convai::environment_variables` module: `ListEnvironmentVariables`, `CreateEnvironmentVariable`, `GetEnvironmentVariable`, and `UpdateEnvironmentVariable`
-- Conversational AI outbound telephony endpoints in a new `convai::telephony` module: `ExotelOutboundCall`, `SipTrunkOutboundCall`, `WhatsAppOutboundCall`, and `WhatsAppOutboundMessage`
-- Conversational AI LLM endpoints in a new `convai::llm` module: `ListLlms`, `CalculateLlmUsage`, and `CalculateAgentLlmUsage`
-- Conversational AI singleton endpoints: `GetAgentKnowledgeBaseSize` (agents), `GetLiveCount` (analytics), and `GetConversationUsers` (users)
-- Conversational AI WhatsApp-account endpoints in a new `convai::whatsapp_accounts` module: `ListWhatsAppAccounts`, `GetWhatsAppAccount`, `UpdateWhatsAppAccount`, and `DeleteWhatsAppAccount`
-- Conversational AI test-invocation endpoints in a new `convai::test_invocations` module: `ListTestInvocations`, `GetTestInvocation`, and `ResubmitTests`
-- Conversational AI knowledge-base endpoints: `CreateTextDocument`, `CreateUrlDocument`, `CreateFileDocument`, `CreateKnowledgeBaseFolder`, `BulkMoveKnowledgeBase`, `MoveKnowledgeBaseEntity`, `GetRagIndexOverview`, `ComputeRagIndexesBatch`, `DeleteRagIndex`, `SearchKnowledgeBase`, `GetKnowledgeBaseSummaries`, `GetDocumentChunks`, `RefreshDocument`, `GetSourceFileUrl`, and `UpdateFileDocument`
-- Conversational AI conversation-management endpoints: `SmartSearchConversationMessages`, `TextSearchConversationMessages`, `RunConversationAnalysis`, `RunConversationEvaluation`, `UploadConversationFile`, `DeleteConversationFile`, `GetConversationSipMessages`, `AssignConversationTags`, and `UnassignConversationTag`
-- Conversational AI knowledge-base `UpdateKnowledgeBaseDocument` and `GetDocumentRagIndexes`, and workspace `GetSecret`/`UpdateSecret` endpoints
-- Advanced Conversational AI agent-management endpoints in a new `convai::agent_management` module: agent summaries; branch create/list/get/update/rebase/rebase-preview/merge/merge-preview; deployments; draft create/delete; `DuplicateAgent`; `RunAgentTests`; `SimulateConversation` and `SimulateConversationStream`; `GetAgentTopics`; and `GetAgentVersion`
-- Conversational AI agent-testing endpoints in a new `convai::agent_testing` module: `ListAgentTests`, `CreateAgentTest`, `GetAgentTest`, `UpdateAgentTest`, `DeleteAgentTest`, `GetAgentTestSummaries`, `BulkMoveTests`, `CreateAgentTestFolder`, `GetAgentTestFolder`, `UpdateAgentTestFolder`, and `DeleteAgentTestFolder`
-- Conversational AI MCP-server endpoints in a new `convai::mcp_servers` module: `CreateMcpServer`, `ListMcpServers`, `GetMcpServer`, `DeleteMcpServer`, `UpdateMcpServerConfig`, `UpdateMcpApprovalPolicy`, `AddMcpToolApproval`, `DeleteMcpToolApproval`, `CreateMcpToolConfig`, `GetMcpToolConfig`, `UpdateMcpToolConfig`, `DeleteMcpToolConfig`, and `ListMcpTools`
-- `with_query`, `with_include_conversation_id`, `with_branch_id`, and `with_environment` builder methods to `GetSignedUrl`/`GetSignedUrlQuery`
-- Workspace auth-connection endpoints in a new `admin::auth_connections` module: `CreateAuthConnection`, `ListAuthConnections`, `UpdateAuthConnection`, and `DeleteAuthConnection`, with typed per-auth-type request builders and a discriminated `AuthConnection`/`AuthConnectionConfig` response model
-- Professional Voice Cloning (PVC) endpoints in a new `admin::pvc_voices` module: `CreatePvcVoice`, `EditPvcVoice`, `GetPvcVoiceCaptcha`, `VerifyPvcVoiceCaptcha`, `AddPvcVoiceSamples`, `UpdatePvcVoiceSample`, `DeletePvcVoiceSample`, `GetPvcSampleAudio`, `StartSpeakerSeparation`, `GetSpeakerSeparationStatus`, `GetSeparatedSpeakerAudio`, `GetPvcSampleWaveform`, `RunPvcTraining`, and `RequestPvcManualVerification`
-- Pronunciation dictionary endpoints: `AddDictionaryFromRules`, `SetRules`, and `UpdateDictionary`
-- `WorkspaceAccess` enum for pronunciation dictionary access levels
-- `permission_on_resource` field to `CreateDictionaryResponse` and `DictionaryMetadataResponse`
+- Core client support for `ApiError`, `ApiResponse<T>`, and `ElevenLabsClient::hit_with_metadata`.
+- `ElevenLabsClient::raw` for authenticated raw HTTP calls to endpoints not yet modeled by the crate.
+- OpenAPI coverage snapshot/report tooling and endpoint contract tests for high-traffic REST and WebSocket surfaces.
+- `FilePart` for multipart uploads from paths or in-memory bytes, plus in-memory upload constructors across speech-to-text, forced alignment, audio isolation, voice changer, dubbing, knowledge base, voices, similar voices, and widget avatars.
+- Text-to-dialogue endpoints: `TextToDialogue`, `TextToDialogueWithTimestamps`, `TextToDialogueStream`, and `TextToDialogueStreamWithTimestamps`.
+- Text-to-dialogue request/response helpers: `language_code`, `apply_text_normalization`, `TextToDialogueQuery::with_logging`, `TextToDialogueWithTimestampsResponse::{audio, segment_text, segments_with_text}`, and `VoiceSegment::duration`.
+- Speech-core endpoints: `CreateSingleUseToken`, `CreateForcedAlignment`, `GetTranscript`, and `DeleteTranscript`.
+- Speech-to-text additions: `CreateTranscript::with_query`, `SpeechToTextModel::ScribeV2`, and realtime speech-to-text WebSocket support through `RealtimeSpeechToText`.
+- Text-to-voice endpoints: `TextToVoiceDesign`, `TextToVoiceRemix`, and `TextToVoicePreviewStream`.
+- Text-to-speech WebSocket additions: `connect_text_to_speech`, `MultiContextWebSocketTTS`, `TTSWebSocketQuery::{with_sync_alignment, with_text_normalization, with_seed}`, `WebSocketSession<T>`, `WebSocketOptions`, and task completion reports.
+- Speech Engine REST endpoints: `ListSpeechEngines`, `CreateSpeechEngine`, `GetSpeechEngine`, `UpdateSpeechEngine`, and `DeleteSpeechEngine`.
+- Speech Engine upstream WebSocket protocol types, JWT verification, and a framework-neutral session wrapper.
+- Music generation endpoints in `genai::music`: `ComposeMusic`, `StreamMusic`, `ComposeMusicDetailed`, `GenerateCompositionPlan`, `SeparateStems`, `UploadMusic`, and `VideoToMusic`.
+- Music composition-plan types, including `MusicCompositionPlan`, `MusicPrompt`, `SongSection`, `SectionSource`, `TimeRange`, `CompositionPlan`, `CompositionChunk`, `GenerationChunk`, and `AudioRefChunk`.
+- Audio isolation history endpoints: `GetAudioIsolationHistory` and `DeleteAudioIsolationHistoryItem`.
+- Audio-native content endpoints: `UpdateAudioNativeContentFromUrl`, `UpdateAudioNativeProjectContent`, and `GetAudioNativeProjectSettings`.
+- Workspace/admin endpoints for audit logs, groups, bulk invites, webhooks, service accounts, service-account API keys, workspace usage analytics, API request analytics, API-key disabling, and third-party-disabling policy.
+- Workspace auth-connection endpoints in `admin::auth_connections`, with typed per-auth-type request builders and discriminated response models.
+- Professional Voice Cloning endpoints in `admin::pvc_voices`, covering voice creation/editing, captcha verification, samples, speaker separation, training, and manual verification.
+- Pronunciation dictionary endpoints `AddDictionaryFromRules`, `SetRules`, and `UpdateDictionary`, plus `WorkspaceAccess` and `permission_on_resource` response fields.
+- Conversational AI endpoint modules for batch calling, conversation tags, environment variables, outbound telephony, LLM usage, WhatsApp accounts, test invocations, agent testing, agent management, and MCP servers.
+- Conversational AI knowledge-base endpoints for text/URL/file documents, folders, bulk/move operations, RAG indexes, search, summaries, chunks, refresh, source-file URLs, file updates, metadata updates, and document RAG indexes.
+- Conversational AI conversation-management endpoints for message search, analysis/evaluation runs, conversation file upload/delete, SIP messages, and tag assignment.
+- Conversational AI workspace/tool/conversation additions including `GetSipMessages`, `GetSecretDependencies`, `GetDashboardSettings`, `UpdateDashboardSettings`, `GetSecret`, `UpdateSecret`, `GetToolDependentAgents`, `GetToolExecutions`, `GetWebRtcToken`, `RegisterTwilioCall`, `GetAgentKnowledgeBaseSize`, `GetLiveCount`, and `GetConversationUsers`.
+- Builder methods on `GetSignedUrl`/`GetSignedUrlQuery` for custom query values, `include_conversation_id`, `branch_id`, and `environment`.
+- `dialogue_karaoke` example.
+- Public `accent` field on `VerifiedLanguage`.
 
 ### Changed
-- **Breaking**: `elevenlabs_rs::Result` now uses `elevenlabs_rs::error::Error` instead of a boxed trait-object error
-- **Breaking**: `ElevenLabsEndpoint` is now sealed; use `ElevenLabsClient::raw` for unsupported endpoints
-- **Breaking**: default features are now slim and only enable native TLS; enable `admin`, `genai`, `convai`, `ws`, and `playback` explicitly as needed
-- **Breaking**: `Alignment` timestamp fields and the `Timestamps` iterator item are now `f64` (were `f32`)
-- **Breaking**: model and format enums now include open custom variants for provider-owned values
-- Deprecated old ElevenLabs model variants and changed `ConvAIModel::default()` from `ElevenTurboV2` to `ElevenFlashV2`
-- `tokio` no longer uses the `full` feature set in normal builds
-- WebSocket transport dependencies are now gated behind the `ws` feature
-- WebSocket TTS streams now retain reader/writer task handles and abort them when the returned stream is dropped
-- WebSocket transport now uses shared URL/auth construction and more diagnostic close/frame/decode errors
-- WebSocket TTS and realtime STT now route through a sealed internal endpoint/codec transport abstraction
-- WebSocket protocol models now preserve unknown fields, realtime STT preserves unknown future events, and TTS audio decoding correctly handles `isFinal: false`
-- WebSocket TTS protocol error payloads now expose `code`, `error`, and `message` fields
-- Realtime STT WebSocket `invalid_request` and `input_error` events are now classified as protocol errors
-- WebSocket frame/decode/close errors now include endpoint and message-direction context
-- Internal workspace dependencies now resolve to local workspace members during development
-- Request bodies are now attached for all HTTP methods when an endpoint provides one
+- `ConvAIModel::default()` now uses `ElevenFlashV2` instead of the deprecated `ElevenTurboV2`.
+- `tokio` no longer uses the `full` feature set in normal builds.
+- WebSocket transport dependencies are now gated behind the `ws` feature.
+- WebSocket TTS and realtime STT now share a sealed internal endpoint/codec transport abstraction.
+- WebSocket sessions now retain reader/writer task handles, use shared URL/auth construction, preserve unknown protocol fields, classify live STT error events, and report endpoint/direction context in frame/decode/close errors.
+- Internal workspace dependencies now resolve to local workspace members during development.
+- Request bodies are now attached for all HTTP methods when an endpoint provides one.
 
 ### Deprecated
 - `ElevenLabsClient::hit_ws`; use `connect_text_to_speech`. It will be kept for one release.
-- `GetUsage` (admin usage endpoint). It will be kept for one release.
-- `CreateKnowledgeBaseDoc` (`POST /v1/convai/knowledge-base`); use `CreateFileDocument`, `CreateUrlDocument`, or `CreateTextDocument`. It will be kept for one release.
+- `GetUsage` (admin usage endpoint), matching the upstream deprecation. It remains available while ElevenLabs supports the endpoint.
+- `CreateKnowledgeBaseDoc` (`POST /v1/convai/knowledge-base`), matching the upstream deprecation. Prefer `CreateFileDocument`, `CreateUrlDocument`, or `CreateTextDocument`; the legacy endpoint remains available while ElevenLabs supports it.
+- Legacy model variants for `scribe_v1`, `eleven_monolingual_v1`, `eleven_multilingual_v1`, `eleven_turbo_v2`, and `eleven_turbo_v2_5`. They remain available while ElevenLabs accepts those model IDs.
 
 ### Removed
 - Removed the custom `elevenlabs_twilio` bridge crate and Twilio server examples from this public workspace. Official ElevenLabs Twilio endpoints remain in `elevenlabs_rs`.
 
 ### Fixed
-- `GetSignedUrl` now targets the current `/v1/convai/conversation/get-signed-url` path (previously the outdated `get_signed_url`)
+- `GetSignedUrl` now targets the current `/v1/convai/conversation/get-signed-url` path (previously the outdated `get_signed_url`).
 - Removed the incorrect deprecation marker from `GetSignedUrl`; only the legacy `get_signed_url` alias is deprecated.
-- Streaming-with-timestamps JSON parser (in `tts` and `text_to_dialogue`) now buffers across network chunk boundaries instead of assuming one chunk is exactly one message; `segment_text` offsets per-chunk character indices so it is correct for stream chunks
-- WebSocket TTS text chunks now serialize through `serde_json` instead of manual string formatting, so quotes, backslashes, control characters, and Unicode are escaped correctly
-- WebSocket TTS URL path/query construction now percent-encodes values correctly
-- WebSocket TTS BOS messages no longer serialize unset optional auth/config fields as JSON `null`
-- WebSocket TTS background task errors are now forwarded through the returned stream
-- Single-use token creation now sends an explicit zero-length request body so the API receives `Content-Length: 0`
-- Standalone feature builds, including `genai` without `admin`
-- Workspace check and clippy failures in examples and integrations
-- Endpoint path parameters are now percent-encoded by URL path segment
-- Non-success HTTP responses now preserve status, headers, raw body, and parsed JSON error metadata
-- Query builders are now applied on TTS, TTS timestamp, text-to-voice, and speech-to-text endpoints that previously stored but ignored them
-- Current ConvAI phone-number, Twilio outbound-call, and text-to-voice save paths
-- `CreatePhoneNumberBody` now serializes to the flat API payload shape
-- `convai::tools` is exported again
+- Streaming-with-timestamps JSON parser (in `tts` and `text_to_dialogue`) now buffers across network chunk boundaries instead of assuming one chunk is exactly one message; `segment_text` offsets per-chunk character indices so it is correct for stream chunks.
+- WebSocket TTS text chunks now serialize through `serde_json` instead of manual string formatting, so quotes, backslashes, control characters, and Unicode are escaped correctly.
+- WebSocket TTS URL path/query construction now percent-encodes values correctly.
+- WebSocket TTS BOS messages no longer serialize unset optional auth/config fields as JSON `null`.
+- WebSocket TTS background task errors are now forwarded through the returned stream.
+- WebSocket TTS audio decoding correctly handles `isFinal: false`.
+- WebSocket TTS protocol error payloads now expose `code`, `error`, and `message`.
+- Single-use token creation now sends an explicit zero-length request body so the API receives `Content-Length: 0`.
+- Standalone feature builds, including `genai` without `admin`.
+- Workspace check and clippy failures in examples and workspace members.
+- Endpoint path parameters are now percent-encoded by URL path segment.
+- Non-success HTTP responses now preserve status, headers, raw body, and parsed JSON error metadata.
+- Query builders are now applied on TTS, TTS timestamp, text-to-voice, and speech-to-text endpoints that previously stored but ignored them.
+- Current ConvAI phone-number, Twilio outbound-call, and text-to-voice save paths.
+- `CreatePhoneNumberBody` now serializes to the flat API payload shape.
+- `convai::tools` is exported again.
 
 ## [0.6.0] - 2025-04-05
 
