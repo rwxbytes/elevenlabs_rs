@@ -1,6 +1,7 @@
 use crate::error::ConvAIError;
 use crate::messages::client_messages::{
-    ClientToolResult, ContextualUpdate, ConversationInitiationClientData, Pong, UserAudioChunk,
+    ClientToolResult, ContextualUpdate, ConversationInitiationClientData, Pong, UserActivity,
+    UserAudioChunk, UserMessage,
 };
 use crate::messages::server_messages::ServerMessage;
 use crate::Result;
@@ -133,6 +134,16 @@ impl AgentWebSocketSession {
 
     pub async fn send_context_update(&self, context: impl Into<String>) -> Result<()> {
         self.send_frame(Message::try_from(ContextualUpdate::new(context))?)
+            .await
+    }
+
+    pub async fn send_user_message(&self, text: impl Into<String>) -> Result<()> {
+        self.send_frame(Message::try_from(UserMessage::new(text))?)
+            .await
+    }
+
+    pub async fn send_user_activity(&self) -> Result<()> {
+        self.send_frame(Message::try_from(UserActivity::new())?)
             .await
     }
 
@@ -475,6 +486,18 @@ impl AgentWebSocket {
     /// Send a `ContextualUpdate` message to the server.
     pub async fn send_context_update(&self, context: impl Into<String>) -> Result<()> {
         self.send_frame(Message::try_from(ContextualUpdate::new(context))?)
+            .await
+    }
+
+    /// Send a text user message into the active conversation.
+    pub async fn send_user_message(&self, text: impl Into<String>) -> Result<()> {
+        self.send_frame(Message::try_from(UserMessage::new(text))?)
+            .await
+    }
+
+    /// Notify the active conversation of user activity.
+    pub async fn send_user_activity(&self) -> Result<()> {
+        self.send_frame(Message::try_from(UserActivity::new())?)
             .await
     }
 }
