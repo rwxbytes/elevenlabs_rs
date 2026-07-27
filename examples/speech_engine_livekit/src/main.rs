@@ -2118,7 +2118,7 @@ impl SpeechEngineWorkbench {
 
         egui::Frame::NONE
             .fill(palette.surface)
-            .stroke(egui::Stroke::new(1.0, palette.border))
+            .stroke(egui::Stroke::new(1.0_f32, palette.border))
             .corner_radius(egui::CornerRadius::same(10))
             .inner_margin(egui::Margin::symmetric(14, 10))
             .show(ui, |ui| {
@@ -2172,7 +2172,7 @@ impl SpeechEngineWorkbench {
         let width = ui.available_width();
         egui::Frame::NONE
             .fill(palette.surface)
-            .stroke(egui::Stroke::new(1.0, palette.border))
+            .stroke(egui::Stroke::new(1.0_f32, palette.border))
             .corner_radius(egui::CornerRadius::same(10))
             .inner_margin(egui::Margin::same(6))
             .show(ui, |ui| {
@@ -2921,7 +2921,7 @@ impl SpeechEngineWorkbench {
         let width = ui.available_width();
         egui::Frame::NONE
             .fill(palette.surface)
-            .stroke(egui::Stroke::new(1.0, palette.border))
+            .stroke(egui::Stroke::new(1.0_f32, palette.border))
             .corner_radius(egui::CornerRadius::same(10))
             .inner_margin(egui::Margin::symmetric(12, 8))
             .show(ui, |ui| {
@@ -3177,48 +3177,48 @@ fn apply_theme(ctx: &egui::Context, dark: bool) {
     visuals.faint_bg_color = palette.surface_alt;
     visuals.override_text_color = Some(palette.text);
     visuals.hyperlink_color = palette.accent;
-    visuals.window_stroke = egui::Stroke::new(1.0, palette.border);
+    visuals.window_stroke = egui::Stroke::new(1.0_f32, palette.border);
     visuals.window_corner_radius = egui::CornerRadius::same(10);
     visuals.menu_corner_radius = egui::CornerRadius::same(8);
     visuals.striped = false;
     visuals.slider_trailing_fill = true;
     visuals.selection = egui::style::Selection {
         bg_fill: palette.accent.gamma_multiply(0.35),
-        stroke: egui::Stroke::new(1.0, palette.accent),
+        stroke: egui::Stroke::new(1.0_f32, palette.accent),
     };
 
     let radius = egui::CornerRadius::same(7);
     visuals.widgets.noninteractive.bg_fill = palette.surface;
     visuals.widgets.noninteractive.weak_bg_fill = palette.surface;
-    visuals.widgets.noninteractive.bg_stroke = egui::Stroke::new(1.0, palette.border);
-    visuals.widgets.noninteractive.fg_stroke = egui::Stroke::new(1.0, palette.text_dim);
+    visuals.widgets.noninteractive.bg_stroke = egui::Stroke::new(1.0_f32, palette.border);
+    visuals.widgets.noninteractive.fg_stroke = egui::Stroke::new(1.0_f32, palette.text_dim);
     visuals.widgets.noninteractive.corner_radius = radius;
 
     visuals.widgets.inactive.bg_fill = palette.surface_alt;
     visuals.widgets.inactive.weak_bg_fill = palette.surface_alt;
-    visuals.widgets.inactive.bg_stroke = egui::Stroke::new(1.0, palette.border);
-    visuals.widgets.inactive.fg_stroke = egui::Stroke::new(1.0, palette.text);
+    visuals.widgets.inactive.bg_stroke = egui::Stroke::new(1.0_f32, palette.border);
+    visuals.widgets.inactive.fg_stroke = egui::Stroke::new(1.0_f32, palette.text);
     visuals.widgets.inactive.corner_radius = radius;
     visuals.widgets.inactive.expansion = 0.0;
 
     visuals.widgets.hovered.bg_fill = palette.surface_alt;
     visuals.widgets.hovered.weak_bg_fill = palette.surface_alt;
-    visuals.widgets.hovered.bg_stroke = egui::Stroke::new(1.0, palette.border_strong);
-    visuals.widgets.hovered.fg_stroke = egui::Stroke::new(1.0, palette.text);
+    visuals.widgets.hovered.bg_stroke = egui::Stroke::new(1.0_f32, palette.border_strong);
+    visuals.widgets.hovered.fg_stroke = egui::Stroke::new(1.0_f32, palette.text);
     visuals.widgets.hovered.corner_radius = radius;
     visuals.widgets.hovered.expansion = 0.0;
 
     visuals.widgets.active.bg_fill = palette.accent.gamma_multiply(0.30);
     visuals.widgets.active.weak_bg_fill = palette.accent.gamma_multiply(0.30);
-    visuals.widgets.active.bg_stroke = egui::Stroke::new(1.0, palette.accent);
-    visuals.widgets.active.fg_stroke = egui::Stroke::new(1.0, palette.text);
+    visuals.widgets.active.bg_stroke = egui::Stroke::new(1.0_f32, palette.accent);
+    visuals.widgets.active.fg_stroke = egui::Stroke::new(1.0_f32, palette.text);
     visuals.widgets.active.corner_radius = radius;
     visuals.widgets.active.expansion = 0.0;
 
     visuals.widgets.open.bg_fill = palette.surface_alt;
     visuals.widgets.open.weak_bg_fill = palette.surface_alt;
-    visuals.widgets.open.bg_stroke = egui::Stroke::new(1.0, palette.accent);
-    visuals.widgets.open.fg_stroke = egui::Stroke::new(1.0, palette.text);
+    visuals.widgets.open.bg_stroke = egui::Stroke::new(1.0_f32, palette.accent);
+    visuals.widgets.open.fg_stroke = egui::Stroke::new(1.0_f32, palette.text);
     visuals.widgets.open.corner_radius = radius;
 
     style.visuals = visuals;
@@ -3248,7 +3248,7 @@ fn card_sized<R>(
     let width = ui.available_width();
     egui::Frame::NONE
         .fill(palette.surface)
-        .stroke(egui::Stroke::new(1.0, palette.border))
+        .stroke(egui::Stroke::new(1.0_f32, palette.border))
         .corner_radius(egui::CornerRadius::same(10))
         .inner_margin(egui::Margin::symmetric(12, 10))
         .show(ui, |ui| {
@@ -3484,7 +3484,7 @@ fn hint(ui: &mut egui::Ui, palette: &Palette, text: &str) {
 fn notice(ui: &mut egui::Ui, palette: &Palette, color: egui::Color32, text: &str) {
     egui::Frame::NONE
         .fill(color.gamma_multiply(0.14))
-        .stroke(egui::Stroke::new(1.0, color.gamma_multiply(0.45)))
+        .stroke(egui::Stroke::new(1.0_f32, color.gamma_multiply(0.45)))
         .corner_radius(egui::CornerRadius::same(8))
         .inner_margin(egui::Margin::symmetric(10, 7))
         .show(ui, |ui| {
@@ -3529,7 +3529,7 @@ fn stat_tile(
 ) {
     egui::Frame::NONE
         .fill(palette.surface)
-        .stroke(egui::Stroke::new(1.0, palette.border))
+        .stroke(egui::Stroke::new(1.0_f32, palette.border))
         .corner_radius(egui::CornerRadius::same(10))
         .inner_margin(egui::Margin::symmetric(12, 10))
         .show(ui, |ui| {
@@ -3630,7 +3630,7 @@ fn ghost_button(
             ui,
             egui::Color32::TRANSPARENT,
             palette.surface_alt,
-            egui::Stroke::new(1.0, palette.border_strong),
+            egui::Stroke::new(1.0_f32, palette.border_strong),
         );
         ui.add_enabled(
             enabled,
@@ -3695,7 +3695,7 @@ fn segmented<T: PartialEq + Copy>(
                             egui::Color32::TRANSPARENT
                         })
                         .stroke(if selected {
-                            egui::Stroke::new(1.0, palette.border)
+                            egui::Stroke::new(1.0_f32, palette.border)
                         } else {
                             egui::Stroke::NONE
                         })
@@ -3756,7 +3756,7 @@ fn transcript_row(ui: &mut egui::Ui, palette: &Palette, entry: &TranscriptEntry)
             egui::Color32::TRANSPARENT
         })
         .stroke(egui::Stroke::new(
-            1.0,
+            1.0_f32,
             if tinted {
                 palette.border
             } else {
