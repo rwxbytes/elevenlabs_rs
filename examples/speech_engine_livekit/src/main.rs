@@ -48,11 +48,10 @@ use elevenlabs_rs::{
             CreateSpeechEngine, CreateSpeechEngineBody, GetSpeechEngine, SpeechEngineAsrConfig,
             SpeechEngineBackgroundSoundConfig, SpeechEngineCallLimits, SpeechEngineConfig,
             SpeechEngineConversationConfig, SpeechEngineConversationHistoryRedactionConfig,
-            SpeechEngineDictionaryLocator, SpeechEngineDtmfInputConfig,
-            SpeechEngineFileInputConfig, SpeechEngineOverrides, SpeechEnginePrivacyConfig,
-            SpeechEngineRequestHeaderValue, SpeechEngineResponse, SpeechEngineSuggestedAudioTag,
-            SpeechEngineSupportedVoice, SpeechEngineTtsConfig, SpeechEngineTurnConfig,
-            UpdateSpeechEngine, UpdateSpeechEngineBody,
+            SpeechEngineDictionaryLocator, SpeechEngineFileInputConfig, SpeechEngineOverrides,
+            SpeechEnginePrivacyConfig, SpeechEngineRequestHeaderValue, SpeechEngineResponse,
+            SpeechEngineSuggestedAudioTag, SpeechEngineSupportedVoice, SpeechEngineTtsConfig,
+            SpeechEngineTurnConfig, UpdateSpeechEngine, UpdateSpeechEngineBody,
         },
     },
     ElevenLabsClient,
@@ -565,7 +564,6 @@ struct SpeechEngineForm {
     voice_id: String,
     supported_voices_json: String,
     agent_output_audio_format: String,
-    optimize_streaming_latency: u8,
     expressive_mode: bool,
     suggested_audio_tags_json: String,
     stability: f32,
@@ -595,9 +593,6 @@ struct SpeechEngineForm {
     max_files_per_conversation: u32,
     monitoring_enabled: bool,
     monitoring_events: Vec<String>,
-    dtmf_input_configured: bool,
-    dtmf_input_timeout: f32,
-    dtmf_hash_terminator: bool,
     background_sound_source_type: String,
     background_sound_source_id: String,
     background_sound_volume: f32,
@@ -635,7 +630,6 @@ impl SpeechEngineForm {
             supported_voices_json: "[]".to_owned(),
             agent_output_audio_format: env::var("ELEVENLABS_SPEECH_ENGINE_TTS_OUTPUT_FORMAT")
                 .unwrap_or(preferred_output_format),
-            optimize_streaming_latency: 3,
             expressive_mode: false,
             suggested_audio_tags_json: "[]".to_owned(),
             stability: 0.5,
@@ -671,9 +665,6 @@ impl SpeechEngineForm {
                 .into_iter()
                 .map(ToOwned::to_owned)
                 .collect(),
-            dtmf_input_configured: false,
-            dtmf_input_timeout: 5.0,
-            dtmf_hash_terminator: true,
             background_sound_source_type: String::new(),
             background_sound_source_id: String::new(),
             background_sound_volume: 0.6,
@@ -731,7 +722,6 @@ impl SpeechEngineForm {
             .agent_output_audio_format
             .clone()
             .unwrap_or_else(|| format!("pcm_{DEFAULT_AGENT_OUTPUT_RATE}"));
-        form.optimize_streaming_latency = engine.tts.optimize_streaming_latency.unwrap_or(3);
         form.expressive_mode = engine.tts.expressive_mode.unwrap_or(false);
         form.suggested_audio_tags_json =
             pretty_json(&engine.tts.suggested_audio_tags.clone().unwrap_or_default());
@@ -819,11 +809,6 @@ impl SpeechEngineForm {
             .monitoring_events
             .clone()
             .unwrap_or_default();
-        if let Some(dtmf) = &engine.conversation.dtmf_input_settings {
-            form.dtmf_input_configured = true;
-            form.dtmf_input_timeout = dtmf.dtmf_input_timeout.unwrap_or(5.0);
-            form.dtmf_hash_terminator = dtmf.hash_terminator.unwrap_or(false);
-        }
         if let Some(background) = &engine.conversation.background_sound {
             form.background_sound_source_type = background.source_type.clone().unwrap_or_default();
             form.background_sound_source_id = background.source_id.clone().unwrap_or_default();
@@ -946,7 +931,6 @@ impl SpeechEngineForm {
                 &self.agent_output_audio_format,
                 &format!("pcm_{DEFAULT_AGENT_OUTPUT_RATE}"),
             ))
-            .with_optimize_streaming_latency(self.optimize_streaming_latency)
             .expressive_mode(self.expressive_mode)
             .with_supported_voices(supported_voices)
             .with_suggested_audio_tags(suggested_audio_tags)
@@ -1015,7 +999,7 @@ impl SpeechEngineForm {
                 background.with_source_id(self.background_sound_source_id.trim().to_owned());
         }
 
-        let mut config = SpeechEngineConversationConfig::default()
+        SpeechEngineConversationConfig::default()
             .text_only(self.text_only)
             .with_max_duration_seconds(self.max_duration_seconds)
             .with_client_events(client_events)
@@ -1027,15 +1011,7 @@ impl SpeechEngineForm {
             .monitoring_enabled(self.monitoring_enabled)
             .with_monitoring_events(self.monitoring_events.clone())
             .with_background_sound(background)
-            .source_attribution(self.source_attribution);
-        if self.dtmf_input_configured {
-            config = config.with_dtmf_input_settings(
-                SpeechEngineDtmfInputConfig::default()
-                    .with_input_timeout(self.dtmf_input_timeout)
-                    .hash_terminator(self.dtmf_hash_terminator),
-            );
-        }
-        config
+            .source_attribution(self.source_attribution)
     }
 
     fn privacy_config(&self) -> SpeechEnginePrivacyConfig {
@@ -2425,21 +2401,6 @@ impl SpeechEngineWorkbench {
                 field(
                     ui,
                     palette,
-                    "Streaming latency",
-                    "Higher values trade audio quality for a faster first chunk.",
-                    |ui| {
-                        ui.add(
-                            egui::Slider::new(
-                                &mut self.speech_engine_form.optimize_streaming_latency,
-                                0..=4,
-                            )
-                            .integer(),
-                        );
-                    },
-                );
-                field(
-                    ui,
-                    palette,
                     "Stability",
                     "Low values are more expressive, high values are more consistent.",
                     |ui| {
@@ -2668,44 +2629,11 @@ impl SpeechEngineWorkbench {
                                 egui::DragValue::new(
                                     &mut self.speech_engine_form.max_files_per_conversation,
                                 )
-                                .range(1..=100),
+                                .range(1..=10),
                             );
                         },
                     );
                 });
-            });
-        });
-
-        ui.add_space(10.0);
-        card(ui, palette, "DTMF", |ui| {
-            ui.checkbox(
-                &mut self.speech_engine_form.dtmf_input_configured,
-                "Accept DTMF tones",
-            );
-            ui.add_space(8.0);
-            ui.add_enabled_ui(self.speech_engine_form.dtmf_input_configured, |ui| {
-                form_grid(ui, "engine_dtmf_grid", |ui| {
-                    field(
-                        ui,
-                        palette,
-                        "Input timeout",
-                        "Silence after the last key press before the digits are submitted.",
-                        |ui| {
-                            ui.add(
-                                egui::DragValue::new(
-                                    &mut self.speech_engine_form.dtmf_input_timeout,
-                                )
-                                .range(0.0..=300.0)
-                                .speed(0.1)
-                                .suffix(" s"),
-                            );
-                        },
-                    );
-                });
-                ui.checkbox(
-                    &mut self.speech_engine_form.dtmf_hash_terminator,
-                    "Treat # as the terminator",
-                );
             });
         });
 
@@ -4412,8 +4340,12 @@ async fn respond_to_transcript(
         text: user_text.to_owned(),
     });
     let chat_history = rig_chat_history(&transcript[..latest_user_index]);
-    let ollama = ollama::Client::from_env()
-        .unwrap_or_else(|_| ollama::Client::new(Nothing).expect("Ollama client should build"));
+    let ollama = match ollama::Client::from_env() {
+        Ok(client) => client,
+        Err(_) => {
+            ollama::Client::new(Nothing).context("failed to create the default Ollama client")?
+        }
+    };
     let model = state.config.selected_model.get();
     let system_prompt = state.config.system_prompt.get();
     let agent = ollama
@@ -5629,7 +5561,6 @@ mod tests {
         }])
         .to_string();
         form.client_events.clear();
-        form.dtmf_input_configured = true;
         form.background_sound_source_type = "preset".to_owned();
         form.background_sound_source_id = "office1".to_owned();
         form.conversation_history_redaction_enabled = true;
@@ -5645,10 +5576,6 @@ mod tests {
         assert_eq!(
             value["tts"]["pronunciation_dictionary_locators"][0]["version_id"],
             "version_456"
-        );
-        assert_eq!(
-            value["conversation"]["dtmf_input_settings"]["hash_terminator"],
-            true
         );
         assert_eq!(
             value["conversation"]["background_sound"]["source_id"],
@@ -5689,10 +5616,6 @@ mod tests {
                     "enabled": true,
                     "max_files_per_conversation": 7
                 },
-                "dtmf_input_settings": {
-                    "dtmf_input_timeout": 3.0,
-                    "hash_terminator": true
-                },
                 "background_sound": {
                     "source_type": "preset",
                     "source_id": "city",
@@ -5724,7 +5647,6 @@ mod tests {
         assert_eq!(form.agent_output_audio_format, "pcm_24000");
         assert_eq!(form.interruption_ignore_term_languages, "en, fr");
         assert_eq!(form.max_files_per_conversation, 7);
-        assert!(form.dtmf_input_configured);
         assert_eq!(form.background_sound_source_id, "city");
         assert!(form.conversation_history_redaction_enabled);
         assert!(form.allow_first_message_override);

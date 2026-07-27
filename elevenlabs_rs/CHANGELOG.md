@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.7.1] - 2026-07-26
 
 ### Added
+- Native `speech_engine_livekit` workbench example using egui, CPAL, LiveKit, and Rig/Ollama, with Speech Engine configuration editing, interruption-aware response streaming, transcripts, and latency telemetry.
+- Typed Speech Engine configuration and builders for supported voices, turn handling, file input, monitoring, background sound, privacy controls, and conversation-history redaction.
 - Music detailed SSE streaming through `StreamMusicDetailed`, including decoded audio chunks, the `song-id` response header, metadata events, completion events, and forward-compatible unknown events.
 - Music Finetune list, create, get, update, and delete endpoints, with multipart `FilePart` uploads and typed filters, visibility, creator, status, and failure-reason models.
 - `ResolveConversation` and `QueryAgentKnowledgeBase` ConvAI endpoints.
@@ -28,7 +30,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Deprecated
 - `SimulateConversation` and `SimulateConversationStream`, matching the upstream deprecation in favor of agent tests.
 - MCP `with_disable_interruptions` builders; use `with_interruption_mode`.
-- `TTSConfig::with_optimize_streaming_latency`, which ElevenLabs now treats as a no-op.
+- `TTSConfig::with_optimize_streaming_latency` and `SpeechEngineTtsConfig::with_optimize_streaming_latency`, which ElevenLabs now treats as no-ops.
 
 ## [0.7.0] - 2026-06-29
 

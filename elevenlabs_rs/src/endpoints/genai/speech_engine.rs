@@ -634,6 +634,10 @@ impl SpeechEngineTtsConfig {
         self
     }
 
+    #[deprecated(
+        since = "0.7.1",
+        note = "ElevenLabs now treats optimize_streaming_latency as a no-op"
+    )]
     pub fn with_optimize_streaming_latency(mut self, latency: u8) -> Self {
         self.optimize_streaming_latency = Some(latency);
         self
@@ -745,6 +749,41 @@ impl SpeechEngineSupportedVoice {
             similarity_boost: None,
         }
     }
+
+    pub fn with_description(mut self, description: impl Into<String>) -> Self {
+        self.description = Some(description.into());
+        self
+    }
+
+    pub fn with_language(mut self, language: impl Into<String>) -> Self {
+        self.language = Some(language.into());
+        self
+    }
+
+    pub fn with_model_family(mut self, model_family: impl Into<String>) -> Self {
+        self.model_family = Some(model_family.into());
+        self
+    }
+
+    pub fn with_optimize_streaming_latency(mut self, latency: u8) -> Self {
+        self.optimize_streaming_latency = Some(latency);
+        self
+    }
+
+    pub fn with_stability(mut self, stability: f32) -> Self {
+        self.stability = Some(stability);
+        self
+    }
+
+    pub fn with_speed(mut self, speed: f32) -> Self {
+        self.speed = Some(speed);
+        self
+    }
+
+    pub fn with_similarity_boost(mut self, similarity_boost: f32) -> Self {
+        self.similarity_boost = Some(similarity_boost);
+        self
+    }
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -816,6 +855,8 @@ pub struct SpeechEngineTurnConfig {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub interruption_ignore_terms: Option<Vec<String>>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub interruption_ignore_term_languages: Option<Vec<String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub transcribe_on_disabled_interruptions: Option<bool>,
     #[serde(default, flatten)]
     pub extra: Map<String, Value>,
@@ -827,8 +868,18 @@ impl SpeechEngineTurnConfig {
         self
     }
 
+    pub fn with_initial_wait_time(mut self, initial_wait_time: f32) -> Self {
+        self.initial_wait_time = Some(initial_wait_time);
+        self
+    }
+
     pub fn with_silence_end_call_timeout(mut self, timeout: f32) -> Self {
         self.silence_end_call_timeout = Some(timeout);
+        self
+    }
+
+    pub fn with_mode(mut self, mode: impl Into<String>) -> Self {
+        self.mode = Some(mode.into());
         self
     }
 
@@ -837,8 +888,47 @@ impl SpeechEngineTurnConfig {
         self
     }
 
+    pub fn with_spelling_patience(mut self, spelling_patience: impl Into<String>) -> Self {
+        self.spelling_patience = Some(spelling_patience.into());
+        self
+    }
+
+    pub fn speculative_turn(mut self, speculative_turn: bool) -> Self {
+        self.speculative_turn = Some(speculative_turn);
+        self
+    }
+
+    pub fn retranscribe_on_turn_timeout(mut self, enabled: bool) -> Self {
+        self.retranscribe_on_turn_timeout = Some(enabled);
+        self
+    }
+
     pub fn with_turn_model(mut self, turn_model: impl Into<String>) -> Self {
         self.turn_model = Some(turn_model.into());
+        self
+    }
+
+    pub fn with_interruption_ignore_terms<I, S>(mut self, terms: I) -> Self
+    where
+        I: IntoIterator<Item = S>,
+        S: Into<String>,
+    {
+        self.interruption_ignore_terms = Some(terms.into_iter().map(Into::into).collect());
+        self
+    }
+
+    pub fn with_interruption_ignore_term_languages<I, S>(mut self, languages: I) -> Self
+    where
+        I: IntoIterator<Item = S>,
+        S: Into<String>,
+    {
+        self.interruption_ignore_term_languages =
+            Some(languages.into_iter().map(Into::into).collect());
+        self
+    }
+
+    pub fn transcribe_on_disabled_interruptions(mut self, enabled: bool) -> Self {
+        self.transcribe_on_disabled_interruptions = Some(enabled);
         self
     }
 
@@ -857,9 +947,13 @@ pub struct SpeechEngineConversationConfig {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub client_events: Option<Vec<String>>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub file_input: Option<SpeechEngineFileInputConfig>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub monitoring_enabled: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub monitoring_events: Option<Vec<String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub background_sound: Option<SpeechEngineBackgroundSoundConfig>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub source_attribution: Option<bool>,
     #[serde(default, flatten)]
@@ -891,6 +985,101 @@ impl SpeechEngineConversationConfig {
         self
     }
 
+    pub fn with_file_input(mut self, file_input: SpeechEngineFileInputConfig) -> Self {
+        self.file_input = Some(file_input);
+        self
+    }
+
+    pub fn with_monitoring_events<I, S>(mut self, monitoring_events: I) -> Self
+    where
+        I: IntoIterator<Item = S>,
+        S: Into<String>,
+    {
+        self.monitoring_events = Some(monitoring_events.into_iter().map(Into::into).collect());
+        self
+    }
+
+    pub fn with_background_sound(
+        mut self,
+        background_sound: SpeechEngineBackgroundSoundConfig,
+    ) -> Self {
+        self.background_sound = Some(background_sound);
+        self
+    }
+
+    pub fn source_attribution(mut self, source_attribution: bool) -> Self {
+        self.source_attribution = Some(source_attribution);
+        self
+    }
+
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+pub struct SpeechEngineFileInputConfig {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub enabled: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub max_files_per_conversation: Option<u32>,
+    #[serde(default, flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl SpeechEngineFileInputConfig {
+    pub fn enabled(mut self, enabled: bool) -> Self {
+        self.enabled = Some(enabled);
+        self
+    }
+
+    pub fn with_max_files_per_conversation(mut self, max_files: u32) -> Self {
+        self.max_files_per_conversation = Some(max_files);
+        self
+    }
+
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+pub struct SpeechEngineBackgroundSoundConfig {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub source_type: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub source_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub volume: Option<f32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub crossfade_loop: Option<bool>,
+    #[serde(default, flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl SpeechEngineBackgroundSoundConfig {
+    pub fn with_source_type(mut self, source_type: impl Into<String>) -> Self {
+        self.source_type = Some(source_type.into());
+        self
+    }
+
+    pub fn with_source_id(mut self, source_id: impl Into<String>) -> Self {
+        self.source_id = Some(source_id.into());
+        self
+    }
+
+    pub fn with_volume(mut self, volume: f32) -> Self {
+        self.volume = Some(volume);
+        self
+    }
+
+    pub fn crossfade_loop(mut self, crossfade_loop: bool) -> Self {
+        self.crossfade_loop = Some(crossfade_loop);
+        self
+    }
+
     pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
         self.extra.insert(key.into(), value.into());
         self
@@ -911,6 +1100,8 @@ pub struct SpeechEnginePrivacyConfig {
     pub apply_to_existing_conversations: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub zero_retention_mode: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub conversation_history_redaction: Option<SpeechEngineConversationHistoryRedactionConfig>,
     #[serde(default, flatten)]
     pub extra: Map<String, Value>,
 }
@@ -926,8 +1117,62 @@ impl SpeechEnginePrivacyConfig {
         self
     }
 
+    pub fn delete_transcript_and_pii(mut self, delete: bool) -> Self {
+        self.delete_transcript_and_pii = Some(delete);
+        self
+    }
+
+    pub fn delete_audio(mut self, delete_audio: bool) -> Self {
+        self.delete_audio = Some(delete_audio);
+        self
+    }
+
+    pub fn apply_to_existing_conversations(mut self, apply: bool) -> Self {
+        self.apply_to_existing_conversations = Some(apply);
+        self
+    }
+
     pub fn zero_retention_mode(mut self, zero_retention_mode: bool) -> Self {
         self.zero_retention_mode = Some(zero_retention_mode);
+        self
+    }
+
+    pub fn with_conversation_history_redaction(
+        mut self,
+        redaction: SpeechEngineConversationHistoryRedactionConfig,
+    ) -> Self {
+        self.conversation_history_redaction = Some(redaction);
+        self
+    }
+
+    pub fn with_extra(mut self, key: impl Into<String>, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.into(), value.into());
+        self
+    }
+}
+
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+pub struct SpeechEngineConversationHistoryRedactionConfig {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub enabled: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub entities: Option<Vec<String>>,
+    #[serde(default, flatten)]
+    pub extra: Map<String, Value>,
+}
+
+impl SpeechEngineConversationHistoryRedactionConfig {
+    pub fn enabled(mut self, enabled: bool) -> Self {
+        self.enabled = Some(enabled);
+        self
+    }
+
+    pub fn with_entities<I, S>(mut self, entities: I) -> Self
+    where
+        I: IntoIterator<Item = S>,
+        S: Into<String>,
+    {
+        self.entities = Some(entities.into_iter().map(Into::into).collect());
         self
     }
 
@@ -1006,6 +1251,177 @@ pub struct SpeechEngineAccessInfo {
     pub access_source: Option<String>,
     #[serde(default, flatten)]
     pub extra: Map<String, Value>,
+}
+
+#[cfg(test)]
+mod configuration_tests {
+    use super::*;
+
+    #[test]
+    fn complete_configuration_serializes_to_api_shape() {
+        let speech_engine = SpeechEngineConfig::new("wss://example.test/ws")
+            .with_request_header("X-Static", "value")
+            .with_request_header(
+                "X-Secret",
+                SpeechEngineRequestHeaderValue::secret("secret_123"),
+            )
+            .with_request_header(
+                "X-Dynamic",
+                SpeechEngineRequestHeaderValue::dynamic_variable("tenant_id"),
+            );
+        let tts = SpeechEngineTtsConfig::default()
+            .with_model_id("eleven_v3_conversational")
+            .with_voice_id("voice_123")
+            .with_supported_voices([SpeechEngineSupportedVoice::new("Support", "voice_456")
+                .with_language("en")
+                .with_model_family("v3_conversational")])
+            .expressive_mode(true)
+            .with_suggested_audio_tags([
+                SpeechEngineSuggestedAudioTag::new("happy").with_description("Positive responses")
+            ])
+            .with_agent_output_audio_format("pcm_48000")
+            .with_stability(0.5)
+            .with_speed(1.0)
+            .with_similarity_boost(0.75)
+            .with_text_normalisation_type("system_prompt")
+            .with_pronunciation_dictionary_locators([SpeechEngineDictionaryLocator::new(
+                "dict_123",
+                "version_456",
+            )])
+            .enable_phoneme_tags(true);
+        let turn = SpeechEngineTurnConfig::default()
+            .with_turn_timeout(7.0)
+            .with_initial_wait_time(5.0)
+            .with_silence_end_call_timeout(60.0)
+            .with_mode("turn")
+            .with_turn_eagerness("normal")
+            .with_spelling_patience("auto")
+            .speculative_turn(true)
+            .retranscribe_on_turn_timeout(true)
+            .with_turn_model("turn_v3")
+            .with_interruption_ignore_terms(["gotcha"])
+            .with_interruption_ignore_term_languages(["en"])
+            .transcribe_on_disabled_interruptions(true);
+        let conversation = SpeechEngineConversationConfig::default()
+            .text_only(false)
+            .with_max_duration_seconds(600)
+            .with_client_events(["audio", "user_transcript"])
+            .with_file_input(
+                SpeechEngineFileInputConfig::default()
+                    .enabled(true)
+                    .with_max_files_per_conversation(10),
+            )
+            .monitoring_enabled(true)
+            .with_monitoring_events(["user_transcript"])
+            .with_background_sound(
+                SpeechEngineBackgroundSoundConfig::default()
+                    .with_source_type("preset")
+                    .with_source_id("office1")
+                    .with_volume(0.6)
+                    .crossfade_loop(true),
+            )
+            .source_attribution(true);
+        let privacy = SpeechEnginePrivacyConfig::default()
+            .record_voice(false)
+            .with_retention_days(-1)
+            .delete_transcript_and_pii(false)
+            .delete_audio(false)
+            .apply_to_existing_conversations(false)
+            .zero_retention_mode(false)
+            .with_conversation_history_redaction(
+                SpeechEngineConversationHistoryRedactionConfig::default()
+                    .enabled(true)
+                    .with_entities(["name", "email_address"]),
+            );
+        let body = CreateSpeechEngineBody::new("wss://example.test/ws")
+            .with_speech_engine(speech_engine)
+            .with_name("Complete engine")
+            .with_asr(
+                SpeechEngineAsrConfig::default()
+                    .with_provider("scribe_realtime")
+                    .with_quality("high")
+                    .with_user_input_audio_format("pcm_16000")
+                    .with_keywords(["ElevenLabs"]),
+            )
+            .with_tts(tts)
+            .with_turn(turn)
+            .with_conversation(conversation)
+            .with_privacy(privacy)
+            .with_call_limits(
+                SpeechEngineCallLimits::default()
+                    .with_agent_concurrency_limit(-1)
+                    .with_daily_limit(100_000)
+                    .bursting_enabled(true),
+            )
+            .with_language("en")
+            .with_tags(["test"])
+            .with_overrides(SpeechEngineOverrides::default().first_message(true));
+
+        let value = serde_json::to_value(body).unwrap();
+        assert_eq!(value["speech_engine"]["ws_url"], "wss://example.test/ws");
+        assert_eq!(
+            value["speech_engine"]["request_headers"]["X-Secret"]["secret_id"],
+            "secret_123"
+        );
+        assert_eq!(value["tts"]["supported_voices"][0]["voice_id"], "voice_456");
+        assert_eq!(value["turn"]["interruption_ignore_term_languages"][0], "en");
+        assert_eq!(
+            value["conversation"]["file_input"]["max_files_per_conversation"],
+            10
+        );
+        assert_eq!(
+            value["conversation"]["background_sound"]["source_id"],
+            "office1"
+        );
+        assert_eq!(
+            value["privacy"]["conversation_history_redaction"]["entities"][1],
+            "email_address"
+        );
+        assert_eq!(value["call_limits"]["bursting_enabled"], true);
+        assert_eq!(value["overrides"]["first_message"], true);
+    }
+
+    #[test]
+    fn newly_typed_nested_configuration_deserializes_from_response() {
+        let conversation: SpeechEngineConversationConfig =
+            serde_json::from_value(serde_json::json!({
+                "file_input": {
+                    "enabled": true,
+                    "max_files_per_conversation": 5
+                },
+                "background_sound": {
+                    "source_type": "preset",
+                    "source_id": "city",
+                    "volume": 0.4,
+                    "crossfade_loop": false
+                }
+            }))
+            .unwrap();
+        assert_eq!(
+            conversation.file_input.unwrap().max_files_per_conversation,
+            Some(5)
+        );
+        assert_eq!(
+            conversation.background_sound.unwrap().source_id.as_deref(),
+            Some("city")
+        );
+
+        let privacy: SpeechEnginePrivacyConfig = serde_json::from_value(serde_json::json!({
+            "conversation_history_redaction": {
+                "enabled": true,
+                "entities": ["name"]
+            }
+        }))
+        .unwrap();
+        assert_eq!(
+            privacy
+                .conversation_history_redaction
+                .unwrap()
+                .entities
+                .unwrap(),
+            vec!["name"]
+        );
+    }
 }
 
 #[cfg(feature = "ws")]

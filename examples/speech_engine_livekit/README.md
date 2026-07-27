@@ -113,8 +113,8 @@ It exposes the complete Speech Engine resource configuration:
   output format, and voice settings
 - turn timing, eagerness, spelling behavior, speculative turns, interruption
   terms, and turn model
-- client and monitoring events, file and DTMF input, background sound, and
-  source attribution
+- client and monitoring events, file input, background sound, and source
+  attribution
 - recording, retention, deletion, history redaction, call limits, bursting,
   and client first-message overrides
 
