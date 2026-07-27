@@ -6,6 +6,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.1] - 2026-07-26
+
+### Added
+- Music detailed SSE streaming through `StreamMusicDetailed`, including decoded audio chunks, the `song-id` response header, metadata events, completion events, and forward-compatible unknown events.
+- Music Finetune list, create, get, update, and delete endpoints, with multipart `FilePart` uploads and typed filters, visibility, creator, status, and failure-reason models.
+- `ResolveConversation` and `QueryAgentKnowledgeBase` ConvAI endpoints.
+- `CreateServiceAccount` and `GetWorkspaceMembers` admin endpoints.
+- Music Finetune selection through `MusicComposeBody::with_finetune_id`.
+- Speech-to-text `multichannel_output_style`, batch transcription token query support, and `SingleUseTokenType::batch_scribe`.
+- MCP `ToolInterruptionMode` and environment selection for tool lookup, tool configuration, and MCP tool listing.
+- Conversation product, status, termination-reason, analysis-score, reasoning, billing, audio-availability, branch, environment, tag, and trace fields from the current API schema.
+- Numeric evaluation scoring configuration and the `gpt-5.6-sol`, `gpt-5.6-terra`, and `gpt-5.6-luna` LLM identifiers.
+- Archived pronunciation dictionary filtering, workspace invite usage limits, workspace webhook event subscriptions, and service-account character-limit clearing.
+
+### Changed
+- `ConvoStatus` now preserves provider-owned status values instead of rejecting newly introduced values.
+- Refreshed the OpenAPI snapshot to 352 operations; 279 local endpoint method/path pairs are implemented and all match the snapshot.
+- Coverage reporting now distinguishes current Dubbing Project routes from legacy beta `/v1/dubbing/resource/...` routes.
+
+### Deprecated
+- `SimulateConversation` and `SimulateConversationStream`, matching the upstream deprecation in favor of agent tests.
+- MCP `with_disable_interruptions` builders; use `with_interruption_mode`.
+- `TTSConfig::with_optimize_streaming_latency`, which ElevenLabs now treats as a no-op.
+
 ## [0.7.0] - 2026-06-29
 
 ### Breaking

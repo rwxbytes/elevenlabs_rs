@@ -816,12 +816,16 @@ impl ElevenLabsEndpoint for RunAgentTests {
 /// simulation specification.
 ///
 /// See [Simulate Conversation API reference](https://elevenlabs.io/docs/conversational-ai/api-reference/agents/simulate-conversation)
+#[deprecated(
+    note = "ElevenLabs deprecated conversation simulation; use CreateAgentTest and RunAgentTests"
+)]
 #[derive(Clone, Debug)]
 pub struct SimulateConversation {
     agent_id: String,
     body: Value,
 }
 
+#[allow(deprecated)]
 impl SimulateConversation {
     pub fn new(agent_id: impl Into<String>, body: Value) -> Self {
         Self {
@@ -831,8 +835,10 @@ impl SimulateConversation {
     }
 }
 
+#[allow(deprecated)]
 impl crate::endpoints::sealed::Sealed for SimulateConversation {}
 
+#[allow(deprecated)]
 impl ElevenLabsEndpoint for SimulateConversation {
     const PATH: &'static str = "/v1/convai/agents/:agent_id/simulate-conversation";
 
@@ -865,12 +871,16 @@ pub struct SimulateConversationResponse {
 /// JSON simulation specification; the response is a stream of raw bytes.
 ///
 /// See [Simulate Conversation Stream API reference](https://elevenlabs.io/docs/conversational-ai/api-reference/agents/simulate-conversation-stream)
+#[deprecated(
+    note = "ElevenLabs deprecated streaming conversation simulation; use CreateAgentTest and RunAgentTests"
+)]
 #[derive(Clone, Debug)]
 pub struct SimulateConversationStream {
     agent_id: String,
     body: Value,
 }
 
+#[allow(deprecated)]
 impl SimulateConversationStream {
     pub fn new(agent_id: impl Into<String>, body: Value) -> Self {
         Self {
@@ -881,8 +891,10 @@ impl SimulateConversationStream {
 }
 
 type SimulateConversationStreamResponse = Pin<Box<dyn Stream<Item = Result<Bytes>> + Send>>;
+#[allow(deprecated)]
 impl crate::endpoints::sealed::Sealed for SimulateConversationStream {}
 
+#[allow(deprecated)]
 impl ElevenLabsEndpoint for SimulateConversationStream {
     const PATH: &'static str = "/v1/convai/agents/:agent_id/simulate-conversation/stream";
 

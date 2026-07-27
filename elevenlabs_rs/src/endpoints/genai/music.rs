@@ -8,9 +8,11 @@
 
 use super::*;
 use crate::shared::{audio_mime_from_extension, query_params::OutputFormat, FilePart};
+use base64::{engine::general_purpose::STANDARD as BASE64_STANDARD, Engine};
 use futures_util::{Stream, StreamExt};
 use std::collections::HashMap;
 use std::pin::Pin;
+use std::task::{Context, Poll};
 
 // =============================================================================
 // Shared query
@@ -436,6 +438,8 @@ pub struct MusicComposeBody {
     #[serde(skip_serializing_if = "Option::is_none")]
     force_instrumental: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    finetune_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     respect_sections_durations: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
     store_for_inpainting: Option<bool>,
@@ -487,6 +491,12 @@ impl MusicComposeBody {
     /// only be used with a prompt.
     pub fn with_force_instrumental(mut self, force_instrumental: bool) -> Self {
         self.force_instrumental = Some(force_instrumental);
+        self
+    }
+
+    /// The Music Finetune to use for generation.
+    pub fn with_finetune_id(mut self, finetune_id: impl Into<String>) -> Self {
+        self.finetune_id = Some(finetune_id.into());
         self
     }
 
@@ -799,6 +809,148 @@ impl ElevenLabsEndpoint for ComposeMusicDetailed {
             song_metadata: metadata.song_metadata,
             words_timestamps: metadata.words_timestamps,
             audio,
+        })
+    }
+}
+
+// =============================================================================
+// POST /v1/music/detailed/stream — Stream Music With Details
+// =============================================================================
+
+/// A single event from [`StreamMusicDetailed`].
+#[derive(Clone, Debug)]
+pub enum DetailedMusicStreamEvent {
+    /// The composition plan selected by the service.
+    CompositionPlan(Value),
+    /// Metadata describing the generated song.
+    SongMetadata(Value),
+    /// A decoded chunk of generated audio.
+    AudioChunk(Bytes),
+    /// Word-level timing data requested with
+    /// [`StreamMusicDetailed::with_timestamps`].
+    WordTimestamps(Value),
+    /// The service's terminal completion payload.
+    Completion(Value),
+    /// A newly introduced event that this crate does not model yet.
+    Unknown { event: String, data: Value },
+}
+
+/// The event stream returned by [`StreamMusicDetailed`].
+pub struct DetailedMusicStream {
+    song_id: Option<String>,
+    inner: Pin<Box<dyn Stream<Item = Result<DetailedMusicStreamEvent>> + Send>>,
+}
+
+impl DetailedMusicStream {
+    /// The generated song ID from the `song-id` response header.
+    pub fn song_id(&self) -> Option<&str> {
+        self.song_id.as_deref()
+    }
+}
+
+impl std::fmt::Debug for DetailedMusicStream {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("DetailedMusicStream")
+            .field("song_id", &self.song_id)
+            .finish_non_exhaustive()
+    }
+}
+
+impl Stream for DetailedMusicStream {
+    type Item = Result<DetailedMusicStreamEvent>;
+
+    fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
+        self.get_mut().inner.as_mut().poll_next(cx)
+    }
+}
+
+/// Stream composed audio and detailed generation metadata using SSE.
+#[derive(Clone, Debug)]
+pub struct StreamMusicDetailed {
+    body: MusicComposeBody,
+    query: Option<MusicQuery>,
+    with_timestamps: bool,
+}
+
+impl StreamMusicDetailed {
+    pub fn new(body: MusicComposeBody) -> Self {
+        Self {
+            body,
+            query: None,
+            with_timestamps: false,
+        }
+    }
+
+    pub fn with_query(mut self, query: MusicQuery) -> Self {
+        self.query = Some(query);
+        self
+    }
+
+    /// Whether word-level timestamps should be included in the event stream.
+    pub fn with_timestamps(mut self, with_timestamps: bool) -> Self {
+        self.with_timestamps = with_timestamps;
+        self
+    }
+}
+
+impl crate::endpoints::sealed::Sealed for StreamMusicDetailed {}
+
+impl ElevenLabsEndpoint for StreamMusicDetailed {
+    const PATH: &'static str = "/v1/music/detailed/stream";
+
+    const METHOD: Method = Method::POST;
+
+    type ResponseBody = DetailedMusicStream;
+
+    fn query_params(&self) -> Option<QueryValues> {
+        self.query.as_ref().map(|query| query.params.clone())
+    }
+
+    async fn request_body(&self) -> Result<RequestBody> {
+        let mut value = serde_json::to_value(&self.body)?;
+        if self.with_timestamps {
+            if let Some(object) = value.as_object_mut() {
+                object.insert("with_timestamps".to_owned(), Value::Bool(true));
+            }
+        }
+        Ok(RequestBody::Json(value))
+    }
+
+    async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
+        let song_id = resp
+            .headers()
+            .get("song-id")
+            .and_then(|value| value.to_str().ok())
+            .map(ToOwned::to_owned);
+        let mut source = resp.bytes_stream();
+
+        let events = async_stream::try_stream! {
+            let mut buffer = Vec::new();
+            let mut event_data = String::new();
+
+            while let Some(chunk) = source.next().await {
+                buffer.extend_from_slice(&chunk?);
+
+                while let Some(newline) = buffer.iter().position(|byte| *byte == b'\n') {
+                    let line = buffer.drain(..=newline).collect::<Vec<_>>();
+                    if collect_sse_line(&line[..line.len() - 1], &mut event_data)? && !event_data.is_empty() {
+                        yield parse_detailed_music_event(&event_data)?;
+                        event_data.clear();
+                    }
+                }
+            }
+
+            if !buffer.is_empty() {
+                collect_sse_line(&buffer, &mut event_data)?;
+            }
+            if !event_data.is_empty() {
+                yield parse_detailed_music_event(&event_data)?;
+            }
+        };
+
+        Ok(DetailedMusicStream {
+            song_id,
+            inner: Box::pin(events),
         })
     }
 }
@@ -1308,8 +1460,522 @@ impl ElevenLabsEndpoint for VideoToMusic {
 }
 
 // =============================================================================
+// /v1/music/finetunes — Music Finetunes
+// =============================================================================
+
+/// Visibility of a Music Finetune returned by the API.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum MusicFinetuneVisibility {
+    Private,
+    Workspace,
+    Public,
+    #[serde(other)]
+    Unknown,
+}
+
+impl MusicFinetuneVisibility {
+    fn as_str(self) -> &'static str {
+        match self {
+            Self::Private => "private",
+            Self::Workspace => "workspace",
+            Self::Public => "public",
+            Self::Unknown => "unknown",
+        }
+    }
+}
+
+/// Visibility accepted when creating or updating a Music Finetune.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum WritableMusicFinetuneVisibility {
+    Private,
+    Workspace,
+}
+
+impl WritableMusicFinetuneVisibility {
+    fn as_str(self) -> &'static str {
+        match self {
+            Self::Private => "private",
+            Self::Workspace => "workspace",
+        }
+    }
+}
+
+/// The creator category of a Music Finetune.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum MusicFinetuneCreatedBy {
+    #[serde(rename = "self")]
+    CurrentUser,
+    Workspace,
+    Elevenlabs,
+    #[serde(other)]
+    Unknown,
+}
+
+impl MusicFinetuneCreatedBy {
+    fn as_str(self) -> &'static str {
+        match self {
+            Self::CurrentUser => "self",
+            Self::Workspace => "workspace",
+            Self::Elevenlabs => "elevenlabs",
+            Self::Unknown => "unknown",
+        }
+    }
+}
+
+/// Training lifecycle of a Music Finetune.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum MusicFinetuneStatus {
+    Pending,
+    InProgress,
+    Completed,
+    Failed,
+    Blocked,
+    #[serde(other)]
+    Unknown,
+}
+
+/// Why Music Finetune training failed or was blocked.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum MusicFinetuneFailureReason {
+    AudioProcessingFailed,
+    CopyrightViolation,
+    TrainingFailed,
+    #[serde(other)]
+    Unknown,
+}
+
+/// A Music Finetune and its current training state.
+#[derive(Clone, Debug, Deserialize)]
+pub struct MusicFinetune {
+    pub id: String,
+    pub name: String,
+    pub tags: Vec<String>,
+    pub primary_genre: Option<String>,
+    pub model_id: String,
+    pub created_at: String,
+    pub visibility: MusicFinetuneVisibility,
+    pub created_by: MusicFinetuneCreatedBy,
+    pub status: MusicFinetuneStatus,
+    pub training_progress: f64,
+    pub failure_reason: Option<MusicFinetuneFailureReason>,
+}
+
+/// Query parameters for [`ListMusicFinetunes`].
+#[derive(Clone, Debug, Default)]
+pub struct MusicFinetuneQuery {
+    params: QueryValues,
+}
+
+impl MusicFinetuneQuery {
+    pub fn with_cursor(mut self, cursor: impl Into<String>) -> Self {
+        self.params.push(("cursor", cursor.into()));
+        self
+    }
+
+    pub fn with_page_size(mut self, page_size: u32) -> Self {
+        self.params.push(("page_size", page_size.to_string()));
+        self
+    }
+
+    pub fn with_visibility(mut self, visibility: MusicFinetuneVisibility) -> Self {
+        self.params
+            .push(("visibility", visibility.as_str().to_owned()));
+        self
+    }
+
+    pub fn with_created_by(mut self, created_by: MusicFinetuneCreatedBy) -> Self {
+        self.params
+            .push(("created_by", created_by.as_str().to_owned()));
+        self
+    }
+
+    pub fn with_sort(mut self, sort: MusicFinetuneSort) -> Self {
+        self.params.push(("sort", sort.as_str().to_owned()));
+        self
+    }
+
+    pub fn with_sort_direction(mut self, direction: MusicFinetuneSortDirection) -> Self {
+        self.params
+            .push(("sort_direction", direction.as_str().to_owned()));
+        self
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum MusicFinetuneSort {
+    CreatedAt,
+    Name,
+}
+
+impl MusicFinetuneSort {
+    fn as_str(self) -> &'static str {
+        match self {
+            Self::CreatedAt => "created_at",
+            Self::Name => "name",
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum MusicFinetuneSortDirection {
+    Ascending,
+    Descending,
+}
+
+impl MusicFinetuneSortDirection {
+    fn as_str(self) -> &'static str {
+        match self {
+            Self::Ascending => "asc",
+            Self::Descending => "desc",
+        }
+    }
+}
+
+/// Lists Music Finetunes available to the current user.
+#[derive(Clone, Debug, Default)]
+pub struct ListMusicFinetunes {
+    query: Option<MusicFinetuneQuery>,
+}
+
+impl ListMusicFinetunes {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn with_query(mut self, query: MusicFinetuneQuery) -> Self {
+        self.query = Some(query);
+        self
+    }
+}
+
+#[derive(Clone, Debug, Deserialize)]
+pub struct ListMusicFinetunesResponse {
+    pub finetunes: Vec<MusicFinetune>,
+    pub next_cursor: Option<String>,
+    pub has_more: bool,
+}
+
+impl crate::endpoints::sealed::Sealed for ListMusicFinetunes {}
+
+impl ElevenLabsEndpoint for ListMusicFinetunes {
+    const PATH: &'static str = "/v1/music/finetunes";
+
+    const METHOD: Method = Method::GET;
+
+    type ResponseBody = ListMusicFinetunesResponse;
+
+    fn query_params(&self) -> Option<QueryValues> {
+        self.query.as_ref().map(|query| query.params.clone())
+    }
+
+    async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
+        Ok(resp.json().await?)
+    }
+}
+
+/// Multipart body for [`CreateMusicFinetune`].
+#[derive(Clone, Debug)]
+pub struct CreateMusicFinetuneBody {
+    name: String,
+    primary_genre: String,
+    files: Vec<FilePart>,
+    tags: Vec<String>,
+    visibility: Option<WritableMusicFinetuneVisibility>,
+    model_id: MusicModel,
+}
+
+impl CreateMusicFinetuneBody {
+    pub fn new(name: impl Into<String>, primary_genre: impl Into<String>) -> Self {
+        Self {
+            name: name.into(),
+            primary_genre: primary_genre.into(),
+            files: Vec::new(),
+            tags: Vec::new(),
+            visibility: None,
+            model_id: MusicModel::default(),
+        }
+    }
+
+    pub fn add_file(mut self, file: impl Into<FilePart>) -> Self {
+        self.files.push(file.into());
+        self
+    }
+
+    pub fn with_files(mut self, files: impl IntoIterator<Item = impl Into<FilePart>>) -> Self {
+        self.files = files.into_iter().map(Into::into).collect();
+        self
+    }
+
+    pub fn with_tags<I, S>(mut self, tags: I) -> Self
+    where
+        I: IntoIterator<Item = S>,
+        S: Into<String>,
+    {
+        self.tags = tags.into_iter().map(Into::into).collect();
+        self
+    }
+
+    pub fn with_visibility(mut self, visibility: WritableMusicFinetuneVisibility) -> Self {
+        self.visibility = Some(visibility);
+        self
+    }
+
+    pub fn with_model(mut self, model_id: MusicModel) -> Self {
+        self.model_id = model_id;
+        self
+    }
+}
+
+impl TryFrom<&CreateMusicFinetuneBody> for RequestBody {
+    type Error = crate::error::Error;
+
+    fn try_from(body: &CreateMusicFinetuneBody) -> Result<Self> {
+        let mut form = Form::new()
+            .text("name", body.name.clone())
+            .text("primary_genre", body.primary_genre.clone())
+            .text("model_id", model_id_str(body.model_id));
+
+        for file in &body.files {
+            let inferred_mime = inferred_audio_mime(file)?;
+            form = form.part("files", file.clone().into_part(inferred_mime)?);
+        }
+        if !body.tags.is_empty() {
+            form = form.text("tags", serde_json::to_string(&body.tags)?);
+        }
+        if let Some(visibility) = body.visibility {
+            form = form.text("visibility", visibility.as_str());
+        }
+
+        Ok(RequestBody::Multipart(form))
+    }
+}
+
+/// Creates a Music Finetune from owned audio.
+#[derive(Clone, Debug)]
+pub struct CreateMusicFinetune {
+    body: CreateMusicFinetuneBody,
+}
+
+impl CreateMusicFinetune {
+    pub fn new(body: CreateMusicFinetuneBody) -> Self {
+        Self { body }
+    }
+}
+
+impl crate::endpoints::sealed::Sealed for CreateMusicFinetune {}
+
+impl ElevenLabsEndpoint for CreateMusicFinetune {
+    const PATH: &'static str = "/v1/music/finetunes";
+
+    const METHOD: Method = Method::POST;
+
+    type ResponseBody = MusicFinetune;
+
+    async fn request_body(&self) -> Result<RequestBody> {
+        TryFrom::try_from(&self.body)
+    }
+
+    async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
+        Ok(resp.json().await?)
+    }
+}
+
+/// Retrieves one Music Finetune.
+#[derive(Clone, Debug)]
+pub struct GetMusicFinetune {
+    finetune_id: String,
+}
+
+impl GetMusicFinetune {
+    pub fn new(finetune_id: impl Into<String>) -> Self {
+        Self {
+            finetune_id: finetune_id.into(),
+        }
+    }
+}
+
+impl crate::endpoints::sealed::Sealed for GetMusicFinetune {}
+
+impl ElevenLabsEndpoint for GetMusicFinetune {
+    const PATH: &'static str = "/v1/music/finetunes/:finetune_id";
+
+    const METHOD: Method = Method::GET;
+
+    type ResponseBody = MusicFinetune;
+
+    fn path_params(&self) -> Vec<(&'static str, &str)> {
+        vec![self.finetune_id.and_param(PathParam::FinetuneID)]
+    }
+
+    async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
+        Ok(resp.json().await?)
+    }
+}
+
+/// Fields accepted by [`UpdateMusicFinetune`].
+#[derive(Clone, Debug, Default, Serialize)]
+pub struct UpdateMusicFinetuneBody {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    name: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    tags: Option<Vec<String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    primary_genre: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    visibility: Option<WritableMusicFinetuneVisibility>,
+}
+
+impl UpdateMusicFinetuneBody {
+    pub fn with_name(mut self, name: impl Into<String>) -> Self {
+        self.name = Some(name.into());
+        self
+    }
+
+    pub fn with_tags<I, S>(mut self, tags: I) -> Self
+    where
+        I: IntoIterator<Item = S>,
+        S: Into<String>,
+    {
+        self.tags = Some(tags.into_iter().map(Into::into).collect());
+        self
+    }
+
+    pub fn with_primary_genre(mut self, primary_genre: impl Into<String>) -> Self {
+        self.primary_genre = Some(primary_genre.into());
+        self
+    }
+
+    pub fn with_visibility(mut self, visibility: WritableMusicFinetuneVisibility) -> Self {
+        self.visibility = Some(visibility);
+        self
+    }
+}
+
+/// Updates Music Finetune metadata or visibility.
+#[derive(Clone, Debug)]
+pub struct UpdateMusicFinetune {
+    finetune_id: String,
+    body: UpdateMusicFinetuneBody,
+}
+
+impl UpdateMusicFinetune {
+    pub fn new(finetune_id: impl Into<String>, body: UpdateMusicFinetuneBody) -> Self {
+        Self {
+            finetune_id: finetune_id.into(),
+            body,
+        }
+    }
+}
+
+impl crate::endpoints::sealed::Sealed for UpdateMusicFinetune {}
+
+impl ElevenLabsEndpoint for UpdateMusicFinetune {
+    const PATH: &'static str = "/v1/music/finetunes/:finetune_id";
+
+    const METHOD: Method = Method::PATCH;
+
+    type ResponseBody = MusicFinetune;
+
+    fn path_params(&self) -> Vec<(&'static str, &str)> {
+        vec![self.finetune_id.and_param(PathParam::FinetuneID)]
+    }
+
+    async fn request_body(&self) -> Result<RequestBody> {
+        Ok(RequestBody::Json(serde_json::to_value(&self.body)?))
+    }
+
+    async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
+        Ok(resp.json().await?)
+    }
+}
+
+/// Deletes one Music Finetune.
+#[derive(Clone, Debug)]
+pub struct DeleteMusicFinetune {
+    finetune_id: String,
+}
+
+impl DeleteMusicFinetune {
+    pub fn new(finetune_id: impl Into<String>) -> Self {
+        Self {
+            finetune_id: finetune_id.into(),
+        }
+    }
+}
+
+impl crate::endpoints::sealed::Sealed for DeleteMusicFinetune {}
+
+impl ElevenLabsEndpoint for DeleteMusicFinetune {
+    const PATH: &'static str = "/v1/music/finetunes/:finetune_id";
+
+    const METHOD: Method = Method::DELETE;
+
+    type ResponseBody = MusicFinetune;
+
+    fn path_params(&self) -> Vec<(&'static str, &str)> {
+        vec![self.finetune_id.and_param(PathParam::FinetuneID)]
+    }
+
+    async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
+        Ok(resp.json().await?)
+    }
+}
+
+// =============================================================================
 // Helpers
 // =============================================================================
+
+fn collect_sse_line(line: &[u8], event_data: &mut String) -> Result<bool> {
+    let line = line.strip_suffix(b"\r").unwrap_or(line);
+    let line = std::str::from_utf8(line)?;
+
+    if line.is_empty() {
+        return Ok(true);
+    }
+
+    if let Some(data) = line.strip_prefix("data:") {
+        if !event_data.is_empty() {
+            event_data.push('\n');
+        }
+        event_data.push_str(data.strip_prefix(' ').unwrap_or(data));
+    }
+
+    Ok(false)
+}
+
+#[derive(Deserialize)]
+struct DetailedMusicEventEnvelope {
+    event: String,
+    data: Value,
+}
+
+fn parse_detailed_music_event(payload: &str) -> Result<DetailedMusicStreamEvent> {
+    let envelope: DetailedMusicEventEnvelope = serde_json::from_str(payload)?;
+    let event = match envelope.event.as_str() {
+        "composition_plan" => DetailedMusicStreamEvent::CompositionPlan(envelope.data),
+        "song_metadata" => DetailedMusicStreamEvent::SongMetadata(envelope.data),
+        "audio_chunk" => {
+            let encoded = envelope.data.as_str().ok_or_else(|| {
+                crate::error::Error::InvalidInput(
+                    "music audio_chunk event data must be a base64 string".to_owned(),
+                )
+            })?;
+            DetailedMusicStreamEvent::AudioChunk(Bytes::from(BASE64_STANDARD.decode(encoded)?))
+        }
+        "word_timestamps" => DetailedMusicStreamEvent::WordTimestamps(envelope.data),
+        "completion" => DetailedMusicStreamEvent::Completion(envelope.data),
+        _ => DetailedMusicStreamEvent::Unknown {
+            event: envelope.event,
+            data: envelope.data,
+        },
+    };
+    Ok(event)
+}
 
 fn model_id_str(model: MusicModel) -> &'static str {
     match model {
@@ -1510,6 +2176,34 @@ mod tests {
         }))
         .unwrap();
         assert!(matches!(chunk, CompositionChunk::Generation(_)));
+    }
+
+    #[test]
+    fn detailed_stream_audio_event_decodes_base64() {
+        let event =
+            parse_detailed_music_event(r#"{"event":"audio_chunk","data":"3q2+7w=="}"#).unwrap();
+
+        match event {
+            DetailedMusicStreamEvent::AudioChunk(audio) => {
+                assert_eq!(audio.as_ref(), &[0xDE, 0xAD, 0xBE, 0xEF]);
+            }
+            other => panic!("expected audio chunk, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn detailed_stream_preserves_unknown_events() {
+        let event =
+            parse_detailed_music_event(r#"{"event":"future_event","data":{"id":"event_1"}}"#)
+                .unwrap();
+
+        match event {
+            DetailedMusicStreamEvent::Unknown { event, data } => {
+                assert_eq!(event, "future_event");
+                assert_eq!(data["id"], "event_1");
+            }
+            other => panic!("expected unknown event, got {other:?}"),
+        }
     }
 
     #[test]

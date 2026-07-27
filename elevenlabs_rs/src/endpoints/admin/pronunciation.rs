@@ -748,6 +748,12 @@ impl GetDictionariesQuery {
             .push(("sort_direction", sort_direction.to_string()));
         self
     }
+
+    pub fn with_include_archived(mut self, include_archived: bool) -> Self {
+        self.params
+            .push(("include_archived", include_archived.to_string()));
+        self
+    }
 }
 
 impl crate::endpoints::sealed::Sealed for GetDictionaries {}

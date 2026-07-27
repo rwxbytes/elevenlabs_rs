@@ -1695,3 +1695,78 @@ impl ElevenLabsEndpoint for GetDocumentRagIndexes {
 pub struct DocumentRagIndexes {
     pub indexes: Vec<Value>,
 }
+
+/// Runs a retrieval query against an agent's configured knowledge base.
+///
+/// See [Agent Knowledge Base RAG Query API reference](https://elevenlabs.io/docs/api-reference/agents/knowledge-base/rag-query).
+#[derive(Clone, Debug)]
+pub struct QueryAgentKnowledgeBase {
+    agent_id: String,
+    branch_id: Option<String>,
+    body: AgentKnowledgeBaseQueryBody,
+}
+
+impl QueryAgentKnowledgeBase {
+    pub fn new(agent_id: impl Into<String>, query: impl Into<String>) -> Self {
+        Self {
+            agent_id: agent_id.into(),
+            branch_id: None,
+            body: AgentKnowledgeBaseQueryBody {
+                query: query.into(),
+            },
+        }
+    }
+
+    pub fn with_branch_id(mut self, branch_id: impl Into<String>) -> Self {
+        self.branch_id = Some(branch_id.into());
+        self
+    }
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct AgentKnowledgeBaseQueryBody {
+    pub query: String,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+pub struct AgentKnowledgeBaseQueryResponse {
+    pub retrieval_query: String,
+    pub chunks: Vec<AgentKnowledgeBaseChunk>,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+pub struct AgentKnowledgeBaseChunk {
+    pub document_id: String,
+    pub document_name: String,
+    pub chunk_id: String,
+    pub text: String,
+    pub vector_distance: Option<f64>,
+}
+
+impl crate::endpoints::sealed::Sealed for QueryAgentKnowledgeBase {}
+
+impl ElevenLabsEndpoint for QueryAgentKnowledgeBase {
+    const PATH: &'static str = "/v1/convai/agents/:agent_id/knowledge-base/rag-query";
+
+    const METHOD: Method = Method::POST;
+
+    type ResponseBody = AgentKnowledgeBaseQueryResponse;
+
+    fn query_params(&self) -> Option<QueryValues> {
+        self.branch_id
+            .as_ref()
+            .map(|branch_id| vec![("branch_id", branch_id.clone())])
+    }
+
+    fn path_params(&self) -> Vec<(&'static str, &str)> {
+        vec![self.agent_id.and_param(PathParam::AgentID)]
+    }
+
+    async fn request_body(&self) -> Result<RequestBody> {
+        Ok(RequestBody::Json(serde_json::to_value(&self.body)?))
+    }
+
+    async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
+        Ok(resp.json().await?)
+    }
+}

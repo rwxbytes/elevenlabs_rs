@@ -58,15 +58,23 @@ pub struct ListToolsResponse {
 /// }
 /// ```
 /// See [Get Tool API reference](https://elevenlabs.io/docs/api-reference/tools/get-tool).
+#[derive(Clone, Debug)]
 pub struct GetTool {
     tool_id: String,
+    environment: Option<String>,
 }
 
 impl GetTool {
     pub fn new(tool_id: impl Into<String>) -> Self {
         Self {
             tool_id: tool_id.into(),
+            environment: None,
         }
+    }
+
+    pub fn with_environment(mut self, environment: impl Into<String>) -> Self {
+        self.environment = Some(environment.into());
+        self
     }
 }
 
@@ -78,6 +86,12 @@ impl ElevenLabsEndpoint for GetTool {
     const METHOD: Method = Method::GET;
 
     type ResponseBody = GetToolResponse;
+
+    fn query_params(&self) -> Option<QueryValues> {
+        self.environment
+            .as_ref()
+            .map(|environment| vec![("environment", environment.clone())])
+    }
 
     fn path_params(&self) -> Vec<(&'static str, &str)> {
         vec![self.tool_id.and_param(PathParam::ToolID)]

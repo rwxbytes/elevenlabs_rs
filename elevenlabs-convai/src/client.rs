@@ -630,7 +630,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn session_can_send_tool_result_and_context_update() {
+    async fn session_can_send_client_events() {
         let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
         let base_url = format!("ws://{}", listener.local_addr().unwrap());
 
@@ -663,6 +663,29 @@ mod tests {
                 })
             );
 
+            let user_message = ws.next().await.unwrap().unwrap();
+            let Message::Text(user_message) = user_message else {
+                panic!("expected user message frame");
+            };
+            assert_eq!(
+                serde_json::from_str::<Value>(&user_message).unwrap(),
+                json!({
+                    "type": "user_message",
+                    "text": "I need help with billing"
+                })
+            );
+
+            let user_activity = ws.next().await.unwrap().unwrap();
+            let Message::Text(user_activity) = user_activity else {
+                panic!("expected user activity frame");
+            };
+            assert_eq!(
+                serde_json::from_str::<Value>(&user_activity).unwrap(),
+                json!({
+                    "type": "user_activity"
+                })
+            );
+
             let close = ws.next().await.unwrap().unwrap();
             assert!(matches!(close, Message::Close(_)));
         });
@@ -682,6 +705,11 @@ mod tests {
             .send_context_update("user changed topic")
             .await
             .unwrap();
+        session
+            .send_user_message("I need help with billing")
+            .await
+            .unwrap();
+        session.send_user_activity().await.unwrap();
         session.close().await.unwrap();
 
         let report = session.join().await;

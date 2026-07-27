@@ -156,6 +156,20 @@ impl CreateTranscriptQuery {
         self.params.push(("enable_logging", enable.to_string()));
         self
     }
+
+    /// Authenticate with a single-use batch Scribe token.
+    pub fn with_token(mut self, token: impl Into<String>) -> Self {
+        self.params.push(("token", token.into()));
+        self
+    }
+}
+
+#[derive(Clone, Copy, Debug, Display, Serialize)]
+#[serde(rename_all = "lowercase")]
+#[strum(serialize_all = "lowercase")]
+pub enum MultichannelOutputStyle {
+    Separate,
+    Combined,
 }
 
 #[derive(Clone, Debug, Default, Serialize)]
@@ -168,6 +182,7 @@ pub struct CreateTranscriptBody {
     num_speakers: Option<u32>,
     timestamps_granularity: Option<Granularity>,
     diarize: Option<bool>,
+    multichannel_output_style: Option<MultichannelOutputStyle>,
     additional_formats: Option<Vec<AdditionalFormat>>,
     #[serde(skip)]
     prefer_video: Option<bool>,
@@ -324,6 +339,13 @@ impl CreateTranscriptBody {
     }
     pub fn with_diarize(mut self, diarize: bool) -> Self {
         self.diarize = Some(diarize);
+        self
+    }
+
+    /// Choose whether multichannel input is returned as separate transcripts
+    /// or as one combined transcript.
+    pub fn with_multichannel_output_style(mut self, output_style: MultichannelOutputStyle) -> Self {
+        self.multichannel_output_style = Some(output_style);
         self
     }
 
@@ -494,6 +516,10 @@ impl TryFrom<CreateTranscriptBody> for RequestBody {
 
         if let Some(diarize) = body.diarize {
             form = form.text("diarize", diarize.to_string());
+        }
+
+        if let Some(output_style) = body.multichannel_output_style {
+            form = form.text("multichannel_output_style", output_style.to_string());
         }
 
         if let Some(additional_formats) = body.additional_formats {

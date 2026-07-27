@@ -90,6 +90,24 @@ impl GetConversationsQuery {
         self.params.push(("page_size", page_size.to_string()));
         self
     }
+
+    pub fn with_conversation_product_type(
+        mut self,
+        conversation_product_type: impl Into<String>,
+    ) -> Self {
+        self.params.push((
+            "conversation_product_type",
+            conversation_product_type.into(),
+        ));
+        self
+    }
+
+    /// Add a termination-reason filter. Call repeatedly for multiple values.
+    pub fn with_termination_reason(mut self, termination_reason: impl Into<String>) -> Self {
+        self.params
+            .push(("termination_reasons", termination_reason.into()));
+        self
+    }
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -111,19 +129,53 @@ pub struct Conversation {
     pub call_successful: CallSuccessful,
 }
 
-#[derive(Clone, Debug, Deserialize)]
-#[serde(rename_all = "lowercase")]
+#[derive(Clone, Debug, PartialEq, Eq, Deserialize, Serialize)]
+#[serde(from = "String", into = "String")]
 pub enum ConvoStatus {
     Done,
     Processing,
+    Initiated,
+    InProgress,
+    Failed,
+    Other(String),
 }
 
 impl ConvoStatus {
     pub fn is_done(&self) -> bool {
-        matches!(*self, ConvoStatus::Done)
+        matches!(self, ConvoStatus::Done)
     }
     pub fn is_processing(&self) -> bool {
-        matches!(*self, ConvoStatus::Processing)
+        matches!(self, ConvoStatus::Processing)
+    }
+
+    pub fn as_str(&self) -> &str {
+        match self {
+            Self::Done => "done",
+            Self::Processing => "processing",
+            Self::Initiated => "initiated",
+            Self::InProgress => "in-progress",
+            Self::Failed => "failed",
+            Self::Other(status) => status,
+        }
+    }
+}
+
+impl From<String> for ConvoStatus {
+    fn from(status: String) -> Self {
+        match status.as_str() {
+            "done" => Self::Done,
+            "processing" => Self::Processing,
+            "initiated" => Self::Initiated,
+            "in-progress" => Self::InProgress,
+            "failed" => Self::Failed,
+            _ => Self::Other(status),
+        }
+    }
+}
+
+impl From<ConvoStatus> for String {
+    fn from(status: ConvoStatus) -> Self {
+        status.as_str().to_owned()
     }
 }
 
@@ -201,12 +253,24 @@ impl ElevenLabsEndpoint for GetConversationDetails {
 #[derive(Clone, Debug, Deserialize)]
 pub struct GetConversationDetailsResponse {
     pub agent_id: String,
+    pub agent_name: Option<String>,
     pub conversation_id: String,
+    pub conversation_product: Option<String>,
     pub status: ConvoStatus,
+    pub user_id: Option<String>,
+    pub branch_id: Option<String>,
+    pub version_id: Option<String>,
     pub transcript: Option<Vec<Transcript>>,
     pub metadata: Option<Metadata>,
     pub analysis: Option<Analysis>,
     pub conversation_initiation_client_data: Option<ConversationInitiationClientData>,
+    pub environment: Option<String>,
+    pub has_audio: Option<bool>,
+    pub has_user_audio: Option<bool>,
+    pub has_response_audio: Option<bool>,
+    pub has_auxiliary_audio: Option<bool>,
+    pub tag_ids: Option<Vec<String>>,
+    pub otlp_traces: Option<Value>,
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -215,6 +279,8 @@ pub struct Analysis {
     pub data_collection_results: Option<HashMap<String, DataCollectionResult>>,
     pub evaluation_criteria_results: Option<HashMap<String, EvaluationResult>>,
     pub transcript_summary: String,
+    pub call_success_score: Option<f64>,
+    pub success_score: Option<f64>,
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -230,6 +296,7 @@ pub struct EvaluationResult {
     pub criteria_id: String,
     pub result: CallSuccessful,
     pub rationale: String,
+    pub score: Option<f64>,
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -243,6 +310,10 @@ pub struct Metadata {
     pub charging: Option<Charging>,
     pub termination_reason: Option<String>,
     pub phone_call: Option<PhoneCall>,
+    pub cost_fiat: Option<f64>,
+    pub platform_charge: Option<f64>,
+    pub platform_price: Option<f64>,
+    pub platform_usage: Option<Value>,
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -307,6 +378,9 @@ pub struct Transcript {
     pub feedback: Option<TranscriptFeedback>,
     pub conversation_turn_metrics: Option<ConversationTurnMetrics>,
     pub rag_retrieval_info: Option<RAGRetrievalInfo>,
+    pub reasoning: Option<Value>,
+    pub reasoned: Option<bool>,
+    pub ignored_as_backchannel: Option<bool>,
 }
 
 #[derive(Clone, Debug, Deserialize)]
@@ -1061,6 +1135,29 @@ impl ConversationUsersQuery {
         self
     }
 
+    pub fn with_conversation_product_type(
+        mut self,
+        conversation_product_type: impl Into<String>,
+    ) -> Self {
+        self.params.push((
+            "conversation_product_type",
+            conversation_product_type.into(),
+        ));
+        self
+    }
+
+    /// Exclude a conversation status. Call repeatedly for multiple values.
+    pub fn with_excluded_status(mut self, status: impl Into<String>) -> Self {
+        self.params.push(("exclude_statuses", status.into()));
+        self
+    }
+
+    /// Filter by termination reason. Call repeatedly for multiple values.
+    pub fn with_termination_reason(mut self, reason: impl Into<String>) -> Self {
+        self.params.push(("termination_reasons", reason.into()));
+        self
+    }
+
     pub fn with_cursor(mut self, cursor: impl Into<String>) -> Self {
         self.params.push(("cursor", cursor.into()));
         self
@@ -1567,5 +1664,44 @@ impl ElevenLabsEndpoint for UnassignConversationTag {
 
     async fn response_body(self, _resp: Response) -> Result<Self::ResponseBody> {
         Ok(())
+    }
+}
+
+/// Resolves an application-defined conversation reference for an agent.
+///
+/// See [Resolve Conversation API reference](https://elevenlabs.io/docs/api-reference/conversations/resolve).
+#[derive(Clone, Debug)]
+pub struct ResolveConversation {
+    agent_id: String,
+    reference: String,
+}
+
+impl ResolveConversation {
+    pub fn new(agent_id: impl Into<String>, reference: impl Into<String>) -> Self {
+        Self {
+            agent_id: agent_id.into(),
+            reference: reference.into(),
+        }
+    }
+}
+
+impl crate::endpoints::sealed::Sealed for ResolveConversation {}
+
+impl ElevenLabsEndpoint for ResolveConversation {
+    const PATH: &'static str = "/v1/convai/conversations/resolve";
+
+    const METHOD: Method = Method::GET;
+
+    type ResponseBody = GetConversationDetailsResponse;
+
+    fn query_params(&self) -> Option<QueryValues> {
+        Some(vec![
+            ("agent_id", self.agent_id.clone()),
+            ("reference", self.reference.clone()),
+        ])
+    }
+
+    async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
+        Ok(resp.json().await?)
     }
 }

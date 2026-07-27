@@ -39,6 +39,8 @@ pub(crate) enum PathParam {
     FileID,
     #[strum(serialize = ":folder_id")]
     FolderID,
+    #[strum(serialize = ":finetune_id")]
+    FinetuneID,
     #[strum(serialize = ":history_item_id")]
     HistoryItemID,
     #[strum(serialize = ":mcp_server_id")]

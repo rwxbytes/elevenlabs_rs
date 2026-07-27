@@ -5,7 +5,7 @@
     "title": "ElevenLabs API Documentation",
     "version": "1.0"
   },
-  "operation_count": 320,
+  "operation_count": 352,
   "operations": [
     {
       "method": "GET",
@@ -252,6 +252,15 @@
       "summary": "Duplicate Agent"
     },
     {
+      "method": "POST",
+      "path": "/v1/convai/agents/{agent_id}/knowledge-base/rag-query",
+      "tags": [
+        "Agents Platform"
+      ],
+      "operation_id": "query_agent_knowledge_base_rag_route",
+      "summary": "Query Agent Knowledge Base Rag"
+    },
+    {
       "method": "GET",
       "path": "/v1/convai/agents/{agent_id}/link",
       "tags": [
@@ -351,6 +360,15 @@
       "summary": "Cancel A Batch Call."
     },
     {
+      "method": "GET",
+      "path": "/v1/convai/batch-calling/{batch_id}/export",
+      "tags": [
+        "Agents Platform"
+      ],
+      "operation_id": "export_batch_call",
+      "summary": "Export Batch Call Results"
+    },
+    {
       "method": "POST",
       "path": "/v1/convai/batch-calling/{batch_id}/retry",
       "tags": [
@@ -412,6 +430,15 @@
       ],
       "operation_id": "text_search_conversation_messages_route",
       "summary": "Text Search Conversation Messages"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/convai/conversations/resolve",
+      "tags": [
+        "Agents Platform"
+      ],
+      "operation_id": "resolve_conversation_reference_route",
+      "summary": "Resolve Conversation Reference"
     },
     {
       "method": "DELETE",
@@ -556,6 +583,24 @@
       ],
       "operation_id": "add_documentation_to_knowledge_base",
       "summary": "Add To Knowledge Base"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/convai/knowledge-base/bulk-delete",
+      "tags": [
+        "Agents Platform"
+      ],
+      "operation_id": "post_knowledge_base_bulk_delete_route",
+      "summary": "Bulk Delete Knowledge Base Documents"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/convai/knowledge-base/dependent-agents",
+      "tags": [
+        "Agents Platform"
+      ],
+      "operation_id": "get_knowledge_base_bulk_dependent_agents_route",
+      "summary": "Get Dependent Agents For Multiple Documents"
     },
     {
       "method": "POST",
@@ -1242,6 +1287,42 @@
       "summary": "Bulk Move Entities To Folder"
     },
     {
+      "method": "GET",
+      "path": "/v1/convai/knowledge-base/crawl",
+      "tags": [
+        "Conversational AI"
+      ],
+      "operation_id": "list_crawl_jobs_route",
+      "summary": "List Ongoing And Recent Crawl Jobs Created By A User"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/convai/knowledge-base/crawl",
+      "tags": [
+        "Conversational AI"
+      ],
+      "operation_id": "create_crawl_job_route",
+      "summary": "Create Crawl Job"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/convai/knowledge-base/crawl/{crawl_job_id}",
+      "tags": [
+        "Conversational AI"
+      ],
+      "operation_id": "get_crawl_job_route",
+      "summary": "Get Crawl Job Details"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/convai/knowledge-base/crawl/{crawl_job_id}/cancel",
+      "tags": [
+        "Conversational AI"
+      ],
+      "operation_id": "cancel_crawl_job_route",
+      "summary": "Cancel Crawl Job"
+    },
+    {
       "method": "POST",
       "path": "/v1/convai/knowledge-base/folder",
       "tags": [
@@ -1258,6 +1339,141 @@
       ],
       "operation_id": "post_knowledge_base_move_route",
       "summary": "Move Entity To Folder"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/dubbing/project",
+      "tags": [
+        "Dubbing"
+      ],
+      "operation_id": "dubbing_project_list",
+      "summary": "List Dubbing Projects"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/dubbing/project",
+      "tags": [
+        "Dubbing"
+      ],
+      "operation_id": "dubbing_project_create",
+      "summary": "Create Dubbing Project"
+    },
+    {
+      "method": "DELETE",
+      "path": "/v1/dubbing/project/{project_id}",
+      "tags": [
+        "Dubbing"
+      ],
+      "operation_id": "dubbing_project_delete",
+      "summary": "Delete Dubbing Project"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/dubbing/project/{project_id}",
+      "tags": [
+        "Dubbing"
+      ],
+      "operation_id": "dubbing_project_get",
+      "summary": "Get Dubbing Project"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/dubbing/project/{project_id}/language",
+      "tags": [
+        "Dubbing"
+      ],
+      "operation_id": "dubbing_language_list",
+      "summary": "List Dubbing Language Targets"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/dubbing/project/{project_id}/language",
+      "tags": [
+        "Dubbing"
+      ],
+      "operation_id": "dubbing_language_create",
+      "summary": "Create Dubbing Language Target"
+    },
+    {
+      "method": "DELETE",
+      "path": "/v1/dubbing/project/{project_id}/language/{language_id}",
+      "tags": [
+        "Dubbing"
+      ],
+      "operation_id": "dubbing_language_delete",
+      "summary": "Delete Dubbing Language Target"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/dubbing/project/{project_id}/language/{language_id}",
+      "tags": [
+        "Dubbing"
+      ],
+      "operation_id": "dubbing_language_get",
+      "summary": "Get Dubbing Language Target"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/dubbing/project/{project_id}/language/{language_id}/transcript",
+      "tags": [
+        "Dubbing"
+      ],
+      "operation_id": "dubbing_target_transcript_get",
+      "summary": "Get Dubbing Target Transcript"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/dubbing/project/{project_id}/language/{language_id}/transcript/regenerate",
+      "tags": [
+        "Dubbing"
+      ],
+      "operation_id": "dubbing_target_transcript_regenerate",
+      "summary": "Regenerate Dubbing Target"
+    },
+    {
+      "method": "PATCH",
+      "path": "/v1/dubbing/project/{project_id}/language/{language_id}/transcript/segment/{segment_id}",
+      "tags": [
+        "Dubbing"
+      ],
+      "operation_id": "dubbing_target_transcript_segment_update",
+      "summary": "Update Dubbing Target Transcript Segment"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/dubbing/project/{project_id}/transcript",
+      "tags": [
+        "Dubbing"
+      ],
+      "operation_id": "dubbing_transcript_get",
+      "summary": "Get Dubbing Transcript"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/dubbing/project/{project_id}/transcript/segment",
+      "tags": [
+        "Dubbing"
+      ],
+      "operation_id": "dubbing_transcript_segment_add",
+      "summary": "Add Dubbing Transcript Segment"
+    },
+    {
+      "method": "DELETE",
+      "path": "/v1/dubbing/project/{project_id}/transcript/segment/{segment_id}",
+      "tags": [
+        "Dubbing"
+      ],
+      "operation_id": "dubbing_transcript_segment_delete",
+      "summary": "Delete Dubbing Transcript Segment"
+    },
+    {
+      "method": "PATCH",
+      "path": "/v1/dubbing/project/{project_id}/transcript/segment/{segment_id}",
+      "tags": [
+        "Dubbing"
+      ],
+      "operation_id": "dubbing_transcript_segment_update",
+      "summary": "Update Dubbing Transcript Segment"
     },
     {
       "method": "GET",
@@ -1749,6 +1965,51 @@
       "summary": "Get Models"
     },
     {
+      "method": "GET",
+      "path": "/v1/music/finetunes",
+      "tags": [
+        "music-finetunes"
+      ],
+      "operation_id": "get_finetunes",
+      "summary": "Get Music Finetunes"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/music/finetunes",
+      "tags": [
+        "music-finetunes"
+      ],
+      "operation_id": "create_finetune",
+      "summary": "Create Music Finetune"
+    },
+    {
+      "method": "DELETE",
+      "path": "/v1/music/finetunes/{finetune_id}",
+      "tags": [
+        "music-finetunes"
+      ],
+      "operation_id": "delete_finetune",
+      "summary": "Delete Music Finetune"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/music/finetunes/{finetune_id}",
+      "tags": [
+        "music-finetunes"
+      ],
+      "operation_id": "get_finetune",
+      "summary": "Get Music Finetune"
+    },
+    {
+      "method": "PATCH",
+      "path": "/v1/music/finetunes/{finetune_id}",
+      "tags": [
+        "music-finetunes"
+      ],
+      "operation_id": "update_finetune",
+      "summary": "Update Music Finetune"
+    },
+    {
       "method": "POST",
       "path": "/v1/music",
       "tags": [
@@ -1765,6 +2026,15 @@
       ],
       "operation_id": "compose_detailed",
       "summary": "Compose Music With A Detailed Response"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/music/detailed/stream",
+      "tags": [
+        "music-generation"
+      ],
+      "operation_id": "compose_detailed_stream",
+      "summary": "Stream Composed Music With A Detailed Response"
     },
     {
       "method": "POST",
@@ -2683,6 +2953,7 @@
       "method": "POST",
       "path": "/v1/voices/{voice_id}/edit",
       "tags": [
+        "voices",
         "voices"
       ],
       "operation_id": "edit_voice",
@@ -2712,6 +2983,7 @@
       "method": "GET",
       "path": "/v2/voices",
       "tags": [
+        "voices",
         "voices"
       ],
       "operation_id": "get_user_voices_v2",
@@ -2725,6 +2997,15 @@
       ],
       "operation_id": "get_workspace_service_accounts",
       "summary": "Get Workspace Service Accounts"
+    },
+    {
+      "method": "POST",
+      "path": "/v1/service-accounts",
+      "tags": [
+        "workspace"
+      ],
+      "operation_id": "create_service_account",
+      "summary": "Create Service Account"
     },
     {
       "method": "GET",
@@ -2869,6 +3150,15 @@
       ],
       "operation_id": "invite_users_bulk",
       "summary": "Invite Multiple Users"
+    },
+    {
+      "method": "GET",
+      "path": "/v1/workspace/members",
+      "tags": [
+        "workspace"
+      ],
+      "operation_id": "get_workspace_members",
+      "summary": "Get Workspace Members"
     },
     {
       "method": "POST",

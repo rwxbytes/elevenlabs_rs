@@ -27,15 +27,17 @@ use crate::endpoints::admin::voice::{
     VoiceBody, VoiceType,
 };
 use crate::endpoints::admin::workspace::{
-    AddMemberToGroup, AuditLogsQuery, CreateServiceAccountApiKey, CreateServiceAccountApiKeyBody,
-    CreateWorkspaceWebhook, DeleteServiceAccountApiKey, DeleteWorkspaceWebhook, DisableApiKey,
-    EditServiceAccountApiKey, EditServiceAccountApiKeyBody, GetServiceAccountApiKeys,
-    GetServiceAccounts, GetWorkspaceAuditLogs, GetWorkspaceGroups, GetWorkspaceUsage,
-    GetWorkspaceUsageBody, GetWorkspaceWebhooks, InviteUsers, InviteUsersBody, ListApiRequests,
-    ListApiRequestsBody, RemoveMemberFromGroup, SearchWorkspaceGroups, SeatType,
-    SetThirdPartyDisablingPolicy, UpdateWorkspaceWebhook, UpdateWorkspaceWebhookBody,
-    WebhookHmacSettings,
+    AddMemberToGroup, AuditLogsQuery, CreateServiceAccount, CreateServiceAccountApiKey,
+    CreateServiceAccountApiKeyBody, CreateServiceAccountBody, CreateWorkspaceWebhook,
+    DefaultSharingGroup, DefaultSharingPermission, DeleteServiceAccountApiKey,
+    DeleteWorkspaceWebhook, DisableApiKey, EditServiceAccountApiKey, EditServiceAccountApiKeyBody,
+    GetServiceAccountApiKeys, GetServiceAccounts, GetWorkspaceAuditLogs, GetWorkspaceGroups,
+    GetWorkspaceMembers, GetWorkspaceUsage, GetWorkspaceUsageBody, GetWorkspaceWebhooks,
+    InviteUsers, InviteUsersBody, ListApiRequests, ListApiRequestsBody, RemoveMemberFromGroup,
+    SearchWorkspaceGroups, SeatType, SetThirdPartyDisablingPolicy, UpdateWorkspaceWebhook,
+    UpdateWorkspaceWebhookBody, WebhookHmacSettings,
 };
+#[allow(deprecated)]
 use crate::endpoints::convai::agent_management::{
     CreateAgentBranch, CreateAgentBranchBody, CreateAgentDeployments, CreateAgentDraft,
     DeleteAgentDraft, DuplicateAgent, GetAgentBranch, GetAgentSummaries, GetAgentTopics,
@@ -62,9 +64,9 @@ use crate::endpoints::convai::batch_calling::{
 use crate::endpoints::convai::conversations::{
     AssignConversationTags, ConversationMessagesSearchQuery, ConversationUsersQuery,
     DeleteConversationFile, GetConversationSipMessages, GetConversationUsers, GetLiveCount,
-    RunConversationAnalysis, RunConversationEvaluation, RunConversationEvaluationBody,
-    SmartSearchConversationMessages, TextSearchConversationMessages, UnassignConversationTag,
-    UploadConversationFile,
+    ResolveConversation, RunConversationAnalysis, RunConversationEvaluation,
+    RunConversationEvaluationBody, SmartSearchConversationMessages, TextSearchConversationMessages,
+    UnassignConversationTag, UploadConversationFile,
 };
 use crate::endpoints::convai::conversations::{
     GetConversations, GetConversationsQuery, GetSignedUrl, GetSignedUrlQuery, GetWebRtcToken,
@@ -83,8 +85,9 @@ use crate::endpoints::convai::knowledge_base::{
     CreateTextDocument, CreateTextDocumentBody, CreateUrlDocument, CreateUrlDocumentBody,
     DeleteRagIndex, DocumentChunksQuery, EmbeddingModel, GetDocumentChunks, GetDocumentRagIndexes,
     GetKnowledgeBaseSummaries, GetRagIndexOverview, GetSourceFileUrl, KnowledgeBaseDoc,
-    MoveKnowledgeBaseEntity, RagIndexItem, RefreshDocument, SearchKnowledgeBase,
-    UpdateFileDocument, UpdateKnowledgeBaseDocument, UpdateKnowledgeBaseDocumentBody,
+    MoveKnowledgeBaseEntity, QueryAgentKnowledgeBase, RagIndexItem, RefreshDocument,
+    SearchKnowledgeBase, UpdateFileDocument, UpdateKnowledgeBaseDocument,
+    UpdateKnowledgeBaseDocumentBody,
 };
 use crate::endpoints::convai::llm::{
     AgentLlmUsageBody, CalculateAgentLlmUsage, CalculateLlmUsage, ListLlms, LlmUsageBody,
@@ -93,8 +96,8 @@ use crate::endpoints::convai::mcp_servers::{
     AddMcpToolApproval, AddMcpToolApprovalBody, CreateMcpServer, CreateMcpToolConfig,
     DeleteMcpServer, DeleteMcpToolApproval, DeleteMcpToolConfig, GetMcpServer, GetMcpToolConfig,
     ListMcpServers, ListMcpTools, McpApprovalPolicy, McpServerConfig, McpServerConfigUpdate,
-    McpToolApprovalPolicy, McpToolConfigCreate, McpToolConfigOverrides, UpdateMcpApprovalPolicy,
-    UpdateMcpServerConfig, UpdateMcpToolConfig,
+    McpToolApprovalPolicy, McpToolConfigCreate, McpToolConfigOverrides, ToolInterruptionMode,
+    UpdateMcpApprovalPolicy, UpdateMcpServerConfig, UpdateMcpToolConfig,
 };
 use crate::endpoints::convai::phone_numbers::{
     CreatePhoneNumber, CreatePhoneNumberBody, GetPhoneNumber, ListPhoneNumbers,
@@ -131,9 +134,13 @@ use crate::endpoints::genai::audio_isolation::{
 use crate::endpoints::genai::dubbing::{DubAVideoOrAnAudioFile, DubbingBody};
 use crate::endpoints::genai::forced_alignment::{CreateForcedAlignment, CreateForcedAlignmentBody};
 use crate::endpoints::genai::music::{
-    ComposeMusic, ComposeMusicDetailed, CompositionPlanBody, GenerateCompositionPlan,
-    MusicComposeBody, MusicModel, MusicQuery, SeparateStems, StemSeparationBody, StemVariation,
-    StreamMusic, UploadMusic, UploadMusicBody, VideoToMusic, VideoToMusicBody,
+    ComposeMusic, ComposeMusicDetailed, CompositionPlanBody, CreateMusicFinetune,
+    CreateMusicFinetuneBody, DeleteMusicFinetune, GenerateCompositionPlan, GetMusicFinetune,
+    ListMusicFinetunes, MusicComposeBody, MusicFinetuneCreatedBy, MusicFinetuneQuery,
+    MusicFinetuneSort, MusicFinetuneSortDirection, MusicFinetuneVisibility, MusicModel, MusicQuery,
+    SeparateStems, StemSeparationBody, StemVariation, StreamMusic, StreamMusicDetailed,
+    UpdateMusicFinetune, UpdateMusicFinetuneBody, UploadMusic, UploadMusicBody, VideoToMusic,
+    VideoToMusicBody, WritableMusicFinetuneVisibility,
 };
 use crate::endpoints::genai::speech_engine::{
     CreateSpeechEngine, CreateSpeechEngineBody, DeleteSpeechEngine, GetSpeechEngine,
@@ -143,7 +150,7 @@ use crate::endpoints::genai::speech_engine::{
 };
 use crate::endpoints::genai::speech_to_text::{
     AdditionalFormat, CreateTranscript, CreateTranscriptBody, CreateTranscriptQuery,
-    DeleteTranscript, GetTranscript, Granularity, SpeechToTextModel,
+    DeleteTranscript, GetTranscript, Granularity, MultichannelOutputStyle, SpeechToTextModel,
 };
 use crate::endpoints::genai::text_to_dialogue::{
     DialogueInput, TextToDialogue, TextToDialogueBody, TextToDialogueQuery, TextToDialogueStream,
@@ -319,7 +326,9 @@ async fn text_to_dialogue_endpoints_share_query_and_body_shape() {
 #[tokio::test]
 async fn music_endpoints_encode_paths_and_bodies() {
     let query = MusicQuery::default().with_output_format(OutputFormat::Mp3_44100Hz128kbps);
-    let body = MusicComposeBody::from_prompt("an upbeat track").with_music_length_ms(30_000);
+    let body = MusicComposeBody::from_prompt("an upbeat track")
+        .with_music_length_ms(30_000)
+        .with_finetune_id("finetune/id");
 
     let endpoint = ComposeMusic::new(body.clone()).with_query(query.clone());
     assert_endpoint(
@@ -330,6 +339,7 @@ async fn music_endpoints_encode_paths_and_bodies() {
     let body_json = json_body(&endpoint).await;
     assert_eq!(body_json["prompt"], "an upbeat track");
     assert_eq!(body_json["model_id"], "music_v1");
+    assert_eq!(body_json["finetune_id"], "finetune/id");
 
     let endpoint = StreamMusic::new(body.clone()).with_query(query.clone());
     assert_endpoint(
@@ -338,11 +348,21 @@ async fn music_endpoints_encode_paths_and_bodies() {
         "https://api.elevenlabs.io/v1/music/stream?output_format=mp3_44100_128",
     );
 
-    let endpoint = ComposeMusicDetailed::new(body).with_timestamps(true);
+    let endpoint = ComposeMusicDetailed::new(body.clone()).with_timestamps(true);
     assert_endpoint(
         &endpoint,
         Method::POST,
         "https://api.elevenlabs.io/v1/music/detailed",
+    );
+    assert_eq!(json_body(&endpoint).await["with_timestamps"], true);
+
+    let endpoint = StreamMusicDetailed::new(body)
+        .with_query(query.clone())
+        .with_timestamps(true);
+    assert_endpoint(
+        &endpoint,
+        Method::POST,
+        "https://api.elevenlabs.io/v1/music/detailed/stream?output_format=mp3_44100_128",
     );
     assert_eq!(json_body(&endpoint).await["with_timestamps"], true);
 
@@ -398,20 +418,86 @@ async fn music_endpoints_encode_paths_and_bodies() {
 }
 
 #[tokio::test]
+async fn music_finetune_endpoints_encode_paths_queries_and_bodies() {
+    let list = ListMusicFinetunes::new().with_query(
+        MusicFinetuneQuery::default()
+            .with_cursor("next/page")
+            .with_page_size(25)
+            .with_visibility(MusicFinetuneVisibility::Workspace)
+            .with_created_by(MusicFinetuneCreatedBy::CurrentUser)
+            .with_sort(MusicFinetuneSort::Name)
+            .with_sort_direction(MusicFinetuneSortDirection::Ascending),
+    );
+    assert_endpoint(
+        &list,
+        Method::GET,
+        "https://api.elevenlabs.io/v1/music/finetunes?cursor=next%2Fpage&page_size=25&visibility=workspace&created_by=self&sort=name&sort_direction=asc",
+    );
+
+    let create = CreateMusicFinetune::new(
+        CreateMusicFinetuneBody::new("My Finetune", "electronic")
+            .add_file(FilePart::bytes(
+                "track.wav",
+                "audio/wav",
+                b"fake audio".to_vec(),
+            ))
+            .with_tags(["electronic", "ambient"])
+            .with_visibility(WritableMusicFinetuneVisibility::Workspace)
+            .with_model(MusicModel::MusicV2),
+    );
+    assert_endpoint(
+        &create,
+        Method::POST,
+        "https://api.elevenlabs.io/v1/music/finetunes",
+    );
+    assert_multipart_body(&create).await;
+
+    assert_endpoint(
+        &GetMusicFinetune::new("finetune/id"),
+        Method::GET,
+        "https://api.elevenlabs.io/v1/music/finetunes/finetune%2Fid",
+    );
+
+    let update = UpdateMusicFinetune::new(
+        "finetune/id",
+        UpdateMusicFinetuneBody::default()
+            .with_name("Renamed Finetune")
+            .with_visibility(WritableMusicFinetuneVisibility::Private),
+    );
+    assert_endpoint(
+        &update,
+        Method::PATCH,
+        "https://api.elevenlabs.io/v1/music/finetunes/finetune%2Fid",
+    );
+    assert_eq!(json_body(&update).await["name"], "Renamed Finetune");
+    assert_eq!(json_body(&update).await["visibility"], "private");
+
+    assert_endpoint(
+        &DeleteMusicFinetune::new("finetune/id"),
+        Method::DELETE,
+        "https://api.elevenlabs.io/v1/music/finetunes/finetune%2Fid",
+    );
+}
+
+#[tokio::test]
 async fn speech_to_text_exposes_query_and_builds_multipart_body() {
     let file = TempFile::new("mp3", b"fake audio");
     let body = CreateTranscriptBody::new(SpeechToTextModel::ScribeV2, file.path_str())
         .with_language_code("en")
         .with_tag_audio_events(true)
+        .with_multichannel_output_style(MultichannelOutputStyle::Separate)
         .with_timestamps_granularity(Granularity::Character)
         .with_additional_formats(vec![AdditionalFormat::new_srt()]);
-    let endpoint = CreateTranscript::new(body)
-        .with_query(CreateTranscriptQuery::default().enable_logging(false));
+    let endpoint = CreateTranscript::new(body).with_query(
+        CreateTranscriptQuery::default()
+            .enable_logging(false)
+            .with_token("batch/token"),
+    );
 
     assert_endpoint(
         &endpoint,
         Method::POST,
-        "https://api.elevenlabs.io/v1/speech-to-text?enable_logging=false",
+        "https://api.elevenlabs.io/v1/speech-to-text?enable_logging=false&token=batch%2Ftoken",
     );
     assert_multipart_body(&endpoint).await;
 
@@ -443,6 +529,12 @@ async fn speech_core_gap_endpoints_match_openapi_shape() {
         &token,
         Method::POST,
         "https://api.elevenlabs.io/v1/single-use-token/realtime_scribe",
+    );
+
+    assert_endpoint(
+        &CreateSingleUseToken::new(SingleUseTokenType::batch_scribe()),
+        Method::POST,
+        "https://api.elevenlabs.io/v1/single-use-token/batch_scribe",
     );
 
     let forced_audio = TempFile::new("mp3", b"fake audio");
@@ -725,12 +817,13 @@ async fn admin_endpoint_shapes_cover_voices_history_and_dictionaries() {
     let dictionaries = GetDictionaries::with_query(
         GetDictionariesQuery::default()
             .with_page_size(5)
-            .with_sort("created_at_unix"),
+            .with_sort("created_at_unix")
+            .with_include_archived(true),
     );
     assert_endpoint(
         &dictionaries,
         Method::GET,
-        "https://api.elevenlabs.io/v1/pronunciation-dictionaries?page_size=5&sort=created_at_unix",
+        "https://api.elevenlabs.io/v1/pronunciation-dictionaries?page_size=5&sort=created_at_unix&include_archived=true",
     );
 
     let add_rules = AddRules::new(
@@ -935,6 +1028,23 @@ async fn pvc_voice_endpoints_encode_paths_and_bodies() {
 
 #[tokio::test]
 async fn workspace_service_account_and_analytics_endpoints_encode_paths_and_bodies() {
+    let create_account = CreateServiceAccount::new(
+        CreateServiceAccountBody::new("analytics-service").with_default_sharing_groups([
+            DefaultSharingGroup::new("group/id", DefaultSharingPermission::Editor),
+        ]),
+    );
+    assert_endpoint(
+        &create_account,
+        Method::POST,
+        "https://api.elevenlabs.io/v1/service-accounts",
+    );
+    let body = json_body(&create_account).await;
+    assert_eq!(body["name"], "analytics-service");
+    assert_eq!(
+        body["default_sharing_groups"][0]["permission_level"],
+        "editor"
+    );
+
     assert_endpoint(
         &GetServiceAccounts,
         Method::GET,
@@ -973,6 +1083,13 @@ async fn workspace_service_account_and_analytics_endpoints_encode_paths_and_bodi
         "https://api.elevenlabs.io/v1/service-accounts/sa%2Fid/api-keys/key%2Fid",
     );
     assert_eq!(json_body(&edit_key).await["is_enabled"], false);
+
+    let clear_limit = EditServiceAccountApiKey::new(
+        "sa/id",
+        "key/id",
+        EditServiceAccountApiKeyBody::default().clear_character_limit(),
+    );
+    assert_eq!(json_body(&clear_limit).await["character_limit"], "clear");
 
     assert_endpoint(
         &DeleteServiceAccountApiKey::new("sa/id", "key/id"),
@@ -1019,6 +1136,12 @@ async fn workspace_service_account_and_analytics_endpoints_encode_paths_and_bodi
 
 #[tokio::test]
 async fn workspace_endpoints_encode_paths_and_bodies() {
+    assert_endpoint(
+        &GetWorkspaceMembers,
+        Method::GET,
+        "https://api.elevenlabs.io/v1/workspace/members",
+    );
+
     let audit_logs = GetWorkspaceAuditLogs::default().with_query(
         AuditLogsQuery::default()
             .with_limit(50)
@@ -1061,7 +1184,8 @@ async fn workspace_endpoints_encode_paths_and_bodies() {
     let invite = InviteUsers::new(
         InviteUsersBody::new(["a@example.com", "b@example.com"])
             .with_seat_type(SeatType::WorkspaceMember)
-            .with_group_ids(["group_1"]),
+            .with_group_ids(["group_1"])
+            .with_usage_limit(10_000),
     );
     assert_endpoint(
         &invite,
@@ -1071,6 +1195,7 @@ async fn workspace_endpoints_encode_paths_and_bodies() {
     let body = json_body(&invite).await;
     assert_eq!(body["emails"][0], "a@example.com");
     assert_eq!(body["seat_type"], "workspace_member");
+    assert_eq!(body["usage_limit"], 10_000);
 
     let webhooks = GetWorkspaceWebhooks::default().with_include_usages(true);
     assert_endpoint(
@@ -1097,7 +1222,9 @@ async fn workspace_endpoints_encode_paths_and_bodies() {
 
     let update_webhook = UpdateWorkspaceWebhook::new(
         "webhook/id",
-        UpdateWorkspaceWebhookBody::new("My Webhook", true).with_retry_enabled(true),
+        UpdateWorkspaceWebhookBody::new("My Webhook", true)
+            .with_retry_enabled(true)
+            .with_events(["speech_to_text_transcription"]),
     );
     assert_endpoint(
         &update_webhook,
@@ -1105,6 +1232,10 @@ async fn workspace_endpoints_encode_paths_and_bodies() {
         "https://api.elevenlabs.io/v1/workspace/webhooks/webhook%2Fid",
     );
     assert_eq!(json_body(&update_webhook).await["is_disabled"], true);
+    assert_eq!(
+        json_body(&update_webhook).await["events"][0],
+        "speech_to_text_transcription"
+    );
 
     let delete_webhook = DeleteWorkspaceWebhook::new("webhook/id");
     assert_endpoint(
@@ -1116,6 +1247,24 @@ async fn workspace_endpoints_encode_paths_and_bodies() {
 
 #[tokio::test]
 async fn convai_conversation_management_endpoints_encode_paths_and_bodies() {
+    assert_endpoint(
+        &ResolveConversation::new("agent/id", "customer/order"),
+        Method::GET,
+        "https://api.elevenlabs.io/v1/convai/conversations/resolve?agent_id=agent%2Fid&reference=customer%2Forder",
+    );
+
+    let rag_query = QueryAgentKnowledgeBase::new("agent/id", "How do I reset my password?")
+        .with_branch_id("branch/id");
+    assert_endpoint(
+        &rag_query,
+        Method::POST,
+        "https://api.elevenlabs.io/v1/convai/agents/agent%2Fid/knowledge-base/rag-query?branch_id=branch%2Fid",
+    );
+    assert_eq!(
+        json_body(&rag_query).await["query"],
+        "How do I reset my password?"
+    );
+
     let smart = SmartSearchConversationMessages::new("hello").with_query(
         ConversationMessagesSearchQuery::new("hello")
             .with_agent_id("agent/id")
@@ -1188,6 +1337,7 @@ async fn convai_conversation_management_endpoints_encode_paths_and_bodies() {
 }
 
 #[tokio::test]
+#[allow(deprecated)]
 async fn convai_agent_management_endpoints_encode_paths_and_bodies() {
     assert_endpoint(
         &GetAgentSummaries::new(["a_1", "a_2"]),
@@ -1617,7 +1767,9 @@ async fn convai_mcp_server_endpoints_encode_paths_and_bodies() {
 
     let update = UpdateMcpServerConfig::new(
         "mcp/id",
-        McpServerConfigUpdate::default().with_response_timeout_secs(45),
+        McpServerConfigUpdate::default()
+            .with_response_timeout_secs(45)
+            .with_interruption_mode(ToolInterruptionMode::DisableDuringTool),
     );
     assert_endpoint(
         &update,
@@ -1625,6 +1777,10 @@ async fn convai_mcp_server_endpoints_encode_paths_and_bodies() {
         "https://api.elevenlabs.io/v1/convai/mcp-servers/mcp%2Fid",
     );
     assert_eq!(json_body(&update).await["response_timeout_secs"], 45);
+    assert_eq!(
+        json_body(&update).await["interruption_mode"],
+        "disable_during_tool"
+    );
 
     let policy = UpdateMcpApprovalPolicy::new("mcp/id", McpApprovalPolicy::AutoApproveAll);
     assert_endpoint(
@@ -1660,17 +1816,22 @@ async fn convai_mcp_server_endpoints_encode_paths_and_bodies() {
 
     let create_cfg = CreateMcpToolConfig::new(
         "mcp/id",
-        McpToolConfigCreate::new("search")
-            .with_overrides(McpToolConfigOverrides::default().with_response_timeout_secs(30)),
-    );
+        McpToolConfigCreate::new("search").with_overrides(
+            McpToolConfigOverrides::default()
+                .with_response_timeout_secs(30)
+                .with_interruption_mode(ToolInterruptionMode::DisableDuringToolAndTurn),
+        ),
+    )
+    .with_environment("production/us");
     assert_endpoint(
         &create_cfg,
         Method::POST,
-        "https://api.elevenlabs.io/v1/convai/mcp-servers/mcp%2Fid/tool-configs",
+        "https://api.elevenlabs.io/v1/convai/mcp-servers/mcp%2Fid/tool-configs?environment=production%2Fus",
     );
     let body = json_body(&create_cfg).await;
     assert_eq!(body["tool_name"], "search");
     assert_eq!(body["response_timeout_secs"], 30);
+    assert_eq!(body["interruption_mode"], "disable_during_tool_and_turn");
 
     assert_endpoint(
         &GetMcpToolConfig::new("mcp/id", "search"),
@@ -1682,10 +1843,12 @@ async fn convai_mcp_server_endpoints_encode_paths_and_bodies() {
         &UpdateMcpToolConfig::new(
             "mcp/id",
             "search",
-            McpToolConfigOverrides::default().with_disable_interruptions(true),
-        ),
+            McpToolConfigOverrides::default()
+                .with_interruption_mode(ToolInterruptionMode::Allow),
+        )
+        .with_environment("staging"),
         Method::PATCH,
-        "https://api.elevenlabs.io/v1/convai/mcp-servers/mcp%2Fid/tool-configs/search",
+        "https://api.elevenlabs.io/v1/convai/mcp-servers/mcp%2Fid/tool-configs/search?environment=staging",
     );
 
     assert_endpoint(
@@ -1695,9 +1858,9 @@ async fn convai_mcp_server_endpoints_encode_paths_and_bodies() {
     );
 
     assert_endpoint(
-        &ListMcpTools::new("mcp/id"),
+        &ListMcpTools::new("mcp/id").with_environment("production"),
         Method::GET,
-        "https://api.elevenlabs.io/v1/convai/mcp-servers/mcp%2Fid/tools",
+        "https://api.elevenlabs.io/v1/convai/mcp-servers/mcp%2Fid/tools?environment=production",
     );
 }
 
@@ -2182,11 +2345,11 @@ async fn convai_endpoint_shapes_cover_agents_conversations_tools_and_calls() {
         "https://api.elevenlabs.io/v1/convai/conversations?agent_id=agent%2Fid&page_size=10",
     );
 
-    let get_tool = GetTool::new("tool/id");
+    let get_tool = GetTool::new("tool/id").with_environment("production/us");
     assert_endpoint(
         &get_tool,
         Method::GET,
-        "https://api.elevenlabs.io/v1/convai/tools/tool%2Fid",
+        "https://api.elevenlabs.io/v1/convai/tools/tool%2Fid?environment=production%2Fus",
     );
 
     let tool = CreateTool::new(WebHook::new(

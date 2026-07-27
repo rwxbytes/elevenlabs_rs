@@ -11,6 +11,11 @@ impl SingleUseTokenType {
         Self("realtime_scribe".to_string())
     }
 
+    /// A token for one batch Speech-to-Text request.
+    pub fn batch_scribe() -> Self {
+        Self("batch_scribe".to_string())
+    }
+
     pub fn tts_websocket() -> Self {
         Self("tts_websocket".to_string())
     }

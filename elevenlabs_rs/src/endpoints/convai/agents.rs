@@ -503,6 +503,9 @@ pub enum LLM {
     Claude3_5SonnetV1,
     Claude3Haiku,
     GrokBeta,
+    Gpt5_6Sol,
+    Gpt5_6Terra,
+    Gpt5_6Luna,
     CustomLLM,
     Other(String),
 }
@@ -529,6 +532,9 @@ impl LLM {
             Self::Claude3_5SonnetV1 => "claude-3-5-sonnet-v1",
             Self::Claude3Haiku => "claude-3-haiku",
             Self::GrokBeta => "grok-beta",
+            Self::Gpt5_6Sol => "gpt-5.6-sol",
+            Self::Gpt5_6Terra => "gpt-5.6-terra",
+            Self::Gpt5_6Luna => "gpt-5.6-luna",
             Self::CustomLLM => "custom-llm",
             Self::Other(llm) => llm,
         }
@@ -553,6 +559,9 @@ impl From<String> for LLM {
             "claude-3-5-sonnet-v1" => Self::Claude3_5SonnetV1,
             "claude-3-haiku" => Self::Claude3Haiku,
             "grok-beta" => Self::GrokBeta,
+            "gpt-5.6-sol" => Self::Gpt5_6Sol,
+            "gpt-5.6-terra" => Self::Gpt5_6Terra,
+            "gpt-5.6-luna" => Self::Gpt5_6Luna,
             "custom-llm" => Self::CustomLLM,
             _ => Self::Other(llm),
         }
@@ -1294,6 +1303,9 @@ impl TTSConfig {
         self
     }
 
+    #[deprecated(
+        note = "ElevenLabs no longer uses optimize_streaming_latency; the field is a no-op"
+    )]
     pub fn with_optimize_streaming_latency(mut self, optimize_streaming_latency: u32) -> Self {
         self.optimize_streaming_latency = Some(optimize_streaming_latency);
         self
@@ -1653,6 +1665,19 @@ pub struct Criterion {
     pub conversation_goal_prompt: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub use_knowledge_base: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub scoring_mode: Option<EvaluationScoringMode>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub max_score: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub score_instructions: Option<String>,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum EvaluationScoringMode {
+    Binary,
+    NumericUniform,
 }
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
@@ -1670,6 +1695,9 @@ impl Criterion {
             r#type: CriterionType::Prompt,
             conversation_goal_prompt: conversation_goal_prompt.into(),
             use_knowledge_base: None,
+            scoring_mode: None,
+            max_score: None,
+            score_instructions: None,
         }
     }
 
@@ -1680,6 +1708,21 @@ impl Criterion {
 
     pub fn with_use_knowledge_base(mut self, use_knowledge_base: bool) -> Self {
         self.use_knowledge_base = Some(use_knowledge_base);
+        self
+    }
+
+    pub fn with_scoring_mode(mut self, scoring_mode: EvaluationScoringMode) -> Self {
+        self.scoring_mode = Some(scoring_mode);
+        self
+    }
+
+    pub fn with_max_score(mut self, max_score: u32) -> Self {
+        self.max_score = Some(max_score);
+        self
+    }
+
+    pub fn with_score_instructions(mut self, score_instructions: impl Into<String>) -> Self {
+        self.score_instructions = Some(score_instructions.into());
         self
     }
 }

@@ -45,13 +45,41 @@ impl InviteUser {
 #[derive(Debug, Clone, Serialize)]
 pub struct InviteUserBody {
     email: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    seat_type: Option<SeatType>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    group_ids: Option<Vec<String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    usage_limit: Option<u64>,
 }
 
 impl InviteUserBody {
     pub fn new(email: &str) -> Self {
         Self {
             email: email.to_string(),
+            seat_type: None,
+            group_ids: None,
+            usage_limit: None,
         }
+    }
+
+    pub fn with_seat_type(mut self, seat_type: SeatType) -> Self {
+        self.seat_type = Some(seat_type);
+        self
+    }
+
+    pub fn with_group_ids<I, S>(mut self, group_ids: I) -> Self
+    where
+        I: IntoIterator<Item = S>,
+        S: Into<String>,
+    {
+        self.group_ids = Some(group_ids.into_iter().map(Into::into).collect());
+        self
+    }
+
+    pub fn with_usage_limit(mut self, usage_limit: u64) -> Self {
+        self.usage_limit = Some(usage_limit);
+        self
     }
 }
 
@@ -815,7 +843,7 @@ impl ElevenLabsEndpoint for RemoveMemberFromGroup {
 // =============================================================================
 
 /// Seat type assigned to invited workspace members.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Deserialize, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum SeatType {
     WorkspaceAdmin,
@@ -845,6 +873,8 @@ pub struct InviteUsersBody {
     seat_type: Option<SeatType>,
     #[serde(skip_serializing_if = "Option::is_none")]
     group_ids: Option<Vec<String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    usage_limit: Option<u64>,
 }
 
 impl InviteUsersBody {
@@ -857,6 +887,7 @@ impl InviteUsersBody {
             emails: emails.into_iter().map(Into::into).collect(),
             seat_type: None,
             group_ids: None,
+            usage_limit: None,
         }
     }
 
@@ -871,6 +902,11 @@ impl InviteUsersBody {
         S: Into<String>,
     {
         self.group_ids = Some(group_ids.into_iter().map(Into::into).collect());
+        self
+    }
+
+    pub fn with_usage_limit(mut self, usage_limit: u64) -> Self {
+        self.usage_limit = Some(usage_limit);
         self
     }
 }
@@ -951,6 +987,7 @@ pub struct WorkspaceWebhook {
     pub usage: Option<Vec<WorkspaceWebhookUsage>>,
     pub most_recent_failure_error_code: Option<i64>,
     pub most_recent_failure_timestamp: Option<i64>,
+    pub events: Option<Vec<String>>,
 }
 
 /// A product configured to trigger a workspace webhook.
@@ -1076,6 +1113,8 @@ pub struct UpdateWorkspaceWebhookBody {
     retry_enabled: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
     request_headers: Option<HashMap<String, String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    events: Option<Vec<String>>,
 }
 
 impl UpdateWorkspaceWebhookBody {
@@ -1085,6 +1124,7 @@ impl UpdateWorkspaceWebhookBody {
             name: name.into(),
             retry_enabled: None,
             request_headers: None,
+            events: None,
         }
     }
 
@@ -1096,6 +1136,15 @@ impl UpdateWorkspaceWebhookBody {
 
     pub fn with_request_headers(mut self, request_headers: HashMap<String, String>) -> Self {
         self.request_headers = Some(request_headers);
+        self
+    }
+
+    pub fn with_events<I, S>(mut self, events: I) -> Self
+    where
+        I: IntoIterator<Item = S>,
+        S: Into<String>,
+    {
+        self.events = Some(events.into_iter().map(Into::into).collect());
         self
     }
 }
@@ -1158,6 +1207,124 @@ impl ElevenLabsEndpoint for DeleteWorkspaceWebhook {
     async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
         Ok(resp.json().await?)
     }
+}
+
+// =============================================================================
+// GET /v1/workspace/members — Get Workspace Members
+// =============================================================================
+
+/// Lists human members of the current workspace.
+#[derive(Clone, Debug, Default)]
+pub struct GetWorkspaceMembers;
+
+impl crate::endpoints::sealed::Sealed for GetWorkspaceMembers {}
+
+impl ElevenLabsEndpoint for GetWorkspaceMembers {
+    const PATH: &'static str = "/v1/workspace/members";
+
+    const METHOD: Method = Method::GET;
+
+    type ResponseBody = Vec<WorkspaceMember>;
+
+    async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
+        Ok(resp.json().await?)
+    }
+}
+
+#[derive(Clone, Debug, Deserialize)]
+pub struct WorkspaceMember {
+    pub user_id: String,
+    pub email: String,
+    pub first_name: Option<String>,
+    pub seat_type: Option<SeatType>,
+    pub is_owner: bool,
+    pub is_locked: bool,
+}
+
+// =============================================================================
+// POST /v1/service-accounts — Create Workspace Service Account
+// =============================================================================
+
+#[derive(Clone, Debug)]
+pub struct CreateServiceAccount {
+    body: CreateServiceAccountBody,
+}
+
+impl CreateServiceAccount {
+    pub fn new(body: CreateServiceAccountBody) -> Self {
+        Self { body }
+    }
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct CreateServiceAccountBody {
+    name: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    default_sharing_groups: Option<Vec<DefaultSharingGroup>>,
+}
+
+impl CreateServiceAccountBody {
+    pub fn new(name: impl Into<String>) -> Self {
+        Self {
+            name: name.into(),
+            default_sharing_groups: None,
+        }
+    }
+
+    pub fn with_default_sharing_groups(
+        mut self,
+        groups: impl IntoIterator<Item = DefaultSharingGroup>,
+    ) -> Self {
+        self.default_sharing_groups = Some(groups.into_iter().collect());
+        self
+    }
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct DefaultSharingGroup {
+    pub group_id: String,
+    pub permission_level: DefaultSharingPermission,
+}
+
+impl DefaultSharingGroup {
+    pub fn new(group_id: impl Into<String>, permission_level: DefaultSharingPermission) -> Self {
+        Self {
+            group_id: group_id.into(),
+            permission_level,
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum DefaultSharingPermission {
+    Admin,
+    Editor,
+    Viewer,
+}
+
+impl crate::endpoints::sealed::Sealed for CreateServiceAccount {}
+
+impl ElevenLabsEndpoint for CreateServiceAccount {
+    const PATH: &'static str = "/v1/service-accounts";
+
+    const METHOD: Method = Method::POST;
+
+    type ResponseBody = CreateServiceAccountResponse;
+
+    async fn request_body(&self) -> Result<RequestBody> {
+        Ok(RequestBody::Json(serde_json::to_value(&self.body)?))
+    }
+
+    async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
+        Ok(resp.json().await?)
+    }
+}
+
+#[derive(Clone, Debug, Deserialize)]
+pub struct CreateServiceAccountResponse {
+    #[serde(rename = "service-account-user-id")]
+    pub service_account_user_id: String,
 }
 
 // =============================================================================
@@ -1383,7 +1550,7 @@ pub struct EditServiceAccountApiKeyBody {
     #[serde(skip_serializing_if = "Option::is_none")]
     permissions: Option<Vec<String>>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    character_limit: Option<u64>,
+    character_limit: Option<CharacterLimitUpdate>,
     #[serde(skip_serializing_if = "Option::is_none")]
     allowed_ips: Option<Vec<String>>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -1411,7 +1578,13 @@ impl EditServiceAccountApiKeyBody {
     }
 
     pub fn with_character_limit(mut self, character_limit: u64) -> Self {
-        self.character_limit = Some(character_limit);
+        self.character_limit = Some(CharacterLimitUpdate::Limit(character_limit));
+        self
+    }
+
+    /// Remove the monthly character limit from the API key.
+    pub fn clear_character_limit(mut self) -> Self {
+        self.character_limit = Some(CharacterLimitUpdate::Directive("clear"));
         self
     }
 
@@ -1428,6 +1601,13 @@ impl EditServiceAccountApiKeyBody {
         self.third_party_disable_allowed = Some(third_party_disable_allowed);
         self
     }
+}
+
+#[derive(Clone, Debug, Serialize)]
+#[serde(untagged)]
+enum CharacterLimitUpdate {
+    Limit(u64),
+    Directive(&'static str),
 }
 
 impl crate::endpoints::sealed::Sealed for EditServiceAccountApiKey {}

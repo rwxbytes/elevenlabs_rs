@@ -1,6 +1,6 @@
 # OpenAPI coverage
 
-Generated: 2026-06-28T20:42:48Z
+Generated: 2026-07-26T22:00:16Z
 Snapshot: `openapi/elevenlabs-openapi.paths.json`
 Source: https://api.elevenlabs.io/openapi.json
 
@@ -8,10 +8,10 @@ Source: https://api.elevenlabs.io/openapi.json
 
 | Metric | Value |
 | --- | ---: |
-| OpenAPI operations | 320 |
-| Implemented method/path pairs | 269 |
-| Coverage | 84.1% |
-| Local endpoint constants checked | 269 |
+| OpenAPI operations | 352 |
+| Implemented method/path pairs | 279 |
+| Coverage | 79.3% |
+| Local endpoint constants checked | 279 |
 | Local constants missing from snapshot | 0 |
 
 ## Coverage By Path
@@ -21,15 +21,15 @@ Source: https://api.elevenlabs.io/openapi.json
 | /docs | 0 | 1 | 0.0% |
 | /v1/audio-isolation | 4 | 4 | 100.0% |
 | /v1/audio-native | 4 | 4 | 100.0% |
-| /v1/convai | 148 | 149 | 99.3% |
-| /v1/dubbing | 6 | 20 | 30.0% |
+| /v1/convai | 150 | 158 | 94.9% |
+| /v1/dubbing | 6 | 35 | 17.1% |
 | /v1/forced-alignment | 1 | 1 | 100.0% |
 | /v1/history | 5 | 5 | 100.0% |
 | /v1/models | 1 | 1 | 100.0% |
-| /v1/music | 7 | 7 | 100.0% |
+| /v1/music | 13 | 13 | 100.0% |
 | /v1/productions | 0 | 11 | 0.0% |
 | /v1/pronunciation-dictionaries | 9 | 9 | 100.0% |
-| /v1/service-accounts | 5 | 5 | 100.0% |
+| /v1/service-accounts | 6 | 6 | 100.0% |
 | /v1/shared-voices | 1 | 1 | 100.0% |
 | /v1/similar-voices | 1 | 1 | 100.0% |
 | /v1/single-use-token | 1 | 1 | 100.0% |
@@ -44,7 +44,7 @@ Source: https://api.elevenlabs.io/openapi.json
 | /v1/usage | 1 | 1 | 100.0% |
 | /v1/user | 2 | 2 | 100.0% |
 | /v1/voices | 24 | 25 | 96.0% |
-| /v1/workspace | 22 | 22 | 100.0% |
+| /v1/workspace | 23 | 23 | 100.0% |
 | /v1/workspaces | 2 | 2 | 100.0% |
 | /v2/voices | 1 | 1 | 100.0% |
 
@@ -54,18 +54,18 @@ All local endpoint method/path constants match the snapshot.
 
 ## Coverage Notes
 
-The official OpenAPI snapshot still includes a few legacy or deprecated
-operations. They remain visible in the generated coverage totals, but they are
-not planned as `0.7.0` typed endpoints unless ElevenLabs reintroduces them as
-current APIs.
+The official OpenAPI snapshot includes legacy or deprecated operations
+that are intentionally excluded from the typed endpoint roadmap:
 
 - `GET /v1/convai/conversation/get_signed_url` is the legacy underscore-path
   signed URL route. The current hyphen-path route,
-  `GET /v1/convai/conversation/get-signed-url`, is already implemented.
-- `GET /v1/voices` is the legacy V1 voice-list route. The crate already exposes
-  the current V2 voice-list variant.
-- Dubbing paths containing `/resource/` are legacy beta-era dubbing resource
-  routes and are intentionally left out of the `0.7.0` typed surface.
+  `GET /v1/convai/conversation/get-signed-url`, is implemented.
+- `GET /v1/voices` is the legacy V1 voice-list route. The crate exposes
+  the current V2 voice-list endpoint.
+- Dubbing paths containing `/resource/` are legacy beta-era routes.
+  The `/v1/dubbing/project` family is the current Dubbing Project API
+  and remains visible below as intentionally deferred work.
+
 
 ## OpenAPI Operations Not Yet Implemented
 
@@ -77,21 +77,36 @@ current APIs.
 
 ### /v1/convai
 
-Note: the missing signed URL operation below is the legacy underscore-path alias.
-The current hyphen-path endpoint is already implemented.
-
 | Method | Path | Summary |
 | --- | --- | --- |
+| `GET` | `/v1/convai/batch-calling/{batch_id}/export` | Export Batch Call Results |
 | `GET` | `/v1/convai/conversation/get_signed_url` | Get Signed Url |
+| `POST` | `/v1/convai/knowledge-base/bulk-delete` | Bulk Delete Knowledge Base Documents |
+| `POST` | `/v1/convai/knowledge-base/dependent-agents` | Get Dependent Agents For Multiple Documents |
+| `GET` | `/v1/convai/knowledge-base/crawl` | List Ongoing And Recent Crawl Jobs Created By A User |
+| `POST` | `/v1/convai/knowledge-base/crawl` | Create Crawl Job |
+| `GET` | `/v1/convai/knowledge-base/crawl/{crawl_job_id}` | Get Crawl Job Details |
+| `POST` | `/v1/convai/knowledge-base/crawl/{crawl_job_id}/cancel` | Cancel Crawl Job |
 
 ### /v1/dubbing
 
-Note: paths containing `/resource/` are legacy beta-era dubbing APIs and are not
-planned for the `0.7.0` typed surface. The non-resource rows remain ordinary
-coverage gaps.
-
 | Method | Path | Summary |
 | --- | --- | --- |
+| `GET` | `/v1/dubbing/project` | List Dubbing Projects |
+| `POST` | `/v1/dubbing/project` | Create Dubbing Project |
+| `DELETE` | `/v1/dubbing/project/{project_id}` | Delete Dubbing Project |
+| `GET` | `/v1/dubbing/project/{project_id}` | Get Dubbing Project |
+| `GET` | `/v1/dubbing/project/{project_id}/language` | List Dubbing Language Targets |
+| `POST` | `/v1/dubbing/project/{project_id}/language` | Create Dubbing Language Target |
+| `DELETE` | `/v1/dubbing/project/{project_id}/language/{language_id}` | Delete Dubbing Language Target |
+| `GET` | `/v1/dubbing/project/{project_id}/language/{language_id}` | Get Dubbing Language Target |
+| `GET` | `/v1/dubbing/project/{project_id}/language/{language_id}/transcript` | Get Dubbing Target Transcript |
+| `POST` | `/v1/dubbing/project/{project_id}/language/{language_id}/transcript/regenerate` | Regenerate Dubbing Target |
+| `PATCH` | `/v1/dubbing/project/{project_id}/language/{language_id}/transcript/segment/{segment_id}` | Update Dubbing Target Transcript Segment |
+| `GET` | `/v1/dubbing/project/{project_id}/transcript` | Get Dubbing Transcript |
+| `POST` | `/v1/dubbing/project/{project_id}/transcript/segment` | Add Dubbing Transcript Segment |
+| `DELETE` | `/v1/dubbing/project/{project_id}/transcript/segment/{segment_id}` | Delete Dubbing Transcript Segment |
+| `PATCH` | `/v1/dubbing/project/{project_id}/transcript/segment/{segment_id}` | Update Dubbing Transcript Segment |
 | `GET` | `/v1/dubbing` | List Dubs |
 | `GET` | `/v1/dubbing/resource/{dubbing_id}` | Get The Dubbing Resource For An Id. |
 | `POST` | `/v1/dubbing/resource/{dubbing_id}/dub` | Dubs All Or Some Segments And Languages |
@@ -152,9 +167,6 @@ coverage gaps.
 | `POST` | `/v1/studio/projects/{project_id}/snapshots/{project_snapshot_id}/stream` | Stream Studio Project Audio |
 
 ### /v1/voices
-
-Note: the missing operation below is the legacy V1 voice-list route. The crate
-already exposes the current V2 voice-list variant.
 
 | Method | Path | Summary |
 | --- | --- | --- |

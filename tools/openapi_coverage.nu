@@ -262,6 +262,24 @@ def render-report [operations: list, local_endpoints: list, snapshot: path] {
         }
     }
 
+    $lines = ($lines | append [
+        ""
+        "## Coverage Notes"
+        ""
+        "The official OpenAPI snapshot includes legacy or deprecated operations"
+        "that are intentionally excluded from the typed endpoint roadmap:"
+        ""
+        "- `GET /v1/convai/conversation/get_signed_url` is the legacy underscore-path"
+        "  signed URL route. The current hyphen-path route,"
+        "  `GET /v1/convai/conversation/get-signed-url`, is implemented."
+        "- `GET /v1/voices` is the legacy V1 voice-list route. The crate exposes"
+        "  the current V2 voice-list endpoint."
+        "- Dubbing paths containing `/resource/` are legacy beta-era routes."
+        "  The `/v1/dubbing/project` family is the current Dubbing Project API"
+        "  and remains visible below as intentionally deferred work."
+        ""
+    ])
+
     $lines = ($lines | append ["" "## OpenAPI Operations Not Yet Implemented" ""])
     if (($missing_openapi | length) == 0) {
         $lines = ($lines | append "Every OpenAPI operation has a local method/path match.")

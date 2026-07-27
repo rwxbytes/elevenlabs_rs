@@ -33,6 +33,15 @@ pub enum McpToolApprovalPolicy {
     RequiresApproval,
 }
 
+/// Controls when an MCP tool may interrupt the agent's speech.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ToolInterruptionMode {
+    Allow,
+    DisableDuringTool,
+    DisableDuringToolAndTurn,
+}
+
 /// An MCP server.
 ///
 /// The `config` payload is large and nested, so it is preserved as raw JSON.
@@ -343,6 +352,8 @@ pub struct McpServerConfigUpdate {
     #[serde(skip_serializing_if = "Option::is_none")]
     disable_interruptions: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    interruption_mode: Option<ToolInterruptionMode>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     secret_token: Option<Value>,
     #[serde(skip_serializing_if = "Option::is_none")]
     auth_connection: Option<Value>,
@@ -369,8 +380,16 @@ impl McpServerConfigUpdate {
         self
     }
 
+    #[deprecated(
+        note = "ElevenLabs deprecated disable_interruptions; use with_interruption_mode instead"
+    )]
     pub fn with_disable_interruptions(mut self, disable_interruptions: bool) -> Self {
         self.disable_interruptions = Some(disable_interruptions);
+        self
+    }
+
+    pub fn with_interruption_mode(mut self, interruption_mode: ToolInterruptionMode) -> Self {
+        self.interruption_mode = Some(interruption_mode);
         self
     }
 
@@ -582,6 +601,7 @@ impl ElevenLabsEndpoint for DeleteMcpToolApproval {
 pub struct CreateMcpToolConfig {
     mcp_server_id: String,
     body: McpToolConfigCreate,
+    environment: Option<String>,
 }
 
 impl CreateMcpToolConfig {
@@ -589,7 +609,13 @@ impl CreateMcpToolConfig {
         Self {
             mcp_server_id: mcp_server_id.into(),
             body,
+            environment: None,
         }
+    }
+
+    pub fn with_environment(mut self, environment: impl Into<String>) -> Self {
+        self.environment = Some(environment.into());
+        self
     }
 }
 
@@ -628,6 +654,12 @@ impl ElevenLabsEndpoint for CreateMcpToolConfig {
         vec![self.mcp_server_id.and_param(PathParam::McpServerID)]
     }
 
+    fn query_params(&self) -> Option<QueryValues> {
+        self.environment
+            .as_ref()
+            .map(|environment| vec![("environment", environment.clone())])
+    }
+
     async fn request_body(&self) -> Result<RequestBody> {
         Ok(RequestBody::Json(serde_json::to_value(&self.body)?))
     }
@@ -646,6 +678,8 @@ pub struct McpToolConfigOverrides {
     #[serde(skip_serializing_if = "Option::is_none")]
     disable_interruptions: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    interruption_mode: Option<ToolInterruptionMode>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     response_timeout_secs: Option<u32>,
     #[serde(skip_serializing_if = "Option::is_none")]
     assignments: Option<Value>,
@@ -661,8 +695,16 @@ impl McpToolConfigOverrides {
         self
     }
 
+    #[deprecated(
+        note = "ElevenLabs deprecated disable_interruptions; use with_interruption_mode instead"
+    )]
     pub fn with_disable_interruptions(mut self, disable_interruptions: bool) -> Self {
         self.disable_interruptions = Some(disable_interruptions);
+        self
+    }
+
+    pub fn with_interruption_mode(mut self, interruption_mode: ToolInterruptionMode) -> Self {
+        self.interruption_mode = Some(interruption_mode);
         self
     }
 
@@ -743,6 +785,7 @@ pub struct UpdateMcpToolConfig {
     mcp_server_id: String,
     tool_name: String,
     body: McpToolConfigOverrides,
+    environment: Option<String>,
 }
 
 impl UpdateMcpToolConfig {
@@ -755,7 +798,13 @@ impl UpdateMcpToolConfig {
             mcp_server_id: mcp_server_id.into(),
             tool_name: tool_name.into(),
             body,
+            environment: None,
         }
+    }
+
+    pub fn with_environment(mut self, environment: impl Into<String>) -> Self {
+        self.environment = Some(environment.into());
+        self
     }
 }
 
@@ -773,6 +822,12 @@ impl ElevenLabsEndpoint for UpdateMcpToolConfig {
             self.mcp_server_id.and_param(PathParam::McpServerID),
             self.tool_name.and_param(PathParam::ToolName),
         ]
+    }
+
+    fn query_params(&self) -> Option<QueryValues> {
+        self.environment
+            .as_ref()
+            .map(|environment| vec![("environment", environment.clone())])
     }
 
     async fn request_body(&self) -> Result<RequestBody> {
@@ -837,13 +892,20 @@ impl ElevenLabsEndpoint for DeleteMcpToolConfig {
 #[derive(Clone, Debug)]
 pub struct ListMcpTools {
     mcp_server_id: String,
+    environment: Option<String>,
 }
 
 impl ListMcpTools {
     pub fn new(mcp_server_id: impl Into<String>) -> Self {
         Self {
             mcp_server_id: mcp_server_id.into(),
+            environment: None,
         }
+    }
+
+    pub fn with_environment(mut self, environment: impl Into<String>) -> Self {
+        self.environment = Some(environment.into());
+        self
     }
 }
 
@@ -858,6 +920,12 @@ impl ElevenLabsEndpoint for ListMcpTools {
 
     fn path_params(&self) -> Vec<(&'static str, &str)> {
         vec![self.mcp_server_id.and_param(PathParam::McpServerID)]
+    }
+
+    fn query_params(&self) -> Option<QueryValues> {
+        self.environment
+            .as_ref()
+            .map(|environment| vec![("environment", environment.clone())])
     }
 
     async fn response_body(self, resp: Response) -> Result<Self::ResponseBody> {
